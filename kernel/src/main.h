@@ -8,9 +8,10 @@
 
 
 
-t_log* cpu_logger;
-t_config* cpu_config;
-char* IP_MEMORIA;
+t_log* kernel_logger;
+t_config* kernel_config;
+char* puerto_escucha;
+
 
 
 #endif

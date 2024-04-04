@@ -8,9 +8,10 @@
 
 
 
-t_log* cpu_logger;
-t_config* cpu_config;
-char* IP_MEMORIA;
+t_log* entradasalida_logger;
+t_config* entradasalida_config;
+char* tipo_interfaz;
+
 
 
 #endif
