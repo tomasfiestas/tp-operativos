@@ -1,5 +1,5 @@
-#ifndef CONEXION_CLIENTE_H
-#define CONEXION_CLIENTE_H
+#ifndef SHARED_H
+#define SHARED_H
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -9,6 +9,8 @@
 #include<netdb.h>
 #include<string.h>
 #include<commons/log.h>
+#include<commons/collections/list.h>
+#include<assert.h>
 
 
 typedef enum
@@ -17,6 +19,7 @@ typedef enum
 	PAQUETE
 }op_code;
 
+// CLIENTE
 typedef struct
 {
 	int size;
@@ -37,6 +40,17 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 void paquete(int conexion);
+
+//SERVIDOR
+extern t_log* logger;
+
+void* recibir_buffer(int*, int);
+
+int iniciar_servidor(char* puerto, t_log* logger);
+int esperar_cliente(int socket_servidor, t_log* logger);
+t_list* recibir_paquete(int);
+
+int recibir_operacion(int);
 
 
 #endif

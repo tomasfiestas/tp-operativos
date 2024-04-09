@@ -1,11 +1,11 @@
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef CPU_H
+#define CPU_H
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <utils/hello.h>
 #include <utils/logging.h>
-#include <utils/conexion_cliente.h>
+#include <utils/shared.h>
 
 
 
@@ -17,6 +17,7 @@ char* PUERTO_ESCUCHA_DISPATCH;
 char* PUERTO_ESCUCHA_INTERRUPT;
 char* CANTIDAD_ENTRADAS_TLB;
 char* ALGORITMO_TLB;
+int conexion_memoria;
 
 
 #endif

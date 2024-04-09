@@ -1,4 +1,4 @@
-#include "main.h"
+#include "memoria.h"
 int main(int argc, char* argv[]) { 
     
     //Inicio el logger de la memoria
@@ -26,12 +26,7 @@ int main(int argc, char* argv[]) {
     log_info(memoria_logger, "Servidor de memoria iniciado en el puerto %s", PUERTO_ESCUCHA);
     int cliente = esperar_cliente(servidor_memoria, memoria_logger);
 
-    
-    
 
-
-
-
-    
 
 }
+

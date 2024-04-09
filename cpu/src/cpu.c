@@ -1,7 +1,7 @@
-#include "main.h"
+#include "cpu.h"
 int main(int argc, char* argv[]) {
 
-    int conexion;
+    
     
 
 
@@ -30,13 +30,17 @@ int main(int argc, char* argv[]) {
 
 
     //Inicio la conexion con la memoria
-    conexion = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
 
-    /* enviar_mensaje("HOLA", conexion); */
+    
 
-       
+    
 
-    liberar_conexion(conexion);
+    //Inicio el servidor de la cpu
+    int servidor__dispatch_cpu = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH,cpu_logger);
+    int servidor_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT,cpu_logger);
+
+    
 
 
 }
