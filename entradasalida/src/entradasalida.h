@@ -18,7 +18,7 @@ char* PUERTO_KERNEL;
 char* IP_MEMORIA;
 char* PUERTO_MEMORIA;
 char* PATH_BASE_DIALFS;
-char* LOCK_SIZE;
+char* BLOCK_SIZE;
 char* BLOCK_COUNT;
 
 

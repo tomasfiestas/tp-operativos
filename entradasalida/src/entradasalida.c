@@ -18,19 +18,24 @@ int main(int argc, char* argv[]) {
     log_info(entradasalida_logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
     PATH_BASE_DIALFS = config_get_string_value(entradasalida_config, "PATH_BASE_DIALFS");
     log_info(entradasalida_logger, "PATH_BASE_DIALFS: %s", PATH_BASE_DIALFS);
-    LOCK_SIZE = config_get_string_value(entradasalida_config, "LOCK_SIZE");
-    log_info(entradasalida_logger, "LOCK_SIZE: %s", LOCK_SIZE);
+    BLOCK_SIZE = config_get_string_value(entradasalida_config, "BLOCK_SIZE");
+    log_info(entradasalida_logger, "LOCK_SIZE: %s", BLOCK_SIZE);
     BLOCK_COUNT = config_get_string_value(entradasalida_config, "BLOCK_COUNT");
     log_info(entradasalida_logger, "BLOCK_COUNT: %s", BLOCK_COUNT);
 
-    //Creo conexion hacia Kernel
+
+    //Creo conexion como cliente hacia Memoria
+    int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    log_info(entradasalida_logger, "Conexion con Memoria establecida");
+
+    //Creo conexion como cliente hacia Kernel
     int conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
+    log_info(entradasalida_logger, "Conexion con Kernel establecida");
 
     
 
-    //Creo conexion hacia Memoria
-    int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    
     
 	
-
+    return EXIT_SUCCESS;
 }

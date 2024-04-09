@@ -23,8 +23,12 @@ int main(int argc, char* argv[]) {
 
     //Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA, memoria_logger);
-    log_info(memoria_logger, "Servidor de memoria iniciado en el puerto %s", PUERTO_ESCUCHA);
-    int cliente = esperar_cliente(servidor_memoria, memoria_logger);
+    log_info(memoria_logger, "Servidor de memoria iniciado , esperando conexion de entrada/salida");
+
+    //Espero conexion de entrada/salida
+    int cliente_entradasalida = esperar_cliente(servidor_memoria, memoria_logger, "Entrada/Salida");
+
+
 
 
 

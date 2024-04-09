@@ -166,12 +166,13 @@ int iniciar_servidor(char* puerto, t_log* logger)
 	return socket_servidor;
 }
 
-int esperar_cliente(int socket_servidor, t_log* logger)
+
+int esperar_cliente(int socket_servidor, t_log* logger,char* mensaje)
 {
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor, NULL, NULL);
 
-	log_info(logger, "Se conecto un cliente!");
+	log_info(logger, "Se conecto el cliente: %s !",mensaje);
 
 	return socket_cliente;
 }

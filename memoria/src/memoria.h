@@ -18,6 +18,7 @@ char* TAM_PAGINA;
 char* PATH_INSTRUCCIONES;
 char* RETARDO_RESPUESTA;
 void iterator(char* value);
+int cliente_entradasalida;
 
 
 
