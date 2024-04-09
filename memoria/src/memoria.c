@@ -23,7 +23,14 @@ int main(int argc, char* argv[]) {
 
     //Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA, memoria_logger);
-    log_info(memoria_logger, "Servidor de memoria iniciado , esperando conexion de entrada/salida");
+    log_info(memoria_logger, "Servidor de memoria iniciado ");
+
+    //Espero conexion de CPU
+    int cliente_cpu = esperar_cliente(servidor_memoria, memoria_logger, "CPU");
+
+    //Espero conexion de Kernel
+    int cliente_kernel = esperar_cliente(servidor_memoria, memoria_logger, "Kernel");
+    
 
     //Espero conexion de entrada/salida
     int cliente_entradasalida = esperar_cliente(servidor_memoria, memoria_logger, "Entrada/Salida");
@@ -31,6 +38,6 @@ int main(int argc, char* argv[]) {
 
 
 
-
+    return EXIT_SUCCESS;
 }
 

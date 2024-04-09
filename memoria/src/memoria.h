@@ -19,6 +19,8 @@ char* PATH_INSTRUCCIONES;
 char* RETARDO_RESPUESTA;
 void iterator(char* value);
 int cliente_entradasalida;
+int cliente_kernel;
+int cliente_cpu;
 
 
 

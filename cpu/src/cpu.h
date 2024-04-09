@@ -18,6 +18,8 @@ char* PUERTO_ESCUCHA_INTERRUPT;
 char* CANTIDAD_ENTRADAS_TLB;
 char* ALGORITMO_TLB;
 int conexion_memoria;
+int cliente_kernel_dispatch;
+int cliente_kernel_interrupt;
 
 
 #endif

@@ -29,18 +29,37 @@ int main(int argc, char* argv[]) {
     log_info(cpu_logger, "________________________________");
 
 
-    //Inicio la conexion con la memoria
-    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-
-    
-
-    
 
     //Inicio el servidor de la cpu
     int servidor__dispatch_cpu = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH,cpu_logger);
     int servidor_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT,cpu_logger);
 
+
+    //Inicio la conexion como cliente con la memoria
+    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    log_info(cpu_logger, "Conexion con memoria establecida");
+
+    //Espero al cliente Kernel - Dispatch
+    int cliente_kernel_dispatch = esperar_cliente(servidor__dispatch_cpu,cpu_logger,"Kernel - Dispatch");
+
+    //Atender los mensajes de Kernel - Dispatch
+
+    //Espero al cliente Kernel - Interrupt
+    int cliente_kernel_interrupt = esperar_cliente(servidor_interrupt,cpu_logger,"Kernel - Interrupt");
+
+    //Atender los mensajes de Kernel - Interrupt
+
+    //Atender los mensajes de Memoria  
+
     
 
 
+
+    
+
+    return EXIT_SUCCESS;
+
+
 }
+
+
