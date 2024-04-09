@@ -24,6 +24,8 @@ char** RECURSOS;
 char** INSTANCIAS_RECURSOS;
 char* GRADO_MULTIPROGRAMACION;
 int servidor;
+int conexion_cpu_dispatch;
+int conexion_cpu_interrupt;
 void iterator(char* value);
 int recibir_cosas(int cliente_fd);
 

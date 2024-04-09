@@ -32,9 +32,11 @@ int main(int argc, char* argv[]) {
 
     
 
-    //Inicio el cliente para cpu
-    int conexion_cpu = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    //Inicio el cliente para cpu dispatch
+    int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
 
+    //Inicio el cliente para cpu interrupt
+    int conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     
     //Inicio el cliente para memoria
     int conexion_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
