@@ -167,14 +167,35 @@ int iniciar_servidor(char* puerto, t_log* logger)
 }
 
 
-int esperar_cliente(int socket_servidor, t_log* logger,char* mensaje)
+void* atender_cliente(void* socket_cliente_ptr)
 {
-	// Aceptamos un nuevo cliente
-	int socket_cliente = accept(socket_servidor, NULL, NULL);
+    int socket_cliente = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
 
-	log_info(logger, "Se conecto el cliente: %s !",mensaje);
+    // manejar aca la conexion con el cliente
+}
 
-	return socket_cliente;
+
+int esperar_cliente(int socket_servidor, t_log *logger, char* mensaje)
+{
+	while (1)
+	{
+		// Aceptamos un nuevo cliente
+		int socket_cliente = accept(socket_servidor, NULL, NULL);
+		log_info(logger, "Se conecto un cliente: %s", mensaje);
+
+		if(socket_cliente == -1)
+		{
+			log_error(logger, "Error al aceptar un cliente");
+			continue;
+		}
+
+		// Crear un hilo para atender al cliente
+        pthread_t thread_id;
+        int* socket_cliente_ptr = malloc(sizeof(int));
+        *socket_cliente_ptr = socket_cliente;
+        pthread_create(&thread_id, NULL, atender_cliente, socket_cliente_ptr);
+	}
 }
 
 int recibir_operacion(int socket_cliente)
