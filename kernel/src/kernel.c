@@ -34,13 +34,16 @@ int main(int argc, char* argv[]) {
 
     //Inicio el cliente para cpu dispatch
     int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    realizar_handshake(3, conexion_cpu_dispatch);
 
     //Inicio el cliente para cpu interrupt
     int conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
+    realizar_handshake(3, conexion_cpu_interrupt);
     
     //Inicio el cliente para memoria
     int conexion_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
-
+    realizar_handshake(3, conexion_memoria);
+    
     //Inicio el servidor
     int servidor = iniciar_servidor(PUERTO_ESCUCHA,kernel_logger);
 

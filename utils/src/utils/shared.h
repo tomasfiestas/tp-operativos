@@ -52,5 +52,13 @@ t_list* recibir_paquete(int);
 
 int recibir_operacion(int);
 
+int esperar_cliente_memoria_entradasalida(int socket_servidor, t_log *logger, char* mensaje); //borrar
+
+
+void realizar_handshake(int numero, int server);
+
+
+void* atender_cliente(int socket_cliente_ptr,t_log* logger);
+
 
 #endif

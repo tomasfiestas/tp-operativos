@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
     //Inicio la conexion como cliente con la memoria
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(cpu_logger, "Conexion con memoria establecida");
+    realizar_handshake(2, conexion_memoria);
 
     //Espero al cliente Kernel - Dispatch
     int cliente_kernel_dispatch = esperar_cliente(servidor__dispatch_cpu,cpu_logger,"Kernel - Dispatch");
@@ -49,7 +50,11 @@ int main(int argc, char* argv[]) {
 
     //Atender los mensajes de Kernel - Interrupt
 
+    
+
     //Atender los mensajes de Memoria  
+
+    
 
     
 

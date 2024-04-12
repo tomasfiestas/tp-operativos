@@ -27,10 +27,14 @@ int main(int argc, char* argv[]) {
     //Creo conexion como cliente hacia Memoria
     int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(entradasalida_logger, "Conexion con Memoria establecida");
+    realizar_handshake(1, conexion_memoria);
 
     //Creo conexion como cliente hacia Kernel
     int conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(entradasalida_logger, "Conexion con Kernel establecida");
+    realizar_handshake(1, conexion_kernel);
+
+    
 
     
 
