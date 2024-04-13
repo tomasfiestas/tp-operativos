@@ -1,4 +1,6 @@
 #include "kernel.h"
+
+extern t_log* logger;
 int main(int argc, char* argv[]) { 
 
     //Inicio el logger del kernel
