@@ -12,11 +12,11 @@
 #include<commons/collections/list.h>
 #include<assert.h>
 
-
 typedef enum
 {
 	MENSAJE,
-	PAQUETE
+	PAQUETE,
+	HANDSHAKE
 }op_code;
 
 // CLIENTE
@@ -32,6 +32,13 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+typedef enum{
+	KERNEL,
+	CPU,
+	MEMORIA,
+	IO
+}module_code;
+
 int crear_conexion_cliente(char* ip, char* puerto);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 t_paquete* crear_paquete(void);
@@ -40,25 +47,16 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 void paquete(int conexion);
-
-//SERVIDOR
-extern t_log* logger;
-
+void iterator(char* value);
 void* recibir_buffer(int*, int);
-
-int iniciar_servidor(char* puerto, t_log* logger);
-int esperar_cliente(int socket_servidor, t_log* logger,char* mensaje);
+int iniciar_servidor(char* puerto);
+int esperar_cliente(int socket_servidor);
 t_list* recibir_paquete(int);
-
 int recibir_operacion(int);
-
-int esperar_cliente_memoria_entradasalida(int socket_servidor, t_log *logger, char* mensaje); //borrar
-
-
-void realizar_handshake(int numero, int server);
-
-
-void* atender_cliente(int socket_cliente_ptr,t_log* logger);
+void realizar_handshake(module_code module, int server);
+void handle_handshake(module_code module);
+void* atender_cliente(void* socket_cliente_ptr);
+void recibir_mensaje(int socket_cliente);
 
 
 #endif

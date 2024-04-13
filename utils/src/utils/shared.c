@@ -1,5 +1,7 @@
 #include "shared.h"
 
+t_log* logger = NULL;
+
 //CLIENTE
 int crear_conexion_cliente(char *ip, char* puerto)
 {
@@ -137,7 +139,7 @@ void liberar_conexion(int socket_cliente)
 
 //SERVIDOR
 
-int iniciar_servidor(char* puerto, t_log* logger)
+int iniciar_servidor(char* puerto)
 {
 	
 	int socket_servidor;
@@ -167,60 +169,38 @@ int iniciar_servidor(char* puerto, t_log* logger)
 }
 
 
-void* atender_cliente(int socket_cliente_ptr,t_log* logger)
+void* atender_cliente(void* socket_cliente_ptr)
 {
-    //int socket_cliente = *(int*)socket_cliente_ptr;
-    //free(socket_cliente_ptr);
+    int socket_cliente = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
 
     // manejar aca la conexion con el cliente
 
-	switch (recibir_operacion(socket_cliente_ptr))
-    {
-    case 0: 
-        log_info(logger,"Se reconocio al cliente MEMORIA");
-        break;
-    case 1:
-        log_info(logger,"Se reconocio al cliente ENTRADA/SALIDA");
-        break;
-    case 2:
-        log_info(logger,"Se reconocio al cliente CPU");
-        break;
-    case 3:
-        log_info(logger,"Se reconocio al cliente KERNEL");
-        break;
-    default:
-        //printf("No se pudo reconocer al CLIENTE :%d", socket_cliente);
-        return 0;
-    }
-
-    return 1;
+	module_code handshake = recibir_operacion(socket_cliente);
+    handle_handshake(handshake);
 }
 
 
-int esperar_cliente(int socket_servidor, t_log *logger, char* mensaje)
+int esperar_cliente(int socket_servidor)
 {
 	while (1)
 	{
 		// Aceptamos un nuevo cliente
 		int socket_cliente = accept(socket_servidor, NULL, NULL);
-		log_info(logger, "Se conecto un cliente: %s", mensaje);
+		log_info(logger, "Se conecto un cliente");
 
-		/*if(socket_cliente == -1)
+		if(socket_cliente == -1)
 		{
 			log_error(logger, "Error al aceptar un cliente");
-			abort;
-		}*/
-		if(socket_cliente != -1){
-
+			abort();
+		} else {
 		// Crear un hilo para atender al cliente
         pthread_t thread_id;
         int* socket_cliente_ptr = malloc(sizeof(int));
         *socket_cliente_ptr = socket_cliente;
-        pthread_create(&thread_id, NULL, atender_cliente(socket_cliente,logger), socket_cliente_ptr);
+        pthread_create(&thread_id, NULL, atender_cliente, socket_cliente_ptr);
 		pthread_detach(thread_id);
-		
 		}
-		
 	}
 }
 
@@ -247,7 +227,7 @@ void* recibir_buffer(int* size, int socket_cliente)
 	return buffer;
 }
 
-void recibir_mensaje(int socket_cliente, t_log* logger)
+void recibir_mensaje(int socket_cliente)
 {
 	int size;
 	char* buffer = recibir_buffer(&size, socket_cliente);
@@ -277,44 +257,39 @@ t_list* recibir_paquete(int socket_cliente)
 	return valores;
 }
 
-int esperar_cliente_memoria_entradasalida(int socket_servidor, t_log *logger, char* mensaje)
-{
-	//while (1)
-	//{
-		// Aceptamos un nuevo cliente
-		int socket_cliente = accept(socket_servidor, NULL, NULL);
-		log_info(logger, "Se conecto un cliente: %s", mensaje);
-
-		/*if(socket_cliente == -1)
-		{
-			log_error(logger, "Error al aceptar un cliente");
-			abort;
-		}*/
-		if(socket_cliente != -1){
-
-		// Crear un hilo para atender al cliente
-        pthread_t thread_id;
-        int* socket_cliente_ptr = malloc(sizeof(int));
-        *socket_cliente_ptr = socket_cliente;
-        pthread_create(&thread_id, NULL, atender_cliente, socket_cliente_ptr);
-		pthread_detach(thread_id);
-		}
-	//}
-}
-
-
-void realizar_handshake(int numero, int server){
+void realizar_handshake(module_code module, int server){
     int *handshake = malloc(sizeof(int));
     if (handshake == NULL) {
         perror("Failed to allocate memory for handshake");
         return;
     }
 
-    *handshake = numero;
+    *handshake = module;
     ssize_t bytes_sent = send(server, handshake, sizeof(int), 0);
     if (bytes_sent == -1) {
         perror("Failed to send handshake");
     }
 
     free(handshake);
+}
+
+void handle_handshake(module_code module) {
+	switch(module) {
+		case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			abort();
+			break;
+	}
 }
