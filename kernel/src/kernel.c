@@ -49,11 +49,52 @@ int main(int argc, char* argv[]) {
     //Inicio el servidor
     int servidor = iniciar_servidor(PUERTO_ESCUCHA);
 
+    
     //Espero a los clientes
-    int clientes = esperar_cliente(servidor); 
+    int cliente_entradasalida2 = esperar_cliente(servidor); 
+
+    //Atiendo mensajes de Entrada/Salida
+    pthread_t hilo_entradasalida;
+    //int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
+    //*socket_cliente_kernel_ptr = cliente_kernel;
+    pthread_create(&hilo_entradasalida2, NULL,atender_entradasalida, NULL);
+    log_info(logger, "Atendiendo mensajes de Entrada/Salida");
+    pthread_join(hilo_entradasalida2,NULL);
+
+    
+    
+    
+
 
 
     return EXIT_SUCCESS;
+}
+
+void atender_entradasalida(){
+    //int cliente_entradasalida = *(int*)socket_cliente_ptr;
+    //free(socket_cliente_ptr);
+    bool control_key = 1;
+    while (control_key){
+        int cod_op = recibir_operacion(cliente_entradasalida2);
+        switch (cod_op){
+            case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			abort();
+			break;
+        }
+    }
 }
 
 

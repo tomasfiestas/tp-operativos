@@ -29,6 +29,159 @@ int main(int argc, char *argv[])
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
     log_info(logger, "Servidor de memoria iniciado ");
 
-    esperar_cliente(servidor_memoria);
+    //Espero conexion de CPU
+    int cliente_cpu = esperar_cliente(servidor_memoria);
+
+    //Atiendo mensajes de CPU
+    /*pthread_t hilo_cpu;
+    //int* socket_cliente_cpu_ptr = malloc(sizeof(int));
+    //*socket_cliente_cpu_ptr = cliente_cpu;
+    pthread_create(&hilo_cpu, NULL, atender_cpu, NULL);
+    pthread_detach(hilo_cpu);
+    log_info(logger, "Atendiendo mensajes de CPU");*/
+
+    bool control_key = 1;
+   while (control_key){
+    module_code handshake = recibir_operacion(cliente_cpu);    
+	switch(handshake) {
+		case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			control_key = 0;
+			break;
+	}   } 
+    
+    
+
+    //Espero conexion de kernel
+    int cliente_kernel = esperar_cliente(servidor_memoria);
+
+    //Atiendo mensajes de Kernel
+    pthread_t hilo_kernel;
+    //int* socket_cliente_kernel_ptr = malloc(sizeof(int));
+    //*socket_cliente_kernel_ptr = cliente_kernel;
+    pthread_create(&hilo_kernel, NULL, atender_cpu, &cliente_kernel);
+    pthread_detach(hilo_kernel);
+    log_info(logger, "Atendiendo mensajes de Kernel"); 
+
+    
+
+    //Espero conexion de entrada/salida
+    int cliente_entradasalida = esperar_cliente(servidor_memoria);   
+
+    //Atiendo mensajes de Entrada/Salida
+    pthread_t hilo_entradasalida;
+    //int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
+    //*socket_cliente_kernel_ptr = cliente_kernel;
+    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida, NULL);
+    log_info(logger, "Atendiendo mensajes de Entrada/Salida");
+    pthread_join(hilo_entradasalida);
+    
+
+    
+    
+
+   
+
+   
+
+     
+
+
 
 }
+
+void atender_cpu() {
+    //int cliente_cpu = *(int*)socket_cliente_ptr;
+    //free(socket_cliente_ptr);
+    bool control_key = 1;
+   while (control_key){
+    module_code handshake = recibir_operacion(cliente_cpu);    
+	switch(handshake) {
+		case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			control_key = 0;
+			break;
+	}   } 
+}
+
+void atender_kernel(){
+    //int cliente_kernel = *(int*)socket_cliente_ptr;
+    //free(socket_cliente_ptr);
+
+    module_code handshake = recibir_operacion(cliente_kernel);
+    bool control_key = 1;
+    while (control_key){
+        int cod_op = recibir_operacion(cliente_kernel);
+        switch (cod_op){
+            case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			abort();
+			break;
+        }
+    }
+}
+
+void atender_entradasalida(){
+    //int cliente_entradasalida = *(int*)socket_cliente_ptr;
+    //free(socket_cliente_ptr);
+    bool control_key = 1;
+    while (control_key){
+        int cod_op = recibir_operacion(cliente_entradasalida);
+        switch (cod_op){
+            case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			abort();
+			break;
+        }
+    }
+}
+
+

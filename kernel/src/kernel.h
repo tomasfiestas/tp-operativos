@@ -28,9 +28,10 @@ int conexion_cpu_dispatch;
 int conexion_cpu_interrupt;
 void iterator(char* value);
 int recibir_cosas(int cliente_fd);
+int cliente_entradasalida;
 
 
-
+void atender_entradasalida();
 
 
 #endif
