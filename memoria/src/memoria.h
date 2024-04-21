@@ -23,9 +23,9 @@ int cliente_entradasalida;
 int cliente_kernel;
 int cliente_cpu;
 
-void atender_cpu();
-void atender_kernel();
-void atender_entradasalida();
+void atender_cpu(void* socket_cliente_ptr);
+void atender_entradasalida(void* socket_cliente_ptr);
+void atender_kernel(void* socket_cliente_ptr);
 
 
 

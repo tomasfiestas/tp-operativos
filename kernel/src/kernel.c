@@ -36,30 +36,34 @@ int main(int argc, char* argv[]) {
 
     //Inicio el cliente para cpu dispatch
     int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    
     realizar_handshake(KERNEL, conexion_cpu_dispatch);
+    log_info(logger,"Handshake con CPU realizado");
 
     //Inicio el cliente para cpu interrupt
     int conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     realizar_handshake(KERNEL, conexion_cpu_interrupt);
-    
+    log_info(logger,"Handshake con CPU realizado");
+
     //Inicio el cliente para memoria
     int conexion_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
     realizar_handshake(KERNEL, conexion_memoria);
-    
+    log_info(logger,"Handshake con Memoria realizado");
     //Inicio el servidor
     int servidor = iniciar_servidor(PUERTO_ESCUCHA);
 
     
     //Espero a los clientes
-    int cliente_entradasalida2 = esperar_cliente(servidor); 
+    int cliente_entradasalida = esperar_cliente(servidor); 
+    
 
     //Atiendo mensajes de Entrada/Salida
     pthread_t hilo_entradasalida;
-    //int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
-    //*socket_cliente_kernel_ptr = cliente_kernel;
-    pthread_create(&hilo_entradasalida2, NULL,atender_entradasalida, NULL);
+    int* socket_cliente_entradasalida2_ptr = malloc(sizeof(int));
+    *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
+    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(logger, "Atendiendo mensajes de Entrada/Salida");
-    pthread_join(hilo_entradasalida2,NULL);
+    pthread_join(hilo_entradasalida);
 
     
     
@@ -70,13 +74,13 @@ int main(int argc, char* argv[]) {
     return EXIT_SUCCESS;
 }
 
-void atender_entradasalida(){
-    //int cliente_entradasalida = *(int*)socket_cliente_ptr;
-    //free(socket_cliente_ptr);
+void atender_entradasalida2(void* socket_cliente_ptr){
+    int cliente_entradasalida2 = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-        int cod_op = recibir_operacion(cliente_entradasalida2);
-        switch (cod_op){
+        module_code handshake = recibir_operacion(cliente_entradasalida2);
+        switch (handshake){
             case KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
@@ -91,7 +95,7 @@ void atender_entradasalida(){
 			break;
 		default:
 			log_error(logger, "No se reconoce el handshake");
-			abort();
+			control_key = 0;
 			break;
         }
     }

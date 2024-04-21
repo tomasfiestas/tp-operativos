@@ -2,6 +2,8 @@
 
 extern t_log* logger;
 
+
+
 int main(int argc, char *argv[])
 {
 
@@ -30,61 +32,35 @@ int main(int argc, char *argv[])
     log_info(logger, "Servidor de memoria iniciado ");
 
     //Espero conexion de CPU
-    int cliente_cpu = esperar_cliente(servidor_memoria);
-
+    int cliente_cpu = esperar_cliente(servidor_memoria); 
     //Atiendo mensajes de CPU
-    /*pthread_t hilo_cpu;
-    //int* socket_cliente_cpu_ptr = malloc(sizeof(int));
-    //*socket_cliente_cpu_ptr = cliente_cpu;
-    pthread_create(&hilo_cpu, NULL, atender_cpu, NULL);
+    pthread_t hilo_cpu;
+    int* socket_cliente_cpu_ptr = malloc(sizeof(int));
+    *socket_cliente_cpu_ptr = cliente_cpu;
+    pthread_create(&hilo_cpu, NULL, atender_cpu, socket_cliente_cpu_ptr);
     pthread_detach(hilo_cpu);
-    log_info(logger, "Atendiendo mensajes de CPU");*/
-
-    bool control_key = 1;
-   while (control_key){
-    module_code handshake = recibir_operacion(cliente_cpu);    
-	switch(handshake) {
-		case KERNEL:
-			log_info(logger, "Se conecto el Kernel");
-			break;
-		case CPU:
-			log_info(logger, "Se conecto el CPU");
-			break;
-		case MEMORIA:
-			log_info(logger, "Se conecto la Memoria");
-			break;
-		case IO:
-			log_info(logger, "Se conecto el IO");
-			break;
-		default:
-			log_error(logger, "No se reconoce el handshake");
-			control_key = 0;
-			break;
-	}   } 
-    
+    log_info(logger, "Atendiendo mensajes de CPU");   
     
 
     //Espero conexion de kernel
-    int cliente_kernel = esperar_cliente(servidor_memoria);
+    int cliente_kernel = esperar_cliente(servidor_memoria);   
 
     //Atiendo mensajes de Kernel
     pthread_t hilo_kernel;
-    //int* socket_cliente_kernel_ptr = malloc(sizeof(int));
-    //*socket_cliente_kernel_ptr = cliente_kernel;
-    pthread_create(&hilo_kernel, NULL, atender_cpu, &cliente_kernel);
+    int* socket_cliente_kernel_ptr = malloc(sizeof(int));
+    *socket_cliente_kernel_ptr = cliente_kernel;
+    pthread_create(&hilo_kernel, NULL, atender_kernel, socket_cliente_kernel_ptr);
     pthread_detach(hilo_kernel);
     log_info(logger, "Atendiendo mensajes de Kernel"); 
-
-    
 
     //Espero conexion de entrada/salida
     int cliente_entradasalida = esperar_cliente(servidor_memoria);   
 
     //Atiendo mensajes de Entrada/Salida
     pthread_t hilo_entradasalida;
-    //int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
-    //*socket_cliente_kernel_ptr = cliente_kernel;
-    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida, NULL);
+    int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
+    *socket_cliente_entradasalida_ptr = cliente_entradasalida;
+    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida, socket_cliente_entradasalida_ptr);
     log_info(logger, "Atendiendo mensajes de Entrada/Salida");
     pthread_join(hilo_entradasalida);
     
@@ -101,13 +77,12 @@ int main(int argc, char *argv[])
 
 
 }
-
-void atender_cpu() {
-    //int cliente_cpu = *(int*)socket_cliente_ptr;
-    //free(socket_cliente_ptr);
+void atender_cpu(void* socket_cliente_ptr) {
+    int cliente = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
     bool control_key = 1;
    while (control_key){
-    module_code handshake = recibir_operacion(cliente_cpu);    
+    module_code handshake = recibir_operacion(cliente);    
 	switch(handshake) {
 		case KERNEL:
 			log_info(logger, "Se conecto el Kernel");
@@ -128,15 +103,14 @@ void atender_cpu() {
 	}   } 
 }
 
-void atender_kernel(){
-    //int cliente_kernel = *(int*)socket_cliente_ptr;
-    //free(socket_cliente_ptr);
-
-    module_code handshake = recibir_operacion(cliente_kernel);
+void atender_kernel(void* socket_cliente_ptr){
+    int cliente_k = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
+    
     bool control_key = 1;
     while (control_key){
-        int cod_op = recibir_operacion(cliente_kernel);
-        switch (cod_op){
+        module_code handshake = recibir_operacion(cliente_k);   
+        switch (handshake){
             case KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
@@ -151,19 +125,19 @@ void atender_kernel(){
 			break;
 		default:
 			log_error(logger, "No se reconoce el handshake");
-			abort();
+			control_key = 0;
 			break;
         }
     }
 }
 
-void atender_entradasalida(){
-    //int cliente_entradasalida = *(int*)socket_cliente_ptr;
-    //free(socket_cliente_ptr);
+void atender_entradasalida(void* socket_cliente_ptr){
+    int cliente_es = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);    
     bool control_key = 1;
     while (control_key){
-        int cod_op = recibir_operacion(cliente_entradasalida);
-        switch (cod_op){
+        module_code handshake = recibir_operacion(cliente_es);
+        switch (handshake){
             case KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
@@ -178,7 +152,7 @@ void atender_entradasalida(){
 			break;
 		default:
 			log_error(logger, "No se reconoce el handshake");
-			abort();
+			control_key = 0;
 			break;
         }
     }

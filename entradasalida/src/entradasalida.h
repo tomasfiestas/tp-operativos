@@ -21,6 +21,6 @@ char* PATH_BASE_DIALFS;
 char* BLOCK_SIZE;
 char* BLOCK_COUNT;
 
-
+void atender_mensajes_memoria(void* socket_cliente_ptr);
 
 #endif

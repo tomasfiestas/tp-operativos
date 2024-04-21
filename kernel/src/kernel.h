@@ -31,7 +31,7 @@ int recibir_cosas(int cliente_fd);
 int cliente_entradasalida;
 
 
-void atender_entradasalida();
+void atender_entradasalida2(void* socket_cliente_ptr);
 
 
 #endif
