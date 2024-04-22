@@ -32,8 +32,7 @@ int main(int argc, char* argv[]) {
     log_info(logger, "GRADO_MULTIPROGRAMACION %s", GRADO_MULTIPROGRAMACION);
     
 
-    
-
+   
     //Inicio el cliente para cpu dispatch
     int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
     
@@ -55,6 +54,8 @@ int main(int argc, char* argv[]) {
     
     //Espero a los clientes
     int cliente_entradasalida = esperar_cliente(servidor); 
+
+    
     
 
     //Atiendo mensajes de Entrada/Salida
@@ -63,8 +64,11 @@ int main(int argc, char* argv[]) {
     *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(logger, "Atendiendo mensajes de Entrada/Salida");
-    pthread_join(hilo_entradasalida);
+    
+    //Leer consola
+    leer_consola();
 
+    pthread_join(hilo_entradasalida);
     
     
     

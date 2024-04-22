@@ -12,6 +12,18 @@
 #include<commons/collections/list.h>
 #include<assert.h>
 
+typedef enum {
+	EJECUTAR_SCRIPT,
+    INICIAR_PROCESO,
+    FINALIZAR_PROCESO,
+    DETENER_PLANIFICACION,
+    INICIAR_PLANIFICACION,
+    MULTIPROGRAMACION,
+    PROCESO_ESTADO,
+	ERROR,
+	EXIT
+} t_mensajes_consola;
+
 typedef enum
 {
 	MENSAJE,

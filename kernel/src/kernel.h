@@ -8,6 +8,7 @@
 /* #include <utils/conexion_servidor.h>
 #include <utils/conexion_cliente.h> */
 #include <utils/shared.h>
+#include <consola.h>
 
 void iterator(char* value);
 t_log* kernel_logger;

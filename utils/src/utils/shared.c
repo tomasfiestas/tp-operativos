@@ -181,27 +181,7 @@ void* atender_cliente(void* socket_cliente_ptr)
 }
 
 
-/*int esperar_cliente(int socket_servidor)
-{
-	
-		// Aceptamos un nuevo cliente
-		int socket_cliente = accept(socket_servidor, NULL, NULL);
-		log_info(logger, "Se conecto un cliente");
 
-		if(socket_cliente == -1)
-		{
-			log_error(logger, "Error al aceptar un cliente");
-			abort();
-		} else {
-		// Crear un hilo para atender al cliente
-        pthread_t thread_id;
-        int* socket_cliente_ptr = malloc(sizeof(int));
-        *socket_cliente_ptr = socket_cliente;
-        pthread_create(&thread_id, NULL, atender_cliente, socket_cliente_ptr);
-		pthread_detach(thread_id);
-		}
-	
-}*/
 
 int esperar_cliente(int socket_servidor)
 {
@@ -214,13 +194,6 @@ int esperar_cliente(int socket_servidor)
 		{
 			log_error(logger, "Error al aceptar un cliente");
 			abort();
-		} else {
-		/*// Crear un hilo para atender al cliente
-        pthread_t thread_id;
-        int* socket_cliente_ptr = malloc(sizeof(int));
-        *socket_cliente_ptr = socket_cliente;
-        pthread_create(&thread_id, NULL, atender_cliente, socket_cliente_ptr);
-		pthread_detach(thread_id);*/
 		}
 
 		return socket_cliente;
