@@ -8,6 +8,7 @@
 /* #include <utils/conexion_servidor.h>
 #include <utils/conexion_cliente.h> */
 #include <utils/shared.h>
+#include <consola.h>
 
 void iterator(char* value);
 t_log* kernel_logger;
@@ -28,9 +29,10 @@ int conexion_cpu_dispatch;
 int conexion_cpu_interrupt;
 void iterator(char* value);
 int recibir_cosas(int cliente_fd);
+int cliente_entradasalida;
 
 
-
+void atender_entradasalida2(void* socket_cliente_ptr);
 
 
 #endif

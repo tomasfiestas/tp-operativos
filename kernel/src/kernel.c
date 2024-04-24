@@ -32,28 +32,77 @@ int main(int argc, char* argv[]) {
     log_info(logger, "GRADO_MULTIPROGRAMACION %s", GRADO_MULTIPROGRAMACION);
     
 
-    
-
+   
     //Inicio el cliente para cpu dispatch
     int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    
     realizar_handshake(KERNEL, conexion_cpu_dispatch);
+    log_info(logger,"Handshake con CPU realizado");
 
     //Inicio el cliente para cpu interrupt
     int conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     realizar_handshake(KERNEL, conexion_cpu_interrupt);
-    
+    log_info(logger,"Handshake con CPU realizado");
+
     //Inicio el cliente para memoria
     int conexion_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
     realizar_handshake(KERNEL, conexion_memoria);
-    
+    log_info(logger,"Handshake con Memoria realizado");
     //Inicio el servidor
     int servidor = iniciar_servidor(PUERTO_ESCUCHA);
 
+    
     //Espero a los clientes
-    int clientes = esperar_cliente(servidor); 
+    int cliente_entradasalida = esperar_cliente(servidor); 
+
+    
+    
+
+    //Atiendo mensajes de Entrada/Salida
+    pthread_t hilo_entradasalida;
+    int* socket_cliente_entradasalida2_ptr = malloc(sizeof(int));
+    *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
+    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
+    log_info(logger, "Atendiendo mensajes de Entrada/Salida");
+    
+    //Leer consola
+    leer_consola();
+
+    pthread_join(hilo_entradasalida);
+    
+    
+    
+
 
 
     return EXIT_SUCCESS;
+}
+
+void atender_entradasalida2(void* socket_cliente_ptr){
+    int cliente_entradasalida2 = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
+    bool control_key = 1;
+    while (control_key){
+        module_code handshake = recibir_operacion(cliente_entradasalida2);
+        switch (handshake){
+            case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			control_key = 0;
+			break;
+        }
+    }
 }
 
 

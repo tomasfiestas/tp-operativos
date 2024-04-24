@@ -6,6 +6,7 @@
 #include <utils/hello.h>
 #include <utils/logging.h>
 #include <utils/shared.h>
+#include <sys/socket.h>
 
 
 
@@ -21,6 +22,10 @@ void iterator(char* value);
 int cliente_entradasalida;
 int cliente_kernel;
 int cliente_cpu;
+
+void atender_cpu(void* socket_cliente_ptr);
+void atender_entradasalida(void* socket_cliente_ptr);
+void atender_kernel(void* socket_cliente_ptr);
 
 
 

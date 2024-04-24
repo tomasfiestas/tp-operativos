@@ -28,12 +28,26 @@ int main(int argc, char* argv[]) {
     //Creo conexion como cliente hacia Memoria
     int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(logger, "Conexion con Memoria establecida");
-    realizar_handshake(IO, conexion_memoria);
+    
+    
 
     //Creo conexion como cliente hacia Kernel
     int conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
-    log_info(logger, "Conexion con Kernel establecida");
+    log_info(logger, "Conexion con Kernel establecida");   
+    
     realizar_handshake(IO, conexion_kernel);
+    realizar_handshake(IO, conexion_memoria);
+
+    pthread_t hilo_memoria;
+    int* socket_cliente_memoria_ptr = malloc(sizeof(int));
+    *socket_cliente_memoria_ptr = conexion_kernel;
+    pthread_create(&hilo_memoria, NULL,atender_mensajes_memoria, socket_cliente_memoria_ptr);
+    log_info(logger, "Esperando mensajes de Memoria");
+    pthread_join(hilo_memoria);
+
+
+
+    
 
     
 
@@ -43,4 +57,31 @@ int main(int argc, char* argv[]) {
     
 	
     return EXIT_SUCCESS;
+}
+
+void atender_mensajes_memoria(void* socket_cliente_ptr){
+    int cliente_kernel2 = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
+    bool control_key = 1;
+    while (control_key){
+        module_code handshake = recibir_operacion(cliente_kernel2);
+        switch (handshake){
+            case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			control_key = 0;
+			break;
+        }
+    }
 }

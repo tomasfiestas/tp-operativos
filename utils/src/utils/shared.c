@@ -181,10 +181,11 @@ void* atender_cliente(void* socket_cliente_ptr)
 }
 
 
+
+
 int esperar_cliente(int socket_servidor)
 {
-	while (1)
-	{
+	
 		// Aceptamos un nuevo cliente
 		int socket_cliente = accept(socket_servidor, NULL, NULL);
 		log_info(logger, "Se conecto un cliente");
@@ -193,15 +194,10 @@ int esperar_cliente(int socket_servidor)
 		{
 			log_error(logger, "Error al aceptar un cliente");
 			abort();
-		} else {
-		// Crear un hilo para atender al cliente
-        pthread_t thread_id;
-        int* socket_cliente_ptr = malloc(sizeof(int));
-        *socket_cliente_ptr = socket_cliente;
-        pthread_create(&thread_id, NULL, atender_cliente, socket_cliente_ptr);
-		pthread_detach(thread_id);
 		}
-	}
+
+		return socket_cliente;
+	
 }
 
 int recibir_operacion(int socket_cliente)
@@ -260,14 +256,14 @@ t_list* recibir_paquete(int socket_cliente)
 void realizar_handshake(module_code module, int server){
     int *handshake = malloc(sizeof(int));
     if (handshake == NULL) {
-        perror("Failed to allocate memory for handshake");
+        log_info(logger,"Failed to allocate memory for handshake");
         return;
     }
 
     *handshake = module;
     ssize_t bytes_sent = send(server, handshake, sizeof(int), 0);
     if (bytes_sent == -1) {
-        perror("Failed to send handshake");
+        log_info(logger,"Failed to send handshake");
     }
 
     free(handshake);

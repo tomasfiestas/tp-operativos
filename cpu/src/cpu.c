@@ -32,19 +32,39 @@ int main(int argc, char* argv[]) {
 
     //Inicio la conexion como cliente con la memoria
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-    realizar_handshake(CPU, conexion_memoria);
-    log_info(logger, "Conexion con memoria establecida");
-
+    log_info(logger, "Conexion con memoria establecida");  
+    
+    realizar_handshake(CPU,conexion_memoria);
+    log_info(logger, "Handshake con Memoria realizado");
+    
     //Espero al cliente Kernel - Dispatch
-    int cliente_kernel_dispatch = esperar_cliente(servidor_dispatch);
+    int cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 
+    //Atender los mensajes de Kernel - Dispatch
+    pthread_t hilo_kernel_dispatch;
+    int* socket_cliente_kernel_disptach_ptr = malloc(sizeof(int));
+    *socket_cliente_kernel_disptach_ptr = cliente_kernel_dispatch;
+    pthread_create(&hilo_kernel_dispatch, NULL, atender_kernel_dispatch, socket_cliente_kernel_disptach_ptr);
+    pthread_detach(hilo_kernel_dispatch);
+    log_info(logger, "Atendiendo mensajes de Kernel Dispatch");       
 
     //Espero al cliente Kernel - Interrupt
-    int cliente_kernel_interrupt = esperar_cliente(servidor_interrupt);
-
-    //Atender los mensajes de Kernel - Dispatch
+    int cliente_kernel_interrupt = esperar_cliente(servidor_interrupt);    
+    
 
     //Atender los mensajes de Kernel - Interrupt
+    pthread_t hilo_kernel_interrupt;
+    int* socket_cliente_kernel_interrupt_ptr = malloc(sizeof(int));
+    *socket_cliente_kernel_interrupt_ptr = cliente_kernel_interrupt;
+    pthread_create(&hilo_kernel_interrupt, NULL, atender_kernel_interrupt, socket_cliente_kernel_interrupt_ptr);
+    log_info(logger, "Atendiendo mensajes de Kernel Interrupt");
+    pthread_join(hilo_kernel_interrupt);
+    
 
+
+    //realizar_handshake(CPU,conexion_memoria);
+
+    //realizar_handshake(CPU,conexion_memoria);
+    //log_info(logger, "Handshake con Memoria realizado");
     
 
     //Atender los mensajes de Memoria  
@@ -52,6 +72,58 @@ int main(int argc, char* argv[]) {
     return EXIT_SUCCESS;
 
 
+}
+
+void atender_kernel_dispatch(void* socket_cliente_ptr) {
+    int cliente_kd = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
+    bool control_key = 1;
+    while (control_key){
+    module_code handshake = recibir_operacion(cliente_kd);    
+	switch(handshake) {
+		case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			control_key = 0;
+			break;
+	}   } 
+}
+
+void atender_kernel_interrupt(void* socket_cliente_ptr) {
+    int cliente_ki = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);
+    bool control_key = 1;
+    while (control_key){
+    module_code handshake = recibir_operacion(cliente_ki);    
+	switch(handshake) {
+		case KERNEL:
+			log_info(logger, "Se conecto el Kernel");
+			break;
+		case CPU:
+			log_info(logger, "Se conecto el CPU");
+			break;
+		case MEMORIA:
+			log_info(logger, "Se conecto la Memoria");
+			break;
+		case IO:
+			log_info(logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(logger, "No se reconoce el handshake");
+			control_key = 0;
+			break;
+	}   } 
 }
 
 
