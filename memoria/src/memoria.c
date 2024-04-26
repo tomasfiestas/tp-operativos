@@ -30,8 +30,8 @@ int main(int argc, char *argv[])
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
     log_info(logger, "Servidor de memoria iniciado ");
-
-    //Espero conexion de CPU
+    
+     //Espero conexion de CPU
     int cliente_cpu = esperar_cliente(servidor_memoria); 
     //Atiendo mensajes de CPU
     pthread_t hilo_cpu;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     pthread_detach(hilo_cpu);
     log_info(logger, "Atendiendo mensajes de CPU");   
     
-
+    
     //Espero conexion de kernel
     int cliente_kernel = esperar_cliente(servidor_memoria);   
 
@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
     *socket_cliente_kernel_ptr = cliente_kernel;
     pthread_create(&hilo_kernel, NULL, atender_kernel, socket_cliente_kernel_ptr);
     pthread_detach(hilo_kernel);
-    log_info(logger, "Atendiendo mensajes de Kernel"); 
-
+    log_info(logger, "Atendiendo mensajes de Kernel");  
+    
     //Espero conexion de entrada/salida
     int cliente_entradasalida = esperar_cliente(servidor_memoria);   
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     log_info(logger, "Atendiendo mensajes de Entrada/Salida");
     pthread_join(hilo_entradasalida);
     
-
+    
     
     
 
@@ -106,23 +106,21 @@ void atender_cpu(void* socket_cliente_ptr) {
 void atender_kernel(void* socket_cliente_ptr){
     int cliente_k = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
-    
+    t_buffer* buffer;
     bool control_key = 1;
     while (control_key){
-        module_code handshake = recibir_operacion(cliente_k);   
+        //module_code handshake = recibir_operacion(cliente_k);
+        op_code handshake = recibir_operacion(cliente_k);
         switch (handshake){
             case KERNEL:
-			log_info(logger, "Se conecto el Kernel");
+			log_info(logger, "Se conecto el Kdsddernel");
 			break;
-		case CPU:
-			log_info(logger, "Se conecto el CPU");
-			break;
-		case MEMORIA:
-			log_info(logger, "Se conecto la Memoria");
-			break;
-		case IO:
-			log_info(logger, "Se conecto el IO");
-			break;
+		case CREAR_PROCESO_KM:
+			log_info(logger, "Creamos procesos");
+            break;
+        case MEMORIA:
+            log_info(logger, "Se conecto la Memoria");
+            break;
 		default:
 			log_error(logger, "No se reconoce el handshake");
 			control_key = 0;
@@ -143,7 +141,7 @@ void atender_entradasalida(void* socket_cliente_ptr){
 			break;
 		case CPU:
 			log_info(logger, "Se conecto el CPU");
-			break;
+            break;
 		case MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
@@ -159,3 +157,13 @@ void atender_entradasalida(void* socket_cliente_ptr){
 }
 
 
+void atender_crear_proceso(t_buffer* buffer){
+    int pid = extraer_int_del_buffer(buffer);
+    char* path = extraer_string_del_buffer(buffer);   
+    log_info(logger, "PID: %d ,Path: %s",pid, path);
+    printf("%s,%d",pid,path);
+    free(pid);
+    free(path);
+    
+    destruir_buffer(buffer);
+}
