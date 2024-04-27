@@ -25,7 +25,9 @@ int main(int argc, char *argv[])
     RETARDO_RESPUESTA = config_get_string_value(memoria_config, "RETARDO_RESPUESTA");
     log_info(logger, "RETARDO_RESPUESTA: %s", RETARDO_RESPUESTA);
 
-    log_info(logger, "________________");
+    //CHECKPOINT 2: Estas estructuras por ahora no se cargaran.
+    void* memoriaTotal = reservar_memoria();
+    TablaPaginas* tabla = iniciar_tabla_paginas();
 
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
@@ -77,23 +79,24 @@ int main(int argc, char *argv[])
 
 
 }
+
 void atender_cpu(void* socket_cliente_ptr) {
     int cliente = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
     bool control_key = 1;
    while (control_key){
-    module_code handshake = recibir_operacion(cliente);    
-	switch(handshake) {
-		case KERNEL:
+    op_code op_code = recibir_operacion(cliente);    
+	switch(op_code) {
+		case HANDSHAKE_KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
-		case CPU:
+		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
 			break;
-		case MEMORIA:
+		case HANDSHAKE_MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
-		case IO:
+		case HANDSHAKE_ES:
 			log_info(logger, "Se conecto el IO");
 			break;
 		default:
@@ -109,22 +112,18 @@ void atender_kernel(void* socket_cliente_ptr){
     t_buffer* buffer;
     bool control_key = 1;
     while (control_key){
-        //module_code handshake = recibir_operacion(cliente_k);
-        op_code handshake = recibir_operacion(cliente_k);
-        switch (handshake){
-            case KERNEL:
-			log_info(logger, "Se conecto el Kdsddernel");
-			break;
-		case CREAR_PROCESO_KM:
-			log_info(logger, "Creamos procesos");
-            break;
-        case MEMORIA:
-            log_info(logger, "Se conecto la Memoria");
-            break;
-		default:
-			log_error(logger, "No se reconoce el handshake");
-			control_key = 0;
-			break;
+        op_code op_code = recibir_operacion(cliente_k);
+        switch (op_code){
+            case HANDSHAKE_KERNEL:
+			    log_info(logger, "Se conecto el Kdsddernel");
+			    break;
+		    case CREAR_PROCESO_KM:
+			    log_info(logger, "Creamos procesos");
+                break;
+		    default:
+			    log_error(logger, "No se reconoce el handshake");
+			    control_key = 0;
+		    	break;
         }
     }
 }
@@ -134,18 +133,18 @@ void atender_entradasalida(void* socket_cliente_ptr){
     free(socket_cliente_ptr);    
     bool control_key = 1;
     while (control_key){
-        module_code handshake = recibir_operacion(cliente_es);
-        switch (handshake){
-            case KERNEL:
+        op_code op_code = recibir_operacion(cliente_es);
+        switch (op_code){
+            case HANDSHAKE_KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
-		case CPU:
+		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
             break;
-		case MEMORIA:
+		case HANDSHAKE_MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
-		case IO:
+		case HANDSHAKE_ES:
 			log_info(logger, "Se conecto el IO");
 			break;
 		default:
@@ -156,6 +155,59 @@ void atender_entradasalida(void* socket_cliente_ptr){
     }
 }
 
+void parse_file(const char* filePath) {
+    FILE* file = fopen(filePath, "r");
+    if (file == NULL) {
+        log_error(logger, "No se pudo abrir el archivo de instrucciones.");
+        return;
+    }
+
+    char linea[256];
+    while (fgets(linea, sizeof(linea), file) != NULL) {
+        linea[strcspn(linea, "\n")] = 0;
+        InstruccionSerializada instruccion;
+        char* token = strtok(linea, " ");
+        strncpy(instruccion.instruction, token, TAM_MAX_INSTRUCCION);
+        int i = 0;
+        while ((token = strtok(NULL, " ")) != NULL && i < CANT_MAX_PARAMETRO) {
+            strncpy(instruccion.parameters[i], token, TAM_MAX_PARAMETRO);
+            i++;
+        }
+        // Enviar al CPU por ahora... pero como?? no somos clientes de CPU.
+
+    }
+
+    fclose(file);
+}
+
+void* reservar_memoria() {
+    void* totalMemory = malloc(atoi(TAM_MEMORIA));
+    if(totalMemory == NULL) {
+        log_error(logger, "No se pudo reservar la memoria necesaria.");
+        abort();
+    }
+    return totalMemory;
+}
+
+TablaPaginas* iniciar_tabla_paginas() {
+    int cantidad_paginas = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA);
+    TablaPaginas* tabla = malloc(sizeof(TablaPaginas));
+    if (tabla == NULL) {
+        log_error(logger, "No se pudo reservar la memoria para la tabla de paginas.");
+        abort();
+    }
+    tabla->registros = malloc(cantidad_paginas * sizeof(RegistroTablaPaginas));
+    if (tabla->registros == NULL) {
+        log_error(logger, "No se pudo reservar la memoria para los registros de la tabla de paginas.");
+        abort();
+    }
+    tabla->size = cantidad_paginas;
+    for (int i = 0; i < cantidad_paginas; i++) {
+        tabla->registros[i].numeroFrame = i;
+        tabla->registros[i].estaPresente = false;
+    }
+    return tabla;
+}
 
 void atender_crear_proceso(t_buffer* buffer){
     int pid = extraer_int_del_buffer(buffer);
@@ -166,4 +218,6 @@ void atender_crear_proceso(t_buffer* buffer){
     free(path);
     
     destruir_buffer(buffer);
+
+    parse_file(PATH_INSTRUCCIONES);
 }

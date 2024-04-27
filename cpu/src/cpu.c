@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(logger, "Conexion con memoria establecida");  
     
-    realizar_handshake(CPU,conexion_memoria);
+    realizar_handshake(HANDSHAKE_CPU,conexion_memoria);
     log_info(logger, "Handshake con Memoria realizado");
     
     //Espero al cliente Kernel - Dispatch
@@ -79,18 +79,18 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-    module_code handshake = recibir_operacion(cliente_kd);    
-	switch(handshake) {
-		case KERNEL:
+    op_code op_code = recibir_operacion(cliente_kd);    
+	switch(op_code) {
+		case HANDSHAKE_KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
-		case CPU:
+		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
 			break;
-		case MEMORIA:
+		case HANDSHAKE_MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
-		case IO:
+		case HANDSHAKE_ES:
 			log_info(logger, "Se conecto el IO");
 			break;
 		default:
@@ -105,18 +105,18 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-    module_code handshake = recibir_operacion(cliente_ki);    
+    op_code handshake = recibir_operacion(cliente_ki);    
 	switch(handshake) {
-		case KERNEL:
+		case HANDSHAKE_KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
-		case CPU:
+		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
 			break;
-		case MEMORIA:
+		case HANDSHAKE_MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
-		case IO:
+		case HANDSHAKE_ES:
 			log_info(logger, "Se conecto el IO");
 			break;
 		default:

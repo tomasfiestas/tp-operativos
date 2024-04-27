@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
     int conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(logger, "Conexion con Kernel establecida");   
     
-    realizar_handshake(IO, conexion_kernel);
-    realizar_handshake(IO, conexion_memoria);
+    realizar_handshake(HANDSHAKE_ES, conexion_kernel);
+    realizar_handshake(HANDSHAKE_ES, conexion_memoria);
 
     pthread_t hilo_memoria;
     int* socket_cliente_memoria_ptr = malloc(sizeof(int));
@@ -64,18 +64,18 @@ void atender_mensajes_memoria(void* socket_cliente_ptr){
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-        module_code handshake = recibir_operacion(cliente_kernel2);
-        switch (handshake){
-            case KERNEL:
+        op_code op_code = recibir_operacion(cliente_kernel2);
+        switch (op_code){
+            case HANDSHAKE_KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
-		case CPU:
+		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
 			break;
-		case MEMORIA:
+		case HANDSHAKE_MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
-		case IO:
+		case HANDSHAKE_ES:
 			log_info(logger, "Se conecto el IO");
 			break;
 		default:

@@ -28,8 +28,10 @@ typedef enum
 {
 	MENSAJE,
 	PAQUETE,
-	HANDSHAKE,
-
+	HANDSHAKE_KERNEL,
+	HANDSHAKE_CPU,
+	HANDSHAKE_MEMORIA,
+	HANDSHAKE_ES,
 	//KERNEL
 	//Kernel le avisa a memoria que tiene que crear un proceso
 	CREAR_PROCESO_KM
@@ -48,14 +50,6 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-typedef enum{
-	KERNEL,
-	CPU,
-	MEMORIA,
-	IO,
-	//CREAR_PROCESO_KM
-}module_code;
-
 int crear_conexion_cliente(char* ip, char* puerto);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 
@@ -70,9 +64,7 @@ int iniciar_servidor(char* puerto);
 int esperar_cliente(int socket_servidor);
 t_list* recibir_paquete(int);
 int recibir_operacion(int);
-void realizar_handshake(module_code module, int server);
-void handle_handshake(module_code module);
-void* atender_cliente(void* socket_cliente_ptr);
+void realizar_handshake(op_code module, int server);
 void recibir_mensaje(int socket_cliente);
 //t_buffer* crear_buffer();
 
