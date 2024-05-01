@@ -61,15 +61,12 @@ void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 void paquete(int conexion);
 void iterator(char* value);
-//void* recibir_buffer(int*, int);
 int iniciar_servidor(char* puerto);
 int esperar_cliente(int socket_servidor);
 t_list* recibir_paquete(int);
 int recibir_operacion(int);
 void realizar_handshake(op_code module, int server);
 void recibir_mensaje(int socket_cliente);
-//t_buffer* crear_buffer();
-
 
 //Agrego funciones de prueba para enviar y recibir paquetes
 t_buffer* crear_buffer();

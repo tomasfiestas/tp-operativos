@@ -1,14 +1,6 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-/*
-#include <stdlib.h>
-#include <stdio.h>
-#include <utils/hello.h>
-#include <utils/logging.h>
-#include <utils/shared.h>
-#include <consola.h> 
-*/
 #include <gestor_kernel.h>
 
 void iterator(char* value);

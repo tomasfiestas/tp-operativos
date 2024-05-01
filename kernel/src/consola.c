@@ -51,22 +51,10 @@ void leer_consola()
                     printf("EJECUTAR_SCRIPT\n");
                     break;
                 case INICIAR_PROCESO:
-                    //char** args_arr = string_n_split(linea, 2, " ");
-                    //quiero imprimir por pantalla el path del proceso a iniciar
-                    
-
                     //TODO: habría que verificar que siempre pasen el PATH. 
-
                     t_buffer* buffer = crear_buffer();
-                    
-
-                    cargar_string_a_buffer(buffer, argumentos[1]); //PATH
-                    
-                    //buffer = recibir_buffer(servidor);
+                    cargar_string_a_buffer(buffer, argumentos[1]); //PATH     
                     iniciar_proceso(buffer);
-                    //ejecutar_script(buffer);
-                    
-                    
                     break;
                 case FINALIZAR_PROCESO:
                     printf("FINALIZAR_PROCESO\n");
@@ -120,7 +108,6 @@ void iniciar_proceso(t_buffer* buffer){
     destruir_buffer(buffer);
 
     int pid = asignar_pid();
-    //int size_num = atoi(size);
 
     //Le aviso a la memoria que voy a iniciar un proceso [int pid] [char* path] [int size]
     t_buffer* buffer_memoria = crear_buffer();
@@ -129,8 +116,6 @@ void iniciar_proceso(t_buffer* buffer){
     
     t_paquete* paquete_memoria = crear_paquete(CREAR_PROCESO_KM, buffer_memoria);
     enviar_paquete(paquete_memoria, conexion_k_memoria);
-    //destruir_paquete(paquete_memoria);
-
 }
 
 
