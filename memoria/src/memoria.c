@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     //CHECKPOINT 2: Estas estructuras por ahora no se cargaran.
     void* memoriaTotal = reservar_memoria();
-    TablaPaginas* tabla = iniciar_tabla_paginas();
+    TablaPaginas* tabla = iniciar_tabla_paginas(memoriaTotal);
 
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
