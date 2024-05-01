@@ -51,6 +51,6 @@ void atender_entradasalida(void* socket_cliente_ptr);
 void atender_kernel(void* socket_cliente_ptr);
 void* reservar_memoria();
 void parse_file(const char* filePath);
-TablaPaginas* iniciar_tabla_paginas();
+TablaPaginas* iniciar_tabla_paginas(void* memoria);
 
 #endif
