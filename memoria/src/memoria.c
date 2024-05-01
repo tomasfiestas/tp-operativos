@@ -189,18 +189,10 @@ void* reservar_memoria() {
     return totalMemory;
 }
 
-TablaPaginas* iniciar_tabla_paginas() {
+TablaPaginas* iniciar_tabla_paginas(void* memoria) {
     int cantidad_paginas = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA);
-    TablaPaginas* tabla = malloc(sizeof(TablaPaginas));
-    if (tabla == NULL) {
-        log_error(logger, "No se pudo reservar la memoria para la tabla de paginas.");
-        abort();
-    }
-    tabla->registros = malloc(cantidad_paginas * sizeof(RegistroTablaPaginas));
-    if (tabla->registros == NULL) {
-        log_error(logger, "No se pudo reservar la memoria para los registros de la tabla de paginas.");
-        abort();
-    }
+    TablaPaginas* tabla = (TablaPaginas*)memoria;
+    tabla->registros = (RegistroTablaPaginas*)((char*)memoria + sizeof(TablaPaginas));
     tabla->size = cantidad_paginas;
     for (int i = 0; i < cantidad_paginas; i++) {
         tabla->registros[i].numeroFrame = i;
