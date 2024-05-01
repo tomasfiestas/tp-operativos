@@ -93,6 +93,11 @@ int iniciar_servidor(char* puerto)
 	return socket_servidor;
 }
 
+
+
+
+
+
 int esperar_cliente(int socket_servidor)
 {
 	
@@ -139,6 +144,8 @@ void realizar_handshake(op_code module, int server){
 
     free(handshake);
 }
+
+
 
 //AGREGO FUNCIONES DE PRUEBA PARA MANDAR PAQUETES Y CREAR BUFFERS
 

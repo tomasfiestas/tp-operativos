@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     log_info(logger,"Handshake con CPU realizado");
     
     //Inicio el cliente para memoria
-    int conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
+    conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
     realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
     log_info(logger,"Handshake con Memoria realizado");
     //Inicio el servidor
