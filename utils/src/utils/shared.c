@@ -94,16 +94,6 @@ int iniciar_servidor(char* puerto)
 }
 
 
-void* atender_cliente(void* socket_cliente_ptr)
-{
-    int socket_cliente = *(int*)socket_cliente_ptr;
-    free(socket_cliente_ptr);
-
-    // manejar aca la conexion con el cliente
-
-	module_code handshake = recibir_operacion(socket_cliente);
-    handle_handshake(handshake);
-}
 
 
 
@@ -139,7 +129,7 @@ int recibir_operacion(int socket_cliente)
 
 
 
-void realizar_handshake(module_code module, int server){
+void realizar_handshake(op_code module, int server){
     int *handshake = malloc(sizeof(int));
     if (handshake == NULL) {
         log_info(logger,"Failed to allocate memory for handshake");
@@ -155,26 +145,6 @@ void realizar_handshake(module_code module, int server){
     free(handshake);
 }
 
-void handle_handshake(module_code module) {
-	switch(module) {
-		case KERNEL:
-			log_info(logger, "Se conecto el Kernel");
-			break;
-		case CPU:
-			log_info(logger, "Se conecto el CPU");
-			break;
-		case MEMORIA:
-			log_info(logger, "Se conecto la Memoria");
-			break;
-		case IO:
-			log_info(logger, "Se conecto el IO");
-			break;
-		default:
-			log_error(logger, "No se reconoce el handshake");
-			abort();
-			break;
-	}
-}
 
 
 //AGREGO FUNCIONES DE PRUEBA PARA MANDAR PAQUETES Y CREAR BUFFERS
