@@ -27,83 +27,8 @@ int crear_conexion_cliente(char *ip, char* puerto)
 	return socket_cliente;
 }
 
-void* serializar_paquete(t_paquete* paquete, int bytes)
-{
-	void * magic = malloc(bytes);
-	int desplazamiento = 0;
-
-	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
-	desplazamiento+= sizeof(int);
-	memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
-	desplazamiento+= sizeof(int);
-	memcpy(magic + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
-	desplazamiento+= paquete->buffer->size;
-
-	return magic;
-}
-
-void enviar_mensaje(char* mensaje, int socket_cliente)
-{
-	t_paquete* paquete = malloc(sizeof(t_paquete));
-
-	paquete->codigo_operacion = MENSAJE;
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = strlen(mensaje) + 1;
-	paquete->buffer->stream = malloc(paquete->buffer->size);
-	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
-
-	int bytes = paquete->buffer->size + 2*sizeof(int);
-
-	void* a_enviar = serializar_paquete(paquete, bytes);
-
-	send(socket_cliente, a_enviar, bytes, 0);
-
-	free(a_enviar);
-	eliminar_paquete(paquete);
-}
-
-void crear_buffer(t_paquete* paquete)
-{
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = 0;
-	paquete->buffer->stream = NULL;
-}
 
 
-t_paquete* crear_paquete(void)
-{
-	t_paquete* paquete = malloc(sizeof(t_paquete));
-	paquete->codigo_operacion = PAQUETE;
-	crear_buffer(paquete);
-	return paquete;
-}
-
-void paquete(int conexion)
-{
-	// Ahora toca lo divertido!
-	char* leido;
-	t_paquete* paquete = crear_paquete();
-
-	// Leemos y esta vez agregamos las lineas al paquete
-	leido = readline("> ");
-	while(strlen(leido) > 0)
-	{
-		agregar_a_paquete(paquete, leido, strlen(leido) + 1);
-		free(leido);
-		leido = readline("> ");
-	}
-
-
-	// ¡No te olvides de liberar las líneas y el paquete antes de regresar!
-	free(leido);
-
-	//Envio el paquete
-	enviar_paquete(paquete, conexion);
-
-	//Elimino el paquete
-	eliminar_paquete(paquete);
-	
-}
 
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 {
@@ -115,16 +40,16 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 	paquete->buffer->size += tamanio + sizeof(int);
 }
 
-void enviar_paquete(t_paquete* paquete, int socket_cliente)
-{
+
+void enviar_paquete(t_paquete* paquete,int socket_cliente)
+{	void* a_enviar = serializar_paquete(paquete);
 	int bytes = paquete->buffer->size + 2*sizeof(int);
-	void* a_enviar = serializar_paquete(paquete, bytes);
+	
 
 	send(socket_cliente, a_enviar, bytes, 0);
 
 	free(a_enviar);
 }
-
 void eliminar_paquete(t_paquete* paquete)
 {
 	free(paquete->buffer->stream);
@@ -169,16 +94,6 @@ int iniciar_servidor(char* puerto)
 }
 
 
-void* atender_cliente(void* socket_cliente_ptr)
-{
-    int socket_cliente = *(int*)socket_cliente_ptr;
-    free(socket_cliente_ptr);
-
-    // manejar aca la conexion con el cliente
-
-	module_code handshake = recibir_operacion(socket_cliente);
-    handle_handshake(handshake);
-}
 
 
 
@@ -212,48 +127,9 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
-void* recibir_buffer(int* size, int socket_cliente)
-{
-	void * buffer;
 
-	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
-	buffer = malloc(*size);
-	recv(socket_cliente, buffer, *size, MSG_WAITALL);
 
-	return buffer;
-}
-
-void recibir_mensaje(int socket_cliente)
-{
-	int size;
-	char* buffer = recibir_buffer(&size, socket_cliente);
-	log_info(logger, "Me llego el mensaje: %s", buffer);
-	free(buffer);
-}
-
-t_list* recibir_paquete(int socket_cliente)
-{
-	int size;
-	int desplazamiento = 0;
-	void * buffer;
-	t_list* valores = list_create();
-	int tamanio;
-
-	buffer = recibir_buffer(&size, socket_cliente);
-	while(desplazamiento < size)
-	{
-		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
-		desplazamiento+=sizeof(int);
-		char* valor = malloc(tamanio);
-		memcpy(valor, buffer+desplazamiento, tamanio);
-		desplazamiento+=tamanio;
-		list_add(valores, valor);
-	}
-	free(buffer);
-	return valores;
-}
-
-void realizar_handshake(module_code module, int server){
+void realizar_handshake(op_code module, int server){
     int *handshake = malloc(sizeof(int));
     if (handshake == NULL) {
         log_info(logger,"Failed to allocate memory for handshake");
@@ -269,23 +145,131 @@ void realizar_handshake(module_code module, int server){
     free(handshake);
 }
 
-void handle_handshake(module_code module) {
-	switch(module) {
-		case KERNEL:
-			log_info(logger, "Se conecto el Kernel");
-			break;
-		case CPU:
-			log_info(logger, "Se conecto el CPU");
-			break;
-		case MEMORIA:
-			log_info(logger, "Se conecto la Memoria");
-			break;
-		case IO:
-			log_info(logger, "Se conecto el IO");
-			break;
-		default:
-			log_error(logger, "No se reconoce el handshake");
-			abort();
-			break;
-	}
+
+
+//AGREGO FUNCIONES DE PRUEBA PARA MANDAR PAQUETES Y CREAR BUFFERS
+
+t_buffer* crear_buffer(){
+	t_buffer* buffer = malloc(sizeof(t_buffer));
+	buffer->size = 0;
+	buffer->stream = NULL;
+	return buffer;
+}
+void destruir_buffer(t_buffer* buffer){
+    if(buffer->stream != NULL){
+        free(buffer->stream);
+     }    
+    free(buffer);
+}
+
+void cargar_a_buffer(t_buffer* buffer, void* valor, int tamanio){
+    if(buffer -> size == 0){
+        buffer->stream = malloc(sizeof(int) + tamanio);
+        memcpy(buffer->stream, &tamanio, sizeof(int));
+        memcpy(buffer->stream + sizeof(int), valor, tamanio);
+    }
+    else{
+        buffer->stream = realloc(buffer->stream, buffer->size + sizeof(int) + tamanio);
+        memcpy(buffer->stream + buffer->size, &tamanio, sizeof(int));
+        memcpy(buffer->stream + buffer->size + sizeof(int), valor, tamanio);
+    }
+    buffer->size += sizeof(int);
+    buffer->size += tamanio;
+}
+void cargar_int_a_buffer(t_buffer* buffer, int valor){
+    cargar_a_buffer(buffer, &valor, sizeof(int));
+}
+void cargar_string_a_buffer(t_buffer* buffer, char* valor){
+    cargar_a_buffer(buffer, valor, strlen(valor) + 1);
+}
+void* extraer_de_buffer(t_buffer* buffer){
+    if(buffer->size == 0){
+       printf("\n Error al extraer contenido del buffer VACIO\n");
+       exit(EXIT_FAILURE);
+    }
+    if(buffer->size < 0){
+        printf("\n Error al extraer contenido del buffer por tamanio negativo\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int size_buffer;
+    memcpy(&size_buffer, buffer->stream, sizeof(int));
+    void* valor = malloc(size_buffer);
+    memcpy(valor, buffer->stream + sizeof(int), size_buffer);
+
+    int new_size = buffer->size - sizeof(int) - size_buffer;
+    if(new_size == 0){
+        buffer->size = 0;
+        free(buffer->stream);
+        buffer->stream = NULL;
+        return valor;
+    }
+    if(new_size < 0){
+        printf("\n Error al extraer contenido del buffer por tamanio negativo\n");
+        exit(EXIT_FAILURE);
+    }
+    void* nuevo_stream = malloc(new_size);
+    memcpy(nuevo_stream, buffer->stream + sizeof(int) + size_buffer, new_size);
+    free(buffer->stream);
+    buffer->size = new_size;
+    buffer->stream = nuevo_stream;
+
+    return valor;
+}
+
+int extraer_int_del_buffer(t_buffer* buffer){
+    int* entero = extraer_de_buffer(buffer);
+    int valor_int = *entero;
+    free(entero);
+    return valor_int;
+}
+
+char* extraer_string_del_buffer(t_buffer* buffer){
+    char* string = extraer_de_buffer(buffer);
+    return string;
+}
+
+t_buffer* recibir_buffer(int conexion){
+    t_buffer* buffer = malloc(sizeof(t_buffer));
+
+    if(recv(conexion, &(buffer->size), sizeof(int), MSG_WAITALL) > 0){
+        buffer -> stream = malloc(buffer->size);
+        if(recv(conexion, buffer->stream, buffer->size, MSG_WAITALL) > 0){
+            return buffer;
+        }else {
+            printf("Error al recibir el buffer\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else{
+        printf("Error al recibir el tamanio del buffer\n");
+        exit(EXIT_FAILURE);
+    }
+    return buffer;
+}   
+
+t_paquete* crear_paquete(op_code cod_op, t_buffer* buffer){
+    t_paquete* paquete = malloc(sizeof(t_paquete));
+    paquete->codigo_operacion = cod_op;
+    paquete->buffer = buffer;
+    return paquete;
+}
+void destruir_paquete(t_paquete* paquete){
+    destruir_buffer(paquete->buffer);
+    free(paquete);
+}
+
+void* serializar_paquete(t_paquete* paquete){
+	int size = paquete->buffer->size + 2*sizeof(int);
+	void* coso = malloc(size);
+	int desplazamiento = 0;
+
+	memcpy(coso + desplazamiento, &(paquete->codigo_operacion),sizeof(int));
+	desplazamiento += sizeof(int);
+	memcpy(coso + desplazamiento, &(paquete->buffer->size),sizeof(int));
+	desplazamiento += sizeof(int);
+	memcpy(coso + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
+	desplazamiento += paquete->buffer->size;
+
+	return coso;
 }

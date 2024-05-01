@@ -31,26 +31,25 @@ int main(int argc, char* argv[]) {
     GRADO_MULTIPROGRAMACION = config_get_string_value(kernel_config, "GRADO_MULTIPROGRAMACION");
     log_info(logger, "GRADO_MULTIPROGRAMACION %s", GRADO_MULTIPROGRAMACION);
     
-
+    
    
     //Inicio el cliente para cpu dispatch
     int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
     
-    realizar_handshake(KERNEL, conexion_cpu_dispatch);
+    realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_dispatch);
     log_info(logger,"Handshake con CPU realizado");
-
+    
     //Inicio el cliente para cpu interrupt
     int conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
-    realizar_handshake(KERNEL, conexion_cpu_interrupt);
+    realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_interrupt);
     log_info(logger,"Handshake con CPU realizado");
-
+    
     //Inicio el cliente para memoria
-    int conexion_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
-    realizar_handshake(KERNEL, conexion_memoria);
+    conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
+    realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
     log_info(logger,"Handshake con Memoria realizado");
     //Inicio el servidor
     int servidor = iniciar_servidor(PUERTO_ESCUCHA);
-
     
     //Espero a los clientes
     int cliente_entradasalida = esperar_cliente(servidor); 
@@ -83,18 +82,18 @@ void atender_entradasalida2(void* socket_cliente_ptr){
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-        module_code handshake = recibir_operacion(cliente_entradasalida2);
-        switch (handshake){
-            case KERNEL:
+        op_code op_code = recibir_operacion(cliente_entradasalida2);
+        switch (op_code){
+            case HANDSHAKE_KERNEL:
 			log_info(logger, "Se conecto el Kernel");
 			break;
-		case CPU:
+		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
 			break;
-		case MEMORIA:
+		case HANDSHAKE_MEMORIA:
 			log_info(logger, "Se conecto la Memoria");
 			break;
-		case IO:
+		case HANDSHAKE_ES:
 			log_info(logger, "Se conecto el IO");
 			break;
 		default:

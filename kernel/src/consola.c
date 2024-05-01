@@ -1,9 +1,10 @@
 #include "consola.h"
 t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
+    
     if(strcmp(mensaje_consola,"EJECUTAR_SCRIPT") == 0){
         return EJECUTAR_SCRIPT;
     }
-    if(strcmp(mensaje_consola,"INICIAR_PROCESO") == 0){
+    if(strncmp(mensaje_consola,"INICIAR_PROCESO",14) == 0){
         return INICIAR_PROCESO;
     }
     if(strcmp(mensaje_consola,"FINALIZAR_PROCESO") == 0){
@@ -31,21 +32,29 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
 void leer_consola()
 {
 	char *linea;
+    
+    
     while (1) {
         linea = readline(">");
+        
         if (!linea) {
             break;
         }
         if (linea) {
             add_history(linea);
+            char** argumentos = string_split(linea, " ");
             t_mensajes_consola mensaje_consola;
-            mensaje_consola = mensaje_a_consola(linea);
+            mensaje_consola = mensaje_a_consola(argumentos[0]);                            
+
             switch(mensaje_consola){
                 case EJECUTAR_SCRIPT:
                     printf("EJECUTAR_SCRIPT\n");
                     break;
                 case INICIAR_PROCESO:
-                    printf("INICIAR_PROCESO\n");
+                    //TODO: habría que verificar que siempre pasen el PATH. 
+                    t_buffer* buffer = crear_buffer();
+                    cargar_string_a_buffer(buffer, argumentos[1]); //PATH     
+                    iniciar_proceso(buffer);
                     break;
                 case FINALIZAR_PROCESO:
                     printf("FINALIZAR_PROCESO\n");
@@ -75,6 +84,40 @@ void leer_consola()
     }
     
 }
-	
 
 }
+
+
+//REVISAR
+void ejecutar_script(t_buffer* buffer){ 
+    char* script = extraer_string_del_buffer(buffer);
+    printf("El script es: %s\n", script);
+    free(script);
+}
+
+
+
+
+
+void iniciar_proceso(t_buffer* buffer){    
+    char* path = extraer_string_del_buffer(buffer); 
+    printf("El path del proceso a iniciar es: %s\n", path);     
+
+    //VER QUE Mäs AGREGAR
+    
+    destruir_buffer(buffer);
+
+    int pid = asignar_pid();
+
+    //Le aviso a la memoria que voy a iniciar un proceso [int pid] [char* path] [int size]
+    t_buffer* buffer_memoria = crear_buffer();
+    cargar_int_a_buffer(buffer_memoria, pid);
+    cargar_string_a_buffer(buffer_memoria, path);
+    
+    t_paquete* paquete_memoria = crear_paquete(CREAR_PROCESO_KM, buffer_memoria);
+    enviar_paquete(paquete_memoria, conexion_k_memoria);
+}
+
+
+
+
