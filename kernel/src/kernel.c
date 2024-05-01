@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(logger, "Atendiendo mensajes de Entrada/Salida");
-    s
+    
     //Leer consola
     leer_consola();
 
