@@ -12,6 +12,49 @@
 #include<commons/collections/list.h>
 #include<assert.h>
 
+typedef enum{
+	NEW,
+	READY,
+	EXEC,
+	BLOCK,
+	FIN
+} t_estado;
+
+typedef struct{
+	uint8_t AX;
+	uint8_t BX;
+	uint8_t CX;
+	uint8_t DX;
+	uint32_t EAX;
+	uint32_t EBX;
+	uint32_t ECX;
+	uint32_t EDX;
+	uint32_t SI;
+	uint32_t DI;
+} t_registros;
+
+typedef struct{
+	int pid;
+	t_list* instrucciones;
+	int program_counter;
+	t_estado estado;
+	t_registros registros;
+	t_list* tabla_segmentos;
+	double estimado_prox_rafaga;	
+	t_list* tabla_archivos;	
+	int ejecuto;
+} t_pcb;
+
+
+
+
+
+typedef enum{
+	FIFO,
+	VRRN,
+	RR
+} algoritmos;
+
 typedef enum {
 	EJECUTAR_SCRIPT,
     INICIAR_PROCESO,
