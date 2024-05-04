@@ -1,4 +1,5 @@
 #include "memoria.h"
+#include <string.h>
 
 extern t_log* logger;
 
@@ -156,7 +157,7 @@ void atender_entradasalida(void* socket_cliente_ptr){
     }
 }
 
-void parse_file(const char* filePath) {
+void parse_file(const char* filePath, int pid) {
     FILE* file = fopen(filePath, "r");
     if (file == NULL) {
         log_error(logger, "No se pudo abrir el archivo de instrucciones.");
@@ -164,17 +165,31 @@ void parse_file(const char* filePath) {
     }
 
     char linea[256];
+    InstruccionSerializada instrucciones[200];
+    int num_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
-        linea[strcspn(linea, "\n")] = 0;
         InstruccionSerializada instruccion;
         char* token = strtok(linea, " ");
         strncpy(instruccion.instruction, token, TAM_MAX_INSTRUCCION);
         int i = 0;
         while ((token = strtok(NULL, " ")) != NULL && i < CANT_MAX_PARAMETRO) {
+            token[strcspn(token, "\n")] = 0;
             strncpy(instruccion.parameters[i], token, TAM_MAX_PARAMETRO);
             i++;
         }
         // Enviar al CPU por ahora... pero como?? no somos clientes de CPU.
+
+        log_info(logger, "Instruccion: %s %s %s %s %s %s", 
+        instruccion.instruction, instruccion.parameters[0], 
+        instruccion.parameters[1], instruccion.parameters[2], 
+        instruccion.parameters[3], instruccion.parameters[4]);
+
+        instrucciones[num_instrucciones] = instruccion;
+        num_instrucciones++;
+
+        t_buffer buffer = crear_buffer();
+        cargar_int_a_buffer(buffer_memoria, pid);
+        // continuar...
 
     }
 
@@ -204,10 +219,14 @@ TablaPaginas* iniciar_tabla_paginas(void* memoria) {
 
 void atender_crear_proceso(t_buffer* buffer){
     int pid = extraer_int_del_buffer(buffer);
-    char* path = extraer_string_del_buffer(buffer);   
-    log_info(logger, "PID: %d ,Path: %s",pid, path);    
-    free(path);
+    char* filename = extraer_string_del_buffer(buffer);   
+    log_info(logger, "PID: %d ,Filename: %s",pid, filename);    
     destruir_buffer(buffer);
 
-    parse_file(PATH_INSTRUCCIONES);
+    char* path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(filename) + 2);
+    sprintf(path, "%s/%s", PATH_INSTRUCCIONES, filename);
+    free(filename);
+
+    parse_file(path, pid);
+    free(path);
 }
