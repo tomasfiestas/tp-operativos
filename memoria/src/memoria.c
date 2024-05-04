@@ -196,10 +196,12 @@ void parse_file(const char* filePath, int pid) {
     cargar_int_a_buffer(buffer, pid);
     cargar_instrucciones_a_buffer(buffer, instrucciones_a_enviar);
 
-    int pid_del_buffer = extraer_int_del_buffer(buffer);
-    t_instrucciones* instrucciones_del_buffer = extraer_instrucciones_del_buffer(buffer);
-    // continuar...
-
+    // Con este codigo es posible extraer del buffer.
+    // int pid_del_buffer = extraer_int_del_buffer(buffer);
+    // t_instrucciones* instrucciones_del_buffer = extraer_instrucciones_del_buffer(buffer);
+    
+    t_paquete *paquete_cpu = crear_paquete(ENVIAR_INSTRUCCIONES_CPU, buffer);
+    enviar_paquete(paquete_cpu, cliente_cpu);
     fclose(file);
 }
 
