@@ -51,7 +51,7 @@ typedef struct{
 
 typedef enum{
 	FIFO,
-	VRRN,
+	VRR,
 	RR
 } algoritmos;
 

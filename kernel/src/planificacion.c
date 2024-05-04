@@ -1,6 +1,6 @@
 #include "planificacion.h"
 
-void crear_pcb(t_list* lista_instrucciones, int socket_consola){
+void crear_pcb(t_list* lista_instrucciones){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
     int pid = asignar_pid();
 	nuevo_pcb->pid = pid;
@@ -9,23 +9,20 @@ void crear_pcb(t_list* lista_instrucciones, int socket_consola){
 	nuevo_pcb->tabla_archivos = list_create();
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
+
 	inicializar_registros(nuevo_pcb);
+	inicializar_listas();
 
-	//pcb_nuevo = nuevo_pcb;
-
-	
-
-	//nuevo_pcb = pcb_nuevo;
-
-	log_info(kernel_logger, "Se crea el proceso %d en NEW", pid);
-
-	
+	// agrego el nuevo proceso a la lista total_pcbs
 	sem_wait(&sem_total_pcbs);
 	list_add(total_pcbs, nuevo_pcb);
 	sem_post(&sem_total_pcbs);
 
 	agregar_a_new(nuevo_pcb);
+	log_info(kernel_logger, "Nuevo proceso %d en NEW", pid);
 
+	agregar_a_ready(nuevo_pcb);
+	log_info(kernel_logger, "Nuevo proceso %d en NEW", pid);
 	
 }
 
@@ -46,14 +43,27 @@ void inicializar_registros(t_pcb* nuevo_pcb){
 
 void agregar_a_new(t_pcb* nuevo_pcb){
 	sem_wait(&sem_new);
-	queue_push(plani_new, nuevo_pcb);
+		queue_push(plani_new, nuevo_pcb);
 	sem_post(&sem_new);
 	sem_post(&hayPCBsEnNew);
 }
 
-//Inicio semaforos
-	inicio_semaforos();
+void agregar_a_ready(t_pcb* nuevo_pcb){
+	//semaforo tipo productor-consumidor
+	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
+	sem_wait(lugares_ready_vacios);
+	sem_wait(mutex_multiprogramacion);
+		list_add(plani_ready, nuevo_pcb);
+	sem_post(mutex_multiprogramacion);
+	sem_post(lugares_ready_llenos);
+}
 
+
+
+//Inicio semaforos
+//	inicio_semaforos();
+
+void inicializar_listas(){
 	// Inicio listas
 	plani_new = queue_create();
 	total_pcbs = list_create();
@@ -61,12 +71,59 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 	plani_exec = list_create();
 	plani_block = list_create();
     plani_exit = list_create();
-    
-//Creo hilos planificadores
+} 
+/*Creo hilos planificadores
 	pthread_t hilo_plani_largo_plazo;
 	pthread_create(&hilo_plani_largo_plazo, NULL, (void *)inicio_plani_largo_plazo, NULL);
 	pthread_detach(hilo_plani_largo_plazo);
+	*/
 
-	pthread_t hilo_plani_corto_plazo;
-	pthread_create(&hilo_plani_corto_plazo, NULL, (void *)inicio_plani_corto_plazo, NULL);
-	pthread_detach(hilo_plani_corto_plazo);
+void iniciar_planificacion(){
+	t_pcb* pcb;
+	while (1){
+
+		sem_wait(lugares_ready_llenos);
+		sem_wait(mutex_multiprogramacion);
+			pcb = sacar_de_ready();
+			cambiar_estado_pcb(pcb, EXEC);
+			agregar_a_exec(pcb);
+		sem_post(mutex_multiprogramacion);
+		sem_post(lugares_ready_vacios);
+		
+	}
+}
+
+t_pcb* sacar_de_ready(){
+	t_pcb* pcb;
+	if(algoritmo_plani == FIFO){
+		sem_wait(&sem_ready);
+		pcb = list_remove(plani_ready, 0);
+		sem_post(&sem_ready);
+		return pcb;
+	}else
+		return NULL;
+	
+}
+
+void agregar_a_exec(t_pcb* pcb){
+	sem_wait(&sem_exec);
+		pcb->ejecuto = 1;
+		list_add(plani_exec, pcb);
+	sem_post(&sem_exec);
+}
+
+void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
+	char* estadoAnteriorString = string_new();
+	char* estadoNuevoString = string_new();
+
+	t_estado estadoAnterior = pcb->estado;
+	pcb->estado = estadoNuevo;
+
+	string_append(&estadoAnteriorString, estado_a_string(estadoAnterior));
+	string_append(&estadoNuevoString, estado_a_string(estadoNuevo));
+
+	log_info(logger_kernel, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estadoAnteriorString, estadoNuevoString);
+
+	free(estadoAnteriorString);
+	free(estadoNuevoString);
+}

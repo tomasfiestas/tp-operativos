@@ -55,12 +55,17 @@ void leer_consola()
                     t_buffer* buffer = crear_buffer();
                     cargar_string_a_buffer(buffer, argumentos[1]); //PATH     
                     iniciar_proceso(buffer);
+
                     break;
-                case FINALIZAR_PROCESO:
+                case FINALIZAR_PROCESO: //ultimo check
                     printf("FINALIZAR_PROCESO\n");
                     break;
                 case INICIAR_PLANIFICACION:
-                    printf("INICIAR_PLANIFICACION\n");
+                    log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
+                    pthread_t hilo_plani_corto_plazo;
+	                pthread_create(&hilo_plani_corto_plazo, NULL, (void *)iniciar_planificacion(), NULL);
+	                pthread_detach(hilo_plani_corto_plazo);
+
                     break;
                 case DETENER_PLANIFICACION:
                     printf("DETENER_PLANIFICACION\n");
@@ -103,7 +108,8 @@ void iniciar_proceso(t_buffer* buffer){
     char* path = extraer_string_del_buffer(buffer); 
     printf("El path del proceso a iniciar es: %s\n", path);     
 
-    //VER QUE Mäs AGREGAR
+    //VER QUE Mäs AGREGAR 
+    // crear_proceso()??
     
     destruir_buffer(buffer);
 
