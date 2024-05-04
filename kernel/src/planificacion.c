@@ -10,6 +10,7 @@ void crear_pcb(t_list* lista_instrucciones){
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
 
+	inicializar_semaforos();
 	inicializar_registros(nuevo_pcb);
 	inicializar_listas();
 
@@ -51,17 +52,31 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 void agregar_a_ready(t_pcb* nuevo_pcb){
 	//semaforo tipo productor-consumidor
 	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
-	sem_wait(lugares_ready_vacios);
-	sem_wait(mutex_multiprogramacion);
+	sem_wait(&lugares_ready_vacios);
+	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
-	sem_post(mutex_multiprogramacion);
-	sem_post(lugares_ready_llenos);
+	sem_post(&mutex_multiprogramacion);
+	sem_post(&lugares_ready_llenos);
 }
 
 
 
 //Inicio semaforos
-//	inicio_semaforos();
+
+void inicializar_semaforos(){
+	sem_init(&lugares_ready_llenos, 0, 0);
+	sem_init(&lugares_ready_vacios,0, multiprogramacion);
+	sem_init(&mutex_multiprogramacion, 0, 1);
+	sem_init(&hayPCBsEnNew, 0, 0);
+	sem_init(&sem_new, 0, 1);
+	sem_init(&sem_total_pcbs, 0, 1);
+	sem_init(&sem_ready, 0, 1);
+	sem_init(&sem_exec, 0, 1);
+	sem_init(&sem_block, 0, 1);
+	sem_init(&sem_exit, 0, 1);
+	
+}
+
 
 void inicializar_listas(){
 	// Inicio listas
@@ -79,16 +94,16 @@ void inicializar_listas(){
 	*/
 
 void iniciar_planificacion(){
-	t_pcb* pcb;
+	t_pcb* pcb = 1;
 	while (1){
 
-		sem_wait(lugares_ready_llenos);
-		sem_wait(mutex_multiprogramacion);
+		sem_wait(&lugares_ready_llenos);
+		sem_wait(&mutex_multiprogramacion);
 			pcb = sacar_de_ready();
 			cambiar_estado_pcb(pcb, EXEC);
 			agregar_a_exec(pcb);
-		sem_post(mutex_multiprogramacion);
-		sem_post(lugares_ready_vacios);
+		sem_post(&mutex_multiprogramacion);
+		sem_post(&lugares_ready_vacios);
 		
 	}
 }
@@ -122,7 +137,7 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	string_append(&estadoAnteriorString, estado_a_string(estadoAnterior));
 	string_append(&estadoNuevoString, estado_a_string(estadoNuevo));
 
-	log_info(logger_kernel, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estadoAnteriorString, estadoNuevoString);
+	log_info(kernel_logger, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estadoAnteriorString, estadoNuevoString);
 
 	free(estadoAnteriorString);
 	free(estadoNuevoString);

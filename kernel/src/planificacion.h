@@ -27,14 +27,14 @@ algoritmos algoritmo_plani;
 int multiprogramacion;
 
 //Semaforos para multiprogramacion
-sem_t lugares_ready_llenos = 0;
-sem_t lugares_ready_vacios = MULTIPROGRAMACION;
+sem_t lugares_ready_llenos;
+sem_t lugares_ready_vacios;
 sem_t mutex_multiprogramacion;
 
 // sem_t multiPermiteIngresar;
-// sem_t hayPCBsEnNew;
+ sem_t hayPCBsEnNew;
 // sem_t hayPCBsEnReady;
-// sem_t puedeEntrarAExec;
+//sem_t puedeEntrarAExec;
 
 //Semaforo para respuestas
 sem_t respuesta_memoria;
