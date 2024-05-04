@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
     log_info(logger, "RETARDO_RESPUESTA: %s", RETARDO_RESPUESTA);
 
     //CHECKPOINT 2: Estas estructuras por ahora no se cargaran.
-    void* memoriaTotal = reservar_memoria();
-    TablaPaginas* tabla = iniciar_tabla_paginas(memoriaTotal);
+    void* memoria_total = reservar_memoria();
+    tabla_paginas* tabla = iniciar_tabla_paginas(memoria_total);
 
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
@@ -165,10 +165,10 @@ void parse_file(const char* filePath, int pid) {
     }
 
     char linea[256];
-    InstruccionSerializada instrucciones[200];
-    int num_instrucciones = 0;
+    instruccion_serializada instrucciones[200];
+    int cantidad_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
-        InstruccionSerializada instruccion;
+        instruccion_serializada instruccion;
         char* token = strtok(linea, " ");
         strncpy(instruccion.instruction, token, TAM_MAX_INSTRUCCION);
         int i = 0;
@@ -184,14 +184,21 @@ void parse_file(const char* filePath, int pid) {
         instruccion.parameters[1], instruccion.parameters[2], 
         instruccion.parameters[3], instruccion.parameters[4]);
 
-        instrucciones[num_instrucciones] = instruccion;
-        num_instrucciones++;
-
-        t_buffer buffer = crear_buffer();
-        cargar_int_a_buffer(buffer_memoria, pid);
-        // continuar...
+        instrucciones[cantidad_instrucciones] = instruccion;
+        cantidad_instrucciones++;
 
     }
+    t_instrucciones instrucciones_a_enviar = {
+         .instrucciones = instrucciones, 
+         .cantidad = cantidad_instrucciones
+    };
+    t_buffer* buffer = crear_buffer();
+    cargar_int_a_buffer(buffer, pid);
+    cargar_instrucciones_a_buffer(buffer, instrucciones_a_enviar);
+
+    int pid_del_buffer = extraer_int_del_buffer(buffer);
+    t_instrucciones* instrucciones_del_buffer = extraer_instrucciones_del_buffer(buffer);
+    // continuar...
 
     fclose(file);
 }
@@ -205,10 +212,10 @@ void* reservar_memoria() {
     return totalMemory;
 }
 
-TablaPaginas* iniciar_tabla_paginas(void* memoria) {
+tabla_paginas* iniciar_tabla_paginas(void* memoria) {
     int cantidad_paginas = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA);
-    TablaPaginas* tabla = (TablaPaginas*)memoria;
-    tabla->registros = (RegistroTablaPaginas*)((char*)memoria + sizeof(TablaPaginas));
+    tabla_paginas* tabla = (tabla_paginas*)memoria;
+    tabla->registros = (registro_tabla_paginas*)((char*)memoria + sizeof(tabla_paginas));
     tabla->size = cantidad_paginas;
     for (int i = 0; i < cantidad_paginas; i++) {
         tabla->registros[i].numeroFrame = i;

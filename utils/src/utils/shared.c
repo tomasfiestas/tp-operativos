@@ -182,6 +182,10 @@ void cargar_int_a_buffer(t_buffer* buffer, int valor){
 void cargar_string_a_buffer(t_buffer* buffer, char* valor){
     cargar_a_buffer(buffer, valor, strlen(valor) + 1);
 }
+void cargar_instrucciones_a_buffer(t_buffer* buffer, t_instrucciones valor){
+    cargar_a_buffer(buffer, &valor, sizeof(t_instrucciones));
+}
+
 void* extraer_de_buffer(t_buffer* buffer){
     if(buffer->size == 0){
        printf("\n Error al extraer contenido del buffer VACIO\n");
@@ -227,6 +231,11 @@ int extraer_int_del_buffer(t_buffer* buffer){
 char* extraer_string_del_buffer(t_buffer* buffer){
     char* string = extraer_de_buffer(buffer);
     return string;
+}
+
+t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer){
+    t_instrucciones* instrucciones = extraer_de_buffer(buffer);
+    return instrucciones;
 }
 
 t_buffer* recibir_buffer(int conexion){

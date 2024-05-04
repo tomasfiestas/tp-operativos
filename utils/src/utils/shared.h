@@ -1,5 +1,8 @@
 #ifndef SHARED_H
 #define SHARED_H
+#define TAM_MAX_INSTRUCCION 16
+#define TAM_MAX_PARAMETRO 32
+#define CANT_MAX_PARAMETRO 5
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -38,6 +41,16 @@ typedef enum
 	CREAR_PROCESO_KM
 }op_code;
 
+typedef struct {
+    char instruction[TAM_MAX_INSTRUCCION];
+    char parameters[CANT_MAX_PARAMETRO][TAM_MAX_PARAMETRO];
+} instruccion_serializada;
+
+typedef struct {
+	instruccion_serializada* instrucciones;
+	int cantidad;
+} t_instrucciones;
+
 // CLIENTE
 typedef struct
 {
@@ -74,11 +87,13 @@ t_buffer* recibir_buffer(int conexion);
 void destruir_buffer(t_buffer* buffer);
 void cargar_a_buffer(t_buffer* buffer, void* valor, int tamanio);
 void cargar_int_a_buffer(t_buffer* buffer, int valor);
+void cargar_instrucciones_a_buffer(t_buffer* buffer, t_instrucciones instrucciones);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
 
 void* extraer_de_buffer(t_buffer* buffer);
 int extraer_int_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
+t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 
 
