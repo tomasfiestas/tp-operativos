@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
     //Leer consola
     leer_consola();
 
-    pthread_join(hilo_entradasalida);
+    pthread_join(hilo_entradasalida,NULL);
     
     
     

@@ -39,13 +39,10 @@ typedef struct{
 	int program_counter;
 	t_estado estado;
 	t_registros registros;
-	t_list* tabla_segmentos;
-	double estimado_prox_rafaga;	
+	t_list* tabla_segmentos;		
 	t_list* tabla_archivos;	
 	int ejecuto;
 } t_pcb;
-
-
 
 
 
@@ -118,9 +115,13 @@ void destruir_buffer(t_buffer* buffer);
 void cargar_a_buffer(t_buffer* buffer, void* valor, int tamanio);
 void cargar_int_a_buffer(t_buffer* buffer, int valor);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
+void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
+void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
 
 void* extraer_de_buffer(t_buffer* buffer);
 int extraer_int_del_buffer(t_buffer* buffer);
+uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
+uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 

@@ -53,6 +53,17 @@ sem_t sem_recursos;
 sem_t sem_inst_recursos;
 
 
+void crear_pcb(t_list* lista_instrucciones);
+void inicializar_registros(t_pcb* nuevo_pcb);
+void agregar_a_new(t_pcb* nuevo_pcb);
+void agregar_a_ready(t_pcb* nuevo_pcb);
+void inicializar_semaforos();
+void inicializar_listas();
+void iniciar_planificacion();
+t_pcb* sacar_de_ready();
+void agregar_a_exec(t_pcb* pcb);
+void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo);
+char* estado_a_string(t_estado estado);
 
 
 

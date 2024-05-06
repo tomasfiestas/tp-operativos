@@ -9,6 +9,8 @@
 #include <consola.h>
 #include<readline/readline.h>
 #include <commons/collections/queue.h>
+#include <commons/collections/list.h>
+#include <pthread.h>
 
 extern int conexion_k_memoria;
 extern void iterator(char* value);

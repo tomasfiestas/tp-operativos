@@ -182,6 +182,13 @@ void cargar_int_a_buffer(t_buffer* buffer, int valor){
 void cargar_string_a_buffer(t_buffer* buffer, char* valor){
     cargar_a_buffer(buffer, valor, strlen(valor) + 1);
 }
+
+void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor){
+    cargar_a_buffer(buffer, &valor, sizeof(uint32_t));
+}
+void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor){
+    cargar_a_buffer(buffer, &valor, sizeof(uint8_t));
+}
 void* extraer_de_buffer(t_buffer* buffer){
     if(buffer->size == 0){
        printf("\n Error al extraer contenido del buffer VACIO\n");
@@ -227,6 +234,18 @@ int extraer_int_del_buffer(t_buffer* buffer){
 char* extraer_string_del_buffer(t_buffer* buffer){
     char* string = extraer_de_buffer(buffer);
     return string;
+}
+uint8_t extraer_uint8_del_buffer(t_buffer* buffer){
+    uint8_t* entero = extraer_de_buffer(buffer);
+    uint8_t valor_int = *entero;
+    free(entero);
+    return valor_int;
+}
+uint32_t extraer_uint32_del_buffer(t_buffer* buffer){
+    uint32_t* entero = extraer_de_buffer(buffer);
+    uint32_t valor_int = *entero;
+    free(entero);
+    return valor_int;
 }
 
 t_buffer* recibir_buffer(int conexion){

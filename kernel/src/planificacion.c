@@ -142,3 +142,20 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	free(estadoAnteriorString);
 	free(estadoNuevoString);
 }
+
+char* estado_a_string(t_estado estado) {
+	switch (estado) {
+	case NEW:
+		return "NEW";
+	case READY:
+		return "READY";
+	case EXEC:
+		return "EXEC";
+	case BLOCK:
+		return "BLOCK";
+	case FIN:
+		return "EXIT";
+	default:
+		return "ESTADO DESCONOCIDO";
+	}
+}
