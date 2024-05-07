@@ -1,8 +1,5 @@
 #ifndef SHARED_H
 #define SHARED_H
-#define TAM_MAX_INSTRUCCION 16
-#define TAM_MAX_PARAMETRO 32
-#define CANT_MAX_PARAMETRO 5
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -46,12 +43,19 @@ typedef enum
 }op_code;
 
 typedef struct {
-    char instruction[TAM_MAX_INSTRUCCION];
-    char parameters[CANT_MAX_PARAMETRO][TAM_MAX_PARAMETRO];
-} instruccion_serializada;
+	uint32_t longitud;
+	char* parametro;
+} t_parametro;
 
 typedef struct {
-	instruccion_serializada* instrucciones;
+	uint32_t instruccion_longitud;
+    char* instruccion;
+	uint32_t parametros_cantidad;
+	t_parametro* parametros;
+} t_instruccion;
+
+typedef struct {
+	t_instruccion* instrucciones;
 	int cantidad;
 } t_instrucciones;
 

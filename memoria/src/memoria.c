@@ -165,24 +165,37 @@ void parse_file(const char* filePath, int pid) {
     }
 
     char linea[256];
-    instruccion_serializada instrucciones[200];
+    t_instruccion instrucciones[200];
     int cantidad_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
-        instruccion_serializada instruccion;
+        t_instruccion instruccion;
         char* token = strtok(linea, " ");
-        strncpy(instruccion.instruction, token, TAM_MAX_INSTRUCCION);
-        int i = 0;
-        while ((token = strtok(NULL, " ")) != NULL && i < CANT_MAX_PARAMETRO) {
-            token[strcspn(token, "\n")] = 0;
-            strncpy(instruccion.parameters[i], token, TAM_MAX_PARAMETRO);
-            i++;
-        }
-        // Enviar al CPU por ahora... pero como?? no somos clientes de CPU.
+        
+        size_t length = strlen(token);
+        instruccion.instruccion = malloc(length + 1);
+        instruccion.instruccion_longitud = length;
+        strncpy(instruccion.instruccion, token, length + 1);
 
-        log_info(logger, "Instruccion: %s %s %s %s %s %s", 
-        instruccion.instruction, instruccion.parameters[0], 
-        instruccion.parameters[1], instruccion.parameters[2], 
-        instruccion.parameters[3], instruccion.parameters[4]);
+        instruccion.parametros = NULL;
+        instruccion.parametros_cantidad = 0;
+        while ((token = strtok(NULL, " ")) != NULL) {
+            token[strcspn(token, "\n")] = 0;
+            t_parametro parametro;
+
+            size_t parametro_length = strlen(token);
+            parametro.parametro = malloc(parametro_length + 1);
+            parametro.longitud = parametro_length;
+            strncpy(parametro.parametro, token, parametro_length + 1);
+
+            instruccion.parametros_cantidad++;
+            instruccion.parametros = realloc(instruccion.parametros, instruccion.parametros_cantidad * sizeof(t_parametro));
+
+            // Copy the parametro to the parametros array
+            instruccion.parametros[instruccion.parametros_cantidad - 1] = parametro;
+
+        }
+
+        log_instruccion(instruccion);
 
         instrucciones[cantidad_instrucciones] = instruccion;
         cantidad_instrucciones++;
@@ -238,4 +251,19 @@ void atender_crear_proceso(t_buffer* buffer){
 
     parse_file(path, pid);
     free(path);
+}
+
+void log_instruccion(t_instruccion instruccion) {
+    char* log_message = malloc(strlen(instruccion.instruccion) + 20);
+    sprintf(log_message, "Instruccion: %s", instruccion.instruccion);
+
+    for (int i = 0; i < instruccion.parametros_cantidad; i++) {
+        char* old_log_message = log_message;
+        log_message = malloc(strlen(old_log_message) + strlen(instruccion.parametros[i].parametro) + 5);
+        sprintf(log_message, "%s %s", old_log_message, instruccion.parametros[i].parametro);
+        free(old_log_message);
+    }
+
+    log_info(logger, "%s", log_message);
+    free(log_message);
 }
