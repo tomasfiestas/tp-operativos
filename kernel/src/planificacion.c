@@ -1,5 +1,6 @@
 #include "planificacion.h"
 
+
 void crear_pcb(t_list* lista_instrucciones){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
     int pid = asignar_pid();
@@ -30,16 +31,16 @@ void crear_pcb(t_list* lista_instrucciones){
 void inicializar_registros(t_pcb* nuevo_pcb){
 	uint8_t ax = 0;
 	uint32_t eax = 0;	
-	memcpy(&(nuevo_pcb->registros.AX), ax, sizeof(uint8_t));
-	memcpy(&(nuevo_pcb->registros.BX), ax, sizeof(uint8_t));
-	memcpy(&(nuevo_pcb->registros.CX), ax, sizeof(uint8_t));
-	memcpy(&(nuevo_pcb->registros.DX), ax, sizeof(uint8_t));
-	memcpy(&(nuevo_pcb->registros.EAX), eax, sizeof(uint32_t));
-	memcpy(&(nuevo_pcb->registros.EBX), eax, sizeof(uint32_t));
-	memcpy(&(nuevo_pcb->registros.ECX), eax, sizeof(uint32_t));
-	memcpy(&(nuevo_pcb->registros.EDX), eax, sizeof(uint32_t));
-	memcpy(&(nuevo_pcb->registros.SI), eax, sizeof(uint32_t));
-	memcpy(&(nuevo_pcb->registros.DI), eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.AX), &ax, sizeof(uint8_t));
+	memcpy(&(nuevo_pcb->registros.BX), &ax, sizeof(uint8_t));
+	memcpy(&(nuevo_pcb->registros.CX), &ax, sizeof(uint8_t));
+	memcpy(&(nuevo_pcb->registros.DX), &ax, sizeof(uint8_t));
+	memcpy(&(nuevo_pcb->registros.EAX), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.EBX), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.ECX), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.EDX), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.SI), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.DI), &eax, sizeof(uint32_t));
 }
 
 void agregar_a_new(t_pcb* nuevo_pcb){
@@ -94,7 +95,7 @@ void inicializar_listas(){
 	*/
 
 void iniciar_planificacion(){
-	t_pcb* pcb = 1;
+	t_pcb* pcb;
 	while (1){
 
 		sem_wait(&lugares_ready_llenos);
@@ -102,6 +103,8 @@ void iniciar_planificacion(){
 			pcb = sacar_de_ready();
 			cambiar_estado_pcb(pcb, EXEC);
 			agregar_a_exec(pcb);
+			// mandar a CPU contexto de ejecucion
+			mandar_contexto_a_CPU(pcb);
 		sem_post(&mutex_multiprogramacion);
 		sem_post(&lugares_ready_vacios);
 		
@@ -125,6 +128,14 @@ void agregar_a_exec(t_pcb* pcb){
 		pcb->ejecuto = 1;
 		list_add(plani_exec, pcb);
 	sem_post(&sem_exec);
+}
+// chequear esto 
+void mandar_contexto_a_CPU(t_pcb* pcb){
+	t_buffer* buffer_cpu = crear_buffer();
+    cargar_a_buffer(buffer_cpu, pcb, sizeof(t_pcb));
+    
+    t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
+    enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
 }
 
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){

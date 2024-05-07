@@ -11,6 +11,7 @@
 #include<commons/log.h>
 #include<commons/collections/list.h>
 #include<assert.h>
+#include <string.h>
 
 typedef enum{
 	NEW,
@@ -38,8 +39,7 @@ typedef struct{
 	t_list* instrucciones;
 	int program_counter;
 	t_estado estado;
-	t_registros registros;
-	t_list* tabla_segmentos;		
+	t_registros registros;	
 	t_list* tabla_archivos;	
 	int ejecuto;
 } t_pcb;
@@ -75,7 +75,9 @@ typedef enum
 
 	//KERNEL
 	//Kernel le avisa a memoria que tiene que crear un proceso
-	CREAR_PROCESO_KM
+	CREAR_PROCESO_KM,
+	//Kernel manda contexto de ejecucion a CPU
+	CONTEXTO_EJECUCION
 }op_code;
 
 // CLIENTE
