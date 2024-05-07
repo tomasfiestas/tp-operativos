@@ -165,6 +165,9 @@ void parse_file(const char* filePath, int pid) {
     }
 
     char linea[256];
+
+    // TODO: Puede ser insignificante, pero capaz se puede cambiar este
+    // espacio fijo por uno que arranque en 10 y escale a medida sea necesario.
     t_instruccion instrucciones[200];
     int cantidad_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
@@ -201,6 +204,7 @@ void parse_file(const char* filePath, int pid) {
         cantidad_instrucciones++;
 
     }
+
     t_instrucciones instrucciones_a_enviar = {
          .instrucciones = instrucciones, 
          .cantidad = cantidad_instrucciones
