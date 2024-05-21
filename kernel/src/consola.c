@@ -29,8 +29,6 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
         return ERROR;
 }
 
-
-
 void leer_consola()
 {
 	char *linea;
@@ -39,6 +37,9 @@ void leer_consola()
     while (1) {
         linea = readline(">");
         
+        if (!linea) {
+            break;
+        }
         if (linea) {
             add_history(linea);
             char** argumentos = string_split(linea, " ");

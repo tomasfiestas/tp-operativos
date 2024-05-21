@@ -326,8 +326,6 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	free(estadoNuevoString);
 }
 
-
-
 char* estado_a_string(t_estado estado) {
 	switch (estado) {
 	case NEW:
