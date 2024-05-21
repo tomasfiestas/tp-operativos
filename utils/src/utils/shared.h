@@ -36,11 +36,11 @@ typedef struct{
 
 typedef struct{
 	int pid;
-	t_list* instrucciones;
 	int program_counter;
 	t_estado estado;
 	t_registros registros;	
 	t_list* tabla_archivos;	
+	int quantum;
 	int ejecuto;
 } t_pcb;
 

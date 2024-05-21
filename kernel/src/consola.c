@@ -29,6 +29,8 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
         return ERROR;
 }
 
+
+
 void leer_consola()
 {
 	char *linea;
@@ -37,9 +39,6 @@ void leer_consola()
     while (1) {
         linea = readline(">");
         
-        if (!linea) {
-            break;
-        }
         if (linea) {
             add_history(linea);
             char** argumentos = string_split(linea, " ");
@@ -63,7 +62,7 @@ void leer_consola()
                 case INICIAR_PLANIFICACION:
                     log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
                     pthread_t hilo_plani_corto_plazo;
-	                pthread_create(&hilo_plani_corto_plazo, NULL, (void *)iniciar_planificacion(), NULL);
+	                pthread_create(&hilo_plani_corto_plazo, NULL, iniciar_planificacion, NULL);
 	                pthread_detach(hilo_plani_corto_plazo);
 
                     break;
@@ -114,6 +113,7 @@ void iniciar_proceso(t_buffer* buffer){
     destruir_buffer(buffer);
 
     int pid = asignar_pid();
+    crear_pcb(pid);
 
     //Le aviso a la memoria que voy a iniciar un proceso [int pid] [char* path] [int size]
     t_buffer* buffer_memoria = crear_buffer();

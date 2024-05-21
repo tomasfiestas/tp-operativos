@@ -11,6 +11,7 @@
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
 #include <pthread.h>
+#include <planificacion.h>
 
 extern int conexion_k_memoria;
 extern void iterator(char* value);
@@ -23,10 +24,10 @@ extern char* IP_CPU;
 extern char* PUERTO_CPU_DISPATCH;
 extern char* PUERTO_CPU_INTERRUPT;
 extern char* ALGORITMO_PLANIFICACION;
-extern char* QUANTUM;
+extern int QUANTUM;
 extern char** RECURSOS;
 extern char** INSTANCIAS_RECURSOS;
-extern char* GRADO_MULTIPROGRAMACION;
+extern int GRADO_MULTIPROGRAMACION;
 extern int servidor;
 extern int conexion_cpu_dispatch;
 extern int conexion_cpu_interrupt;
