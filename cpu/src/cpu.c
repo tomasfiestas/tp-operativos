@@ -61,8 +61,11 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
     while (control_key){
     op_code op_code = recibir_operacion(cliente_kd);    
 	switch(op_code) {
-		case HANDSHAKE_KERNEL:
-			log_info(logger, "Se conecto el Kernel");
+		case CONTEXTO_EJECUCION:
+			log_info(logger, "Me llegó contexto ejecución");
+            t_buffer* buffer = recibir_buffer(cliente_kd);
+			log_info(logger, "Creamos procesos");                
+            atender_crear_pr(buffer);
 			break;
 		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
@@ -103,4 +106,11 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 			control_key = 0;
 			break;
 	}   } 
+}
+
+void atender_crear_pr(t_buffer* buffer){
+    recibir_contexto_ejecucion(buffer);
+    //extraer_pcb_del_buffer(buffer);
+
+    destruir_buffer(buffer);
 }

@@ -23,6 +23,7 @@ int cliente_kernel_interrupt;
 
 void atender_kernel_dispatch(void* socket_cliente_ptr);
 void atender_kernel_interrupt(void* socket_cliente_ptr);
+void atender_crear_pr(t_buffer* buffer);
 
 
 #endif

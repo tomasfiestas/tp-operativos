@@ -39,7 +39,7 @@ typedef struct{
 	int program_counter;
 	t_estado estado;
 	t_registros registros;	
-	t_list* tabla_archivos;	
+	//t_list* tabla_archivos;	
 	int quantum;
 	int ejecuto;
 } t_pcb;
@@ -119,13 +119,21 @@ void cargar_int_a_buffer(t_buffer* buffer, int valor);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
 void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
+void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb);
+void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado);
+void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
+void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
 
+t_registros extraer_registros_del_buffer(t_buffer* buffer);
+void recibir_contexto_ejecucion(t_buffer* buffer);
+t_estado extraer_estado_del_buffer(t_buffer* buffer);
 void* extraer_de_buffer(t_buffer* buffer);
 int extraer_int_del_buffer(t_buffer* buffer);
 uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
 uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
+t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 
 
 

@@ -88,7 +88,7 @@ int iniciar_servidor(char* puerto)
 	listen(socket_servidor, SOMAXCONN);
 
 	freeaddrinfo(servinfo);
-	log_trace(logger, "Listo para escuchar a mi cliente");
+	//log_trace(logger, "Listo para escuchar a mi cliente");
 
 	return socket_servidor;
 }
@@ -103,7 +103,7 @@ int esperar_cliente(int socket_servidor)
 	
 		// Aceptamos un nuevo cliente
 		int socket_cliente = accept(socket_servidor, NULL, NULL);
-		log_info(logger, "Se conecto un cliente");
+		//log_info(logger, "Se conecto un cliente");
 
 		if(socket_cliente == -1)
 		{
@@ -189,6 +189,22 @@ void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor){
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor){
     cargar_a_buffer(buffer, &valor, sizeof(uint8_t));
 }
+void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb){
+    cargar_int_a_buffer(buffer, pcb->pid);
+    cargar_int_a_buffer(buffer, pcb->program_counter);
+    cargar_estado_a_buffer(buffer, pcb->estado);
+    cargar_registros_a_buffer(buffer, pcb->registros);
+    cargar_int_a_buffer(buffer, pcb->quantum);
+    cargar_int_a_buffer(buffer, pcb->ejecuto);
+    
+    //cargar_a_buffer(buffer, &pcb, sizeof(t_pcb));
+}
+void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
+    cargar_a_buffer(buffer, &estado, sizeof(t_estado));
+}
+void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros){
+    cargar_a_buffer(buffer, &registros, sizeof(t_registros));
+}
 void* extraer_de_buffer(t_buffer* buffer){
     if(buffer->size == 0){
        printf("\n Error al extraer contenido del buffer VACIO\n");
@@ -223,6 +239,58 @@ void* extraer_de_buffer(t_buffer* buffer){
 
     return valor;
 }
+
+void recibir_contexto_ejecucion(t_buffer* buffer){
+    /*int pid = extraer_int_del_buffer(buffer);
+    int pc = extraer_int_del_buffer(buffer);
+    t_estado estado = extraer_estado_del_buffer(buffer);
+    t_registros registros = extraer_registros_del_buffer(buffer);
+    int quantum = extraer_int_del_buffer(buffer);
+    int ejecuto = extraer_int_del_buffer(buffer); 
+    
+
+    //free(pcb);
+    log_info(logger, "PID: %d", pid);*/
+    t_pcb pcb = extraer_pcb_del_buffer(buffer);
+    log_info(logger, "PID: %d", pcb.pid);
+    log_info(logger, "PC: %d", pcb.program_counter);
+    log_info(logger,"ejecuto: %d", pcb.ejecuto);
+}
+t_pcb extraer_pcb_del_buffer(t_buffer* buffer){
+    t_pcb* pcb = malloc(sizeof(t_pcb));
+    pcb = extraer_de_buffer(buffer);
+    t_pcb valor_pcb = *pcb;
+    free(pcb);
+    return valor_pcb;
+}
+
+void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb){
+    /*cargar_int_a_buffer(buffer, pcb->pid);
+    cargar_int_a_buffer(buffer, pcb->program_counter);
+    cargar_estado_a_buffer(buffer, pcb->estado);
+    cargar_registros_a_buffer(buffer, pcb->registros);
+    cargar_int_a_buffer(buffer, pcb->quantum);
+    cargar_int_a_buffer(buffer, pcb->ejecuto);*/
+    cargar_a_buffer(buffer, pcb, sizeof(t_pcb));
+}
+
+
+t_estado extraer_estado_del_buffer(t_buffer* buffer){
+    t_estado* estado = malloc(sizeof(t_estado));
+    estado = extraer_de_buffer(buffer);
+    t_estado valor_estado = *estado;
+    free(estado);
+    return valor_estado;
+}
+
+t_registros extraer_registros_del_buffer(t_buffer* buffer){
+    t_registros* registros = malloc(sizeof(t_registros));
+    registros = extraer_de_buffer(buffer);
+    t_registros valor_registros = *registros;
+    free(registros);
+    return valor_registros;
+}
+
 
 int extraer_int_del_buffer(t_buffer* buffer){
     int* entero = extraer_de_buffer(buffer);
