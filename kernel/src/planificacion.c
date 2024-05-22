@@ -55,7 +55,7 @@ void crear_pcb(int pid){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
     nuevo_pcb->pid = pid;	
 	nuevo_pcb->program_counter = 0;	
-	nuevo_pcb->tabla_archivos = list_create();
+	//nuevo_pcb->tabla_archivos = list_create();
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
 	nuevo_pcb->quantum = QUANTUM;
@@ -101,6 +101,7 @@ void inicializar_semaforos(){
 	sem_init(&multiPermiteIngresar, 0,GRADO_MULTIPROGRAMACION );
 	sem_init(&lugares_ready_llenos, 0, 0);
 	sem_init(&lugares_ready_vacios,0, GRADO_MULTIPROGRAMACION);
+	sem_init(&puedeEntrarAExec, 0, 1);
 	sem_init(&mutex_multiprogramacion, 0, 1);
 	sem_init(&hayPCBsEnReady, 0, 0);
 	sem_init(&hayPCBsEnNew, 0, 0);
@@ -131,8 +132,10 @@ void inicializar_listas(){
 	plani_block = list_create();
     plani_exit = list_create();
 
-	inicializar_hilos();
+
 	inicializar_semaforos();
+	inicializar_hilos();
+	
 } 
 /*Creo hilos planificadores
 	pthread_t hilo_plani_largo_plazo;
@@ -174,10 +177,10 @@ algoritmos obtener_algoritmo(){
 void* inicio_plani_largo_plazo(void* arg){
 	while(1){			
 		sem_wait(&hayPCBsEnNew);
-		printf("Planificador Largo PLazo: Hay PCBs en NEW.");	
+		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
 
 		sem_wait(&multiPermiteIngresar);
-		//log_info(logger_kernel, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
+		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
 
 		//Se agrega el pcb a READY
 		t_pcb* pcb = sacar_siguiente_de_new();
@@ -196,29 +199,29 @@ void* inicio_plani_largo_plazo(void* arg){
 //             PLANIFICADOR CORTO PLAZO
 // ---------------------------------------------------
 void* inicio_plani_corto_plazo(void* arg){
-	int pcb_nuevo = 1;
+	//int pcb_nuevo = 1;
 
 	while(1){
 		sem_wait(&hayPCBsEnReady);
-		//log_info(logger_kernel, "Planificador Corto PLazo: Hay PCBs en READY.");
+		log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
 		sem_wait(&puedeEntrarAExec);
-		//log_info(logger_kernel, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
+		log_info(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
 
 		t_pcb* pcb;
 
-		if(pcb_nuevo){
+		//if(pcb_nuevo){
 			pcb = sacar_de_ready();
 			cambiar_estado_pcb(pcb, EXEC);
 			agregar_a_exec(pcb);
-		}else{
-			pcb = pcb_de_exec();
-			pcb_nuevo = 1;
-		}
+		//}else{
+		//	pcb = pcb_de_exec();
+		//	pcb_nuevo = 1;
+		//}
 
 		//MANDAR CONTEXTO A CPU PARA QUE EJECUTE
 		//enviar_contexto_ejecucion(pcb);
-		mandar_contexto_a_CPU(pcb);
+  		mandar_contexto_a_CPU(pcb);
 
 		//ESPERAR RESPUESTA DE CPU PARA SACAR PCB DE EXEC O LO QUE SEA QUE SE HAGA
 		//cod_op operacion_recibida = recibir_operacion(socket_cpu_plani);
@@ -275,7 +278,7 @@ t_pcb* sacar_siguiente_de_new(){
 	return pcb;
 }
 
-t_pcb* sacar_de_ready(){
+/*t_pcb* sacar_de_ready(){
 	t_pcb* pcb;
 	if(algoritmo_plani == FIFO){
 		sem_wait(&sem_ready);
@@ -285,6 +288,27 @@ t_pcb* sacar_de_ready(){
 	}else
 		return NULL;
 	
+}*/
+t_pcb* sacar_de_ready(){
+	t_pcb* pcb;
+	switch(algoritmo_plani){
+	case FIFO:
+		sem_wait(&sem_ready);
+		pcb = list_remove(plani_ready, 0);
+		sem_post(&sem_ready);
+		return pcb;
+	
+	case VRR: 
+		sem_wait(&sem_ready);
+        pcb = list_remove(plani_ready, 0);
+        sem_post(&sem_ready);
+		return pcb;
+
+	//TODO IMPLEMENTAR MAGIAS de VRR
+
+	default:
+		return NULL;
+	}
 }
 
 void agregar_a_exec(t_pcb* pcb){
@@ -301,12 +325,21 @@ t_pcb* pcb_de_exec(){
 	sem_post(&sem_exec);
 	return pcb;
 }
-// chequear esto 
+
 void mandar_contexto_a_CPU(t_pcb* pcb){
 	t_buffer* buffer_cpu = crear_buffer();
-    cargar_a_buffer(buffer_cpu, pcb, sizeof(t_pcb));
-    
-    t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
+    //cargar_contexto_ejecucion_a_buffer(buffer_cpu, pcb);
+    cargar_pcb_a_buffer(buffer_cpu,pcb);
+    /*t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
+    enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
+	t_buffer* buffer_cpu = crear_buffer();
+	cargar_int_a_buffer(buffer_cpu, pcb->pid);
+	cargar_int_a_buffer(buffer_cpu, pcb->program_counter);
+	cargar_estado_a_buffer(buffer_cpu, pcb->estado);
+	cargar_registros_a_buffer(buffer_cpu, pcb->registros);
+	cargar_int_a_buffer(buffer_cpu, pcb->quantum);
+	cargar_int_a_buffer(buffer_cpu, pcb->ejecuto);*/
+	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
 }
 

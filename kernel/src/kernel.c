@@ -31,16 +31,16 @@ int main(int argc, char* argv[]) {
     GRADO_MULTIPROGRAMACION = config_get_int_value(kernel_config, "GRADO_MULTIPROGRAMACION");
     log_info(kernel_logger, "GRADO_MULTIPROGRAMACION %d", GRADO_MULTIPROGRAMACION);
     
-    /* 
+    
    
     //Inicio el cliente para cpu dispatch
-    int conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
     
-    realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_dispatch);
+    //realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_dispatch);
     log_info(kernel_logger,"Handshake con CPU realizado");
     
     //Inicio el cliente para cpu interrupt
-    int conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
+    conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_interrupt);
     log_info(kernel_logger,"Handshake con CPU realizado");
     
@@ -55,7 +55,15 @@ int main(int argc, char* argv[]) {
     int cliente_entradasalida = esperar_cliente(servidor); 
 
     
-    
+    //Planificacion
+    //Inicio los hilos de planificacion
+    inicializar_listas();  
+
+    //Leer consola
+    pthread_t hilo_consola;
+    pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
+    pthread_detach(hilo_consola);
+
 
     //Atiendo mensajes de Entrada/Salida
     pthread_t hilo_entradasalida;
@@ -63,20 +71,13 @@ int main(int argc, char* argv[]) {
     *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(kernel_logger, "Atendiendo mensajes de Entrada/Salida");
-    */
+    
 
-    //Planificacion
-    //Inicio los hilos de planificacion
-    inicializar_listas();  
+    
+	
+    
 
-    //Leer consola
-    pthread_t hilo_consola;
-
-    pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
-	pthread_join(hilo_consola,NULL);
-    //leer_consola();
-
-    //pthread_join(hilo_entradasalida,NULL);
+    pthread_join(hilo_entradasalida,NULL);
     
     
     
