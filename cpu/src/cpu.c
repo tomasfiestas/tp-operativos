@@ -109,8 +109,7 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 }
 
 void atender_crear_pr(t_buffer* buffer){
-    recibir_contexto_ejecucion(buffer);
-    //extraer_pcb_del_buffer(buffer);
+    recibir_contexto_ejecucion(buffer);   
 
     destruir_buffer(buffer);
 }

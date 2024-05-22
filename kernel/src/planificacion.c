@@ -55,14 +55,14 @@ void crear_pcb(int pid){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
     nuevo_pcb->pid = pid;	
 	nuevo_pcb->program_counter = 0;	
-	//nuevo_pcb->tabla_archivos = list_create();
+	//nuevo_pcb->tabla_archivos = list_create(); //Comento porque no se para que sirve
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
 	nuevo_pcb->quantum = QUANTUM;
 
 	
 	inicializar_registros(nuevo_pcb);
-	//inicializar_listas();
+	
 
 	// agrego el nuevo proceso a la lista total_pcbs
 	sem_wait(&sem_total_pcbs);
@@ -137,11 +137,6 @@ void inicializar_listas(){
 	inicializar_hilos();
 	
 } 
-/*Creo hilos planificadores
-	pthread_t hilo_plani_largo_plazo;
-	pthread_create(&hilo_plani_largo_plazo, NULL, (void *)inicio_plani_largo_plazo, NULL);
-	pthread_detach(hilo_plani_largo_plazo);
-	*/
 
 void inicializar_hilos(){
 
@@ -210,22 +205,19 @@ void* inicio_plani_corto_plazo(void* arg){
 
 		t_pcb* pcb;
 
-		//if(pcb_nuevo){
+		
 			pcb = sacar_de_ready();
 			cambiar_estado_pcb(pcb, EXEC);
 			agregar_a_exec(pcb);
-		//}else{
-		//	pcb = pcb_de_exec();
-		//	pcb_nuevo = 1;
-		//}
+		
 
-		//MANDAR CONTEXTO A CPU PARA QUE EJECUTE
-		//enviar_contexto_ejecucion(pcb);
+		//MANDAR CONTEXTO A CPU PARA QUE EJECUTE		
   		mandar_contexto_a_CPU(pcb);
 
 		//ESPERAR RESPUESTA DE CPU PARA SACAR PCB DE EXEC O LO QUE SEA QUE SE HAGA
 		//cod_op operacion_recibida = recibir_operacion(socket_cpu_plani);
 
+		//IMPLEMENTAR COMO VAMOS A RECIBIR EL CONTEXTO DE EJECUCIón
 		//recibir_contexto_ejecucion(pcb);
 	}
 
@@ -278,17 +270,6 @@ t_pcb* sacar_siguiente_de_new(){
 	return pcb;
 }
 
-/*t_pcb* sacar_de_ready(){
-	t_pcb* pcb;
-	if(algoritmo_plani == FIFO){
-		sem_wait(&sem_ready);
-		pcb = list_remove(plani_ready, 0);
-		sem_post(&sem_ready);
-		return pcb;
-	}else
-		return NULL;
-	
-}*/
 t_pcb* sacar_de_ready(){
 	t_pcb* pcb;
 	switch(algoritmo_plani){
@@ -297,7 +278,7 @@ t_pcb* sacar_de_ready(){
 		pcb = list_remove(plani_ready, 0);
 		sem_post(&sem_ready);
 		return pcb;
-	
+	//ESTO es RR en realidad pero le pongo VRR para probar con lo que está configurado.
 	case VRR: 
 		sem_wait(&sem_ready);
         pcb = list_remove(plani_ready, 0);
@@ -327,18 +308,8 @@ t_pcb* pcb_de_exec(){
 }
 
 void mandar_contexto_a_CPU(t_pcb* pcb){
-	t_buffer* buffer_cpu = crear_buffer();
-    //cargar_contexto_ejecucion_a_buffer(buffer_cpu, pcb);
-    cargar_pcb_a_buffer(buffer_cpu,pcb);
-    /*t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
-    enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
-	t_buffer* buffer_cpu = crear_buffer();
-	cargar_int_a_buffer(buffer_cpu, pcb->pid);
-	cargar_int_a_buffer(buffer_cpu, pcb->program_counter);
-	cargar_estado_a_buffer(buffer_cpu, pcb->estado);
-	cargar_registros_a_buffer(buffer_cpu, pcb->registros);
-	cargar_int_a_buffer(buffer_cpu, pcb->quantum);
-	cargar_int_a_buffer(buffer_cpu, pcb->ejecuto);*/
+	t_buffer* buffer_cpu = crear_buffer();    
+    cargar_pcb_a_buffer(buffer_cpu,pcb);    
 	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
 }

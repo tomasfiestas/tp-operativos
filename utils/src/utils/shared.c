@@ -195,9 +195,8 @@ void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb){
     cargar_estado_a_buffer(buffer, pcb->estado);
     cargar_registros_a_buffer(buffer, pcb->registros);
     cargar_int_a_buffer(buffer, pcb->quantum);
-    cargar_int_a_buffer(buffer, pcb->ejecuto);
+    cargar_int_a_buffer(buffer, pcb->ejecuto);   
     
-    //cargar_a_buffer(buffer, &pcb, sizeof(t_pcb));
 }
 void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
     cargar_a_buffer(buffer, &estado, sizeof(t_estado));
@@ -241,17 +240,9 @@ void* extraer_de_buffer(t_buffer* buffer){
 }
 
 void recibir_contexto_ejecucion(t_buffer* buffer){
-    /*int pid = extraer_int_del_buffer(buffer);
-    int pc = extraer_int_del_buffer(buffer);
-    t_estado estado = extraer_estado_del_buffer(buffer);
-    t_registros registros = extraer_registros_del_buffer(buffer);
-    int quantum = extraer_int_del_buffer(buffer);
-    int ejecuto = extraer_int_del_buffer(buffer); 
-    
-
-    //free(pcb);
-    log_info(logger, "PID: %d", pid);*/
     t_pcb pcb = extraer_pcb_del_buffer(buffer);
+
+    //Esto es solo para probar que se recibio bien el pcb
     log_info(logger, "PID: %d", pcb.pid);
     log_info(logger, "PC: %d", pcb.program_counter);
     log_info(logger,"ejecuto: %d", pcb.ejecuto);
@@ -265,12 +256,6 @@ t_pcb extraer_pcb_del_buffer(t_buffer* buffer){
 }
 
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb){
-    /*cargar_int_a_buffer(buffer, pcb->pid);
-    cargar_int_a_buffer(buffer, pcb->program_counter);
-    cargar_estado_a_buffer(buffer, pcb->estado);
-    cargar_registros_a_buffer(buffer, pcb->registros);
-    cargar_int_a_buffer(buffer, pcb->quantum);
-    cargar_int_a_buffer(buffer, pcb->ejecuto);*/
     cargar_a_buffer(buffer, pcb, sizeof(t_pcb));
 }
 
