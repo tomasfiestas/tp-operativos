@@ -44,7 +44,17 @@ typedef struct{
 	int ejecuto;
 } t_pcb;
 
+typedef struct{
+	t_pcb* pcb_actualizado;
+	motivosDeDesalojo motivoDesalojo;
 
+}t_pcbDesalojado;
+
+typedef enum{
+	FINDEQUANTUM,
+	FINPROCESO,
+	IO
+} motivosDeDesalojo;
 
 typedef enum{
 	FIFO,
@@ -77,7 +87,9 @@ typedef enum
 	//Kernel le avisa a memoria que tiene que crear un proceso
 	CREAR_PROCESO_KM,
 	//Kernel manda contexto de ejecucion a CPU
-	CONTEXTO_EJECUCION
+	CONTEXTO_EJECUCION,
+	// Kernel manda a CPU cuando termina el quantum
+	FIN_DE_QUANTUM
 }op_code;
 
 // CLIENTE

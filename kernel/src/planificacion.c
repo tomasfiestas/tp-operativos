@@ -70,11 +70,7 @@ void crear_pcb(int pid){
 	sem_post(&sem_total_pcbs);
 
 	agregar_a_new(nuevo_pcb);
-	
-
-	//TODO porque lo paso a ready ya? revisar, creo que esto correspondería que ya lo haga el planificador de largo plazo
-	/*agregar_a_ready(nuevo_pcb);
-	log_info(kernel_logger, "Nuevo proceso %d en NEW", pid);*/
+	log_info(kernel_logger, "Nuevo proceso %d en NEW", pid);
 	
 }
 
@@ -165,23 +161,26 @@ algoritmos obtener_algoritmo(){
     }
 }
 
+
 // ---------------------------------------------------
 //             PLANIFICADOR LARGO PLAZO
 // ---------------------------------------------------
 
 void* inicio_plani_largo_plazo(void* arg){
-	while(1){			
+	while(1){
+		// Espero a que haya procesos en new 			
 		sem_wait(&hayPCBsEnNew);
 		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
-
-		sem_wait(&multiPermiteIngresar);
+		
+		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM
+		sem_wait(&lugares_ready_vacios);
 		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
-
+		
 		//Se agrega el pcb a READY
 		t_pcb* pcb = sacar_siguiente_de_new();
-		cambiar_estado_pcb(pcb, READY);
+		// cambiar_estado_pcb(pcb, READY); pongo esto en la funcion agregar_a_ready asi no lo hacemos cada vez
 		agregar_a_ready(pcb);
-
+		log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
 		
 	}
 
@@ -198,17 +197,15 @@ void* inicio_plani_corto_plazo(void* arg){
 
 	while(1){
 		sem_wait(&hayPCBsEnReady);
-		log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
+		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
 		sem_wait(&puedeEntrarAExec);
-		log_info(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
+		  log_info(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
 
 		t_pcb* pcb;
-
 		
-			pcb = sacar_de_ready();
-			cambiar_estado_pcb(pcb, EXEC);
-			agregar_a_exec(pcb);
+		pcb = sacar_de_ready();
+		agregar_a_exec(pcb);
 		
 
 		//MANDAR CONTEXTO A CPU PARA QUE EJECUTE		
@@ -217,8 +214,21 @@ void* inicio_plani_corto_plazo(void* arg){
 		//ESPERAR RESPUESTA DE CPU PARA SACAR PCB DE EXEC O LO QUE SEA QUE SE HAGA
 		//cod_op operacion_recibida = recibir_operacion(socket_cpu_plani);
 
+//aca podriamos correr un hilo para q me empiece a contar el quantum
+         if(algoritmo_plani == RR){
+                pthread_t hilo_quantum;
+                pthread_create(&hilo_quantum, NULL, (void *)contar_quantum(), QUANTUM);
+        	}
+
 		//IMPLEMENTAR COMO VAMOS A RECIBIR EL CONTEXTO DE EJECUCIón
-		//recibir_contexto_ejecucion(pcb);
+		// lo tengo q recibir junto con un motivo de desalojo, idea:
+
+		t_pcbDesalojado* pcbDesalojado = recibir_contexto_ejecucion(); //bloqueante?
+		pcb = pcbDesalojado -> pcb_actualizado;
+		motivosDeDesalojo motivo = pcbDesalojado -> motivoDesalojo;
+		sacar_de_exec(pcb, motivoDesalojo);
+			
+
 	}
 
 }
@@ -244,6 +254,8 @@ void iniciar_planificacion(){
 //             FUNCIONES GENERALES
 // -------------------------------------------------
 
+
+
 void agregar_a_new(t_pcb* nuevo_pcb){
 	sem_wait(&sem_new);
 		queue_push(plani_new, nuevo_pcb);
@@ -256,10 +268,12 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 void agregar_a_ready(t_pcb* nuevo_pcb){
 	//semaforo tipo productor-consumidor
 	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
-	sem_wait(&lugares_ready_vacios);
+	// sem_wait(&lugares_ready_vacios); --> lo pongo en plani largo plazo
+
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
+	cambiar_estado_pcb(pcb, READY);
 	sem_post(&hayPCBsEnReady);
 }
 
@@ -275,7 +289,7 @@ t_pcb* sacar_de_ready(){
 	switch(algoritmo_plani){
 	case FIFO:
 		sem_wait(&sem_ready);
-		pcb = list_remove(plani_ready, 0);
+			pcb = list_remove(plani_ready, 0);
 		sem_post(&sem_ready);
 		return pcb;
 	//ESTO es RR en realidad pero le pongo VRR para probar con lo que está configurado.
@@ -295,9 +309,46 @@ t_pcb* sacar_de_ready(){
 void agregar_a_exec(t_pcb* pcb){
 	sem_wait(&sem_exec);
 		pcb->ejecuto = 1;
-		
 		list_add(plani_exec, pcb);
 	sem_post(&sem_exec);
+	cambiar_estado_pcb(pcb, EXEC);
+}
+void sacar_de_exec(t_pcb* pcb, motivosDeDesalojo * motivo){
+	sem_wait(&sem_exec);
+		list_remove(plani_exec, pcb);
+	sem_post(&sem_exec);
+		switch (motivo)
+			{
+			case IO:
+				agregar_a_bloqueado(pcb);
+			break;
+			case FINDEQUANTUM:
+				agregar_a_ready(pcb);
+			break;
+			default: // FINPROCESO
+				agregar_a_exit(pcb);
+			break;
+			}
+}
+
+void agregar_a_bloqueado(t_pcb* pcb){
+	sem_wait(&sem_block);
+		list_add(plani_block, pcb);
+	sem_post(&sem_block);
+	cambiar_estado_pcb(pcb, BLOCK);
+}
+
+void sacar_de_bloqueado(t_pcb* pcb){
+	sem_wait(&sem_block);
+		list_remove(plani_block, pcb);
+	sem_post(&sem_block);
+}
+
+void agregar_a_exit(t_pcb* pcb){
+	sem_wait(&sem_exit);
+		list_add(plani_exit, pcb);
+	sem_post(&sem_exit);
+	cambiar_estado_pcb(pcb, EXIT);
 }
 
 t_pcb* pcb_de_exec(){
@@ -314,6 +365,12 @@ void mandar_contexto_a_CPU(t_pcb* pcb){
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
 }
 
+void enviar_interrupcion_por_quantum(t_pcb* pcb){
+    t_buffer* buffer_cpu = crear_buffer();    
+    cargar_pcb_a_buffer(buffer_cpu,pcb);    
+	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu);
+    enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	char* estadoAnteriorString = string_new();
 	char* estadoNuevoString = string_new();
@@ -328,6 +385,12 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 
 	free(estadoAnteriorString);
 	free(estadoNuevoString);
+}
+
+void *contar_quantum(int quantum){
+    usleep(quantum*1000);
+    sem_post(&sem_desalojar);
+    return NULL;
 }
 
 char* estado_a_string(t_estado estado) {
