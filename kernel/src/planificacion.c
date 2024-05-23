@@ -205,7 +205,7 @@ void* inicio_plani_corto_plazo(void* arg){
 		t_pcb* pcb;
 		
 		pcb = sacar_de_ready();
-		agregar_a_exec(pcb);
+			agregar_a_exec(pcb);
 		
 
 		//MANDAR CONTEXTO A CPU PARA QUE EJECUTE		
@@ -217,16 +217,19 @@ void* inicio_plani_corto_plazo(void* arg){
 //aca podriamos correr un hilo para q me empiece a contar el quantum
          if(algoritmo_plani == RR){
                 pthread_t hilo_quantum;
-                pthread_create(&hilo_quantum, NULL, (void *)contar_quantum(), QUANTUM);
+                pthread_create(&hilo_quantum, NULL, (void *)contar_quantum, NULL);
+				pthread_detach(hilo_quantum);
         	}
 
 		//IMPLEMENTAR COMO VAMOS A RECIBIR EL CONTEXTO DE EJECUCIón
 		// lo tengo q recibir junto con un motivo de desalojo, idea:
 
-		t_pcbDesalojado* pcbDesalojado = recibir_contexto_ejecucion(); //bloqueante?
-		pcb = pcbDesalojado -> pcb_actualizado;
-		motivosDeDesalojo motivo = pcbDesalojado -> motivoDesalojo;
-		sacar_de_exec(pcb, motivoDesalojo);
+		op_code op_code = recibir_operacion(conexion_cpu_interrupt);
+		t_buffer* buffer = recibir_buffer(conexion_cpu_interrupt);
+		t_pcb pcbDesalojado = recibir_contexto_ejecucion(buffer); 
+		log_info(kernel_logger, "pid: %d", pcbDesalojado.pid);
+		
+		sacar_de_exec(pcb, op_code);
 			
 
 	}
@@ -273,7 +276,7 @@ void agregar_a_ready(t_pcb* nuevo_pcb){
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
-	cambiar_estado_pcb(pcb, READY);
+	cambiar_estado_pcb(nuevo_pcb, READY);
 	sem_post(&hayPCBsEnReady);
 }
 
@@ -313,11 +316,11 @@ void agregar_a_exec(t_pcb* pcb){
 	sem_post(&sem_exec);
 	cambiar_estado_pcb(pcb, EXEC);
 }
-void sacar_de_exec(t_pcb* pcb, motivosDeDesalojo * motivo){
+void sacar_de_exec(t_pcb* pcb, op_code op_code){
 	sem_wait(&sem_exec);
 		list_remove(plani_exec, pcb);
 	sem_post(&sem_exec);
-		switch (motivo)
+		switch (op_code)
 			{
 			case IO:
 				agregar_a_bloqueado(pcb);
@@ -370,7 +373,7 @@ void enviar_interrupcion_por_quantum(t_pcb* pcb){
     cargar_pcb_a_buffer(buffer_cpu,pcb);    
 	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
-
+}
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	char* estadoAnteriorString = string_new();
 	char* estadoNuevoString = string_new();
@@ -387,10 +390,9 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	free(estadoNuevoString);
 }
 
-void *contar_quantum(int quantum){
-    usleep(quantum*1000);
-    sem_post(&sem_desalojar);
-    return NULL;
+void *contar_quantum(){
+    usleep(QUANTUM*1000);
+   // sem_post(&sem_desalojar);
 }
 
 char* estado_a_string(t_estado estado) {

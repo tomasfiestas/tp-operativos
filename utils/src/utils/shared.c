@@ -239,13 +239,14 @@ void* extraer_de_buffer(t_buffer* buffer){
     return valor;
 }
 
-void recibir_contexto_ejecucion(t_buffer* buffer){
+t_pcb recibir_contexto_ejecucion(t_buffer* buffer){
     t_pcb pcb = extraer_pcb_del_buffer(buffer);
 
     //Esto es solo para probar que se recibio bien el pcb
     log_info(logger, "PID: %d", pcb.pid);
     log_info(logger, "PC: %d", pcb.program_counter);
     log_info(logger,"ejecuto: %d", pcb.ejecuto);
+    return pcb;
 }
 t_pcb extraer_pcb_del_buffer(t_buffer* buffer){
     t_pcb* pcb = malloc(sizeof(t_pcb));

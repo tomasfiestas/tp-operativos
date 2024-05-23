@@ -39,7 +39,7 @@ void inicializar_hilos();
 
 void* inicio_plani_largo_plazo(void* arg);
 void* inicio_plani_corto_plazo(void* arg);
-
+void* contar_quantum();
 
 
 

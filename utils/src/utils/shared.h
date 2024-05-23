@@ -44,17 +44,7 @@ typedef struct{
 	int ejecuto;
 } t_pcb;
 
-typedef struct{
-	t_pcb* pcb_actualizado;
-	motivosDeDesalojo motivoDesalojo;
 
-}t_pcbDesalojado;
-
-typedef enum{
-	FINDEQUANTUM,
-	FINPROCESO,
-	IO
-} motivosDeDesalojo;
 
 typedef enum{
 	FIFO,
@@ -89,7 +79,13 @@ typedef enum
 	//Kernel manda contexto de ejecucion a CPU
 	CONTEXTO_EJECUCION,
 	// Kernel manda a CPU cuando termina el quantum
-	FIN_DE_QUANTUM
+	FIN_DE_QUANTUM,
+
+	// motivos de desalojo enviados por cpu
+	FINDEQUANTUM,
+	FINPROCESO,
+	IO
+
 }op_code;
 
 // CLIENTE
@@ -137,7 +133,7 @@ void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
 
 t_registros extraer_registros_del_buffer(t_buffer* buffer);
-void recibir_contexto_ejecucion(t_buffer* buffer);
+t_pcb recibir_contexto_ejecucion(t_buffer* buffer);
 t_estado extraer_estado_del_buffer(t_buffer* buffer);
 void* extraer_de_buffer(t_buffer* buffer);
 int extraer_int_del_buffer(t_buffer* buffer);
