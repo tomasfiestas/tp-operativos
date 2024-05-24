@@ -8,7 +8,6 @@
 #include <utils/shared.h>
 
 
-
 t_log* entradasalida_logger;
 t_config* entradasalida_config;
 char* TIPO_INTERFAZ;
