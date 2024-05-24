@@ -88,22 +88,41 @@ void atender_cpu(void* socket_cliente_ptr) {
    while (control_key){
     op_code op_code = recibir_operacion(cliente);    
 	switch(op_code) {
-		case HANDSHAKE_KERNEL:
-			log_info(logger, "Se conecto el Kernel");
-			break;
-		case HANDSHAKE_CPU:
-			log_info(logger, "Se conecto el CPU");
-			break;
-		case HANDSHAKE_MEMORIA:
-			log_info(logger, "Se conecto la Memoria");
-			break;
-		case HANDSHAKE_ES:
-			log_info(logger, "Se conecto el IO");
-			break;
-		default:
-			log_error(logger, "No se reconoce el handshake");
-			control_key = 0;
-			break;
+    case SOLICITUD_INST:
+        log_info(logger, "Solicitud de instrucciones");
+        t_buffer *buffer = recibir_buffer(cliente);
+
+        // TODO: En la entrega 3 tendremos que cargar en memoria
+        // y luego buscaremos PCBs por PID creo?
+        int pid = extraer_int_del_buffer(buffer);
+
+        t_buffer *response_buffer = crear_buffer();
+        cargar_instrucciones_a_buffer(response_buffer, instrucciones_a_enviar);
+        t_paquete *response = crear_paquete(SOLICITUD_INST_OK, buffer);
+
+        // TODO: ver como enviar paquete al cliente.
+        enviar_paquete(response, cliente);
+
+        // // Con este codigo es posible recibir paquete y extraer del buffer:
+        // t_buffer* buffer = recibir_buffer(<socket que envia el paquete>);
+        // t_instrucciones* instrucciones_del_buffer = extraer_instrucciones_del_buffer(buffer);
+        break;
+    case HANDSHAKE_KERNEL:
+        log_info(logger, "Se conecto el Kernel");
+        break;
+    case HANDSHAKE_CPU:
+        log_info(logger, "Se conecto el CPU");
+        break;
+    case HANDSHAKE_MEMORIA:
+        log_info(logger, "Se conecto la Memoria");
+        break;
+    case HANDSHAKE_ES:
+        log_info(logger, "Se conecto el IO");
+        break;
+    default:
+        log_error(logger, "No se reconoce el handshake");
+        control_key = 0;
+        break;
 	}   } 
 }
 
@@ -193,7 +212,6 @@ void parse_file(const char* filePath, int pid) {
             instruccion.parametros_cantidad++;
             instruccion.parametros = realloc(instruccion.parametros, instruccion.parametros_cantidad * sizeof(t_parametro));
 
-            // Copy the parametro to the parametros array
             instruccion.parametros[instruccion.parametros_cantidad - 1] = parametro;
 
         }
@@ -205,20 +223,12 @@ void parse_file(const char* filePath, int pid) {
 
     }
 
-    t_instrucciones instrucciones_a_enviar = {
+    instrucciones_a_enviar = {
+         .pid = pid,
          .instrucciones = instrucciones, 
          .cantidad = cantidad_instrucciones
     };
-    t_buffer* buffer = crear_buffer();
-    cargar_int_a_buffer(buffer, pid);
-    cargar_instrucciones_a_buffer(buffer, instrucciones_a_enviar);
-
-    // Con este codigo es posible extraer del buffer.
-    // int pid_del_buffer = extraer_int_del_buffer(buffer);
-    // t_instrucciones* instrucciones_del_buffer = extraer_instrucciones_del_buffer(buffer);
     
-    t_paquete *paquete_cpu = crear_paquete(ENVIAR_INSTRUCCIONES_CPU, buffer);
-    enviar_paquete(paquete_cpu, cliente_cpu);
     fclose(file);
 }
 

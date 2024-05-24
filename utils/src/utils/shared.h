@@ -37,9 +37,9 @@ typedef enum
 	//Kernel le avisa a memoria que tiene que crear un proceso
 	CREAR_PROCESO_KM,
 
-	// MEMORIA
-	//Memoria le envia a CPU las instrucciones que indico el Kernel
-	ENVIAR_INSTRUCCIONES_CPU
+	// CPU
+	SOLICITUD_INST,
+	SOLICITUD_INST_OK,
 }op_code;
 
 typedef struct {
@@ -55,8 +55,9 @@ typedef struct {
 } t_instruccion;
 
 typedef struct {
-	t_instruccion* instrucciones;
+	int pid;
 	int cantidad;
+	t_instruccion* instrucciones;
 } t_instrucciones;
 
 // CLIENTE

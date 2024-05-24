@@ -31,6 +31,8 @@ void iterator(char* value);
 int cliente_entradasalida;
 int cliente_kernel;
 int cliente_cpu;
+t_instrucciones instrucciones_a_enviar;
+
 
 void atender_cpu(void* socket_cliente_ptr);
 void atender_entradasalida(void* socket_cliente_ptr);
