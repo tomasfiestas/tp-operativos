@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
     destruir_buffer(paquete);
     
     return EXIT_SUCCESS;
-}
+}}
 
 void atender_mensajes_memoria(void* socket_cliente_ptr){
     int cliente_kernel2 = *(int*)socket_cliente_ptr;
