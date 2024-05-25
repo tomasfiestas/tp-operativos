@@ -77,14 +77,15 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-typedef struct
-{
+typedef struct{
 	int pid;
-	uint32_t program_counter;
-	t_list *instrucciones;
-	int cant_inst;
-	t_registros *registros;
-}t_contexto_ejecucion;
+	int program_counter;
+	t_estado estado;
+	t_registros registros;	
+	//t_list* tabla_archivos;	
+	int quantum;//USAR uint_32
+	int ejecuto;
+} t_pcb;
 
 typedef struct {
 	uint8_t AX;
@@ -100,7 +101,7 @@ typedef struct {
 
 typedef struct 
 {
-	codigo_operacion operacion;
+	op_code operacion;
 	char **parametros;
 	int cant_parametros;
 }t_instruccion;
@@ -134,6 +135,7 @@ void* extraer_de_buffer(t_buffer* buffer);
 int extraer_int_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
+void serializar_contexto(t_paquete *paquete, t_pcb *tcx);
 
 
 

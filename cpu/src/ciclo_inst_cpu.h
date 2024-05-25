@@ -7,4 +7,7 @@
 #include <utils/logging.h>
 #include <utils/shared.h>
 #include <utils/contexto_ejecucion.h>
+#include <gestor_cpu.h>
+
+void empezar_ciclo_instruccion(t_pcb *ctx);
 

@@ -1,13 +1,7 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <utils/hello.h>
-#include <utils/logging.h>
-#include <utils/shared.h>
-#include <utils/contexto_ejecucion.h>
-
+#include <gestor_cpu.h>
 
 
 t_log* cpu_logger;
@@ -24,6 +18,9 @@ int cliente_kernel_interrupt;
 
 void atender_kernel_dispatch(void* socket_cliente_ptr);
 void atender_kernel_interrupt(void* socket_cliente_ptr);
+void devolver_contexto(t_pcb *ctx,op_code cod_operacion);
+
+
 
 
 #endif

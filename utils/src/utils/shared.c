@@ -258,7 +258,7 @@ void* serializar_paquete(t_paquete* paquete){
 //Serializacion
 
 
-void serializar_contexto(t_paquete *paquete, t_contexto_ejecucion *tcx)
+void serializar_contexto(t_paquete *paquete, t_pcb *tcx)
 {
     agregar_a_paquete(paquete, &(ctx-> pid), sizeof(int));
 
@@ -409,7 +409,7 @@ t_instruccion *deserializar_instruccion(t_buffer *buffer, int *desplazamiento)
         *desplazamiento += sizeof(int);
 
         instruccion_deserializada->parametros[i] = malloc(length);
-        memcpy(instruccion_deserializada->parametros[i], buffer -> stream + *desplazamiento, lenght);
+        memcpy(instruccion_deserializada->parametros[i], buffer -> stream + *desplazamiento, length);
         desplazamiento += length;
     } 
 
