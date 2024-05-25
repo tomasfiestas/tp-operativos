@@ -223,11 +223,9 @@ void parse_file(const char* filePath, int pid) {
 
     }
 
-    instrucciones_a_enviar = {
-         .pid = pid,
-         .instrucciones = instrucciones, 
-         .cantidad = cantidad_instrucciones
-    };
+    instrucciones_a_enviar.pid = pid;
+    instrucciones_a_enviar.instrucciones = instrucciones;
+    instrucciones_a_enviar.cantidad = cantidad_instrucciones;
     
     fclose(file);
 }
