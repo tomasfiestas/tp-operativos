@@ -26,6 +26,9 @@ typedef enum {
 
 typedef enum
 {
+	//para saber si esta ok la operacion
+	OK,
+	INSTRUCCION,
 	MENSAJE,
 	PAQUETE,	
 	HANDSHAKE_KERNEL,
@@ -33,6 +36,29 @@ typedef enum
 	HANDSHAKE_MEMORIA,
 	HANDSHAKE_ES,
 
+	//CPU INSTRUCCIONES
+	SET,
+	MOV_IN,
+	MOV_OUT,
+	SUM,
+	SUB,
+	JNZ,
+	RESIZE,
+	COPY_STRING,
+	WAIT,
+	SIGNAL,
+	IO_GEN_SLEEP,
+	IO_STDIN_READ,
+	IO_STDOUT_WRITE,
+	IO_FS_CREATE,
+	IO_FS_DELETE,
+	IO_FS_TRUNCATE,
+	IO_FS_WRITE,
+	IO_FS_READ,
+	EXIT,
+	//Memoria
+	LEER_VALOR,
+	SOLICITUD_INST,
 	//KERNEL
 	//Kernel le avisa a memoria que tiene que crear un proceso
 	CREAR_PROCESO_KM
@@ -50,6 +76,29 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+
+typedef struct
+{
+	int pid;
+	uint32_t program_counter;
+	t_list *instrucciones;
+	int cant_inst;
+	t_registros *registros;
+}t_contexto_ejecucion;
+
+typedef struct {
+	uint32_t AX;
+	uint32_t BX;
+	uint32_t CX;
+	uint32_t DX;
+}t_registros;
+
+typedef struct 
+{
+	codigo_operacion operacion;
+	char **parametros;
+	int cant_parametros;
+}t_instruccion;
 
 
 int crear_conexion_cliente(char* ip, char* puerto);

@@ -41,27 +41,6 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 }
 
 
-void enviar_paquete(t_paquete* paquete,int socket_cliente)
-{	void* a_enviar = serializar_paquete(paquete);
-	int bytes = paquete->buffer->size + 2*sizeof(int);
-	
-
-	send(socket_cliente, a_enviar, bytes, 0);
-
-	free(a_enviar);
-}
-void eliminar_paquete(t_paquete* paquete)
-{
-	free(paquete->buffer->stream);
-	free(paquete->buffer);
-	free(paquete);
-}
-
-void liberar_conexion(int socket_cliente)
-{
-	close(socket_cliente);
-}
-
 //SERVIDOR
 
 int iniciar_servidor(char* puerto)
@@ -272,4 +251,194 @@ void* serializar_paquete(t_paquete* paquete){
 	desplazamiento += paquete->buffer->size;
 
 	return coso;
+}
+
+//--------------------- Protocolo comunicacion ------------------------
+
+//Serializacion
+
+
+void serializar_contexto(t_paquete *paquete, t_contexto_ejecucion *tcx)
+{
+    agregar_a_paquete(paquete, &(ctx-> pid), sizeof(int));
+
+    agregar_a_paquete(paquete, &(ctx->program_counter), sizeof(uint32_t));
+
+    serializar_instrucciones(ctx-> instrucciones, paquete);
+
+
+    agregar_a_paquete(paquete, &(ctx->registros->AX), sizeof(uint32_t));
+    agregar_a_paquete(paquete, &(ctx->registros->BX), sizeof(uint32_t));
+    agregar_a_paquete(paquete, &(ctx->registros->CX), sizeof(uint32_t));
+    agregar_a_paquete(paquete, &(ctx->registros->DX), sizeof(uint32_t));
+
+}
+
+void serializar_instrucciones(t_list *instrucciones, t_paquete paquete)
+{
+    int cant_inst = list_size(instrucciones);
+    agregar_a_paquete(paquete, &cant_inst,sizeof(int));
+
+    for(int i=0; i<cant_inst; i++)
+    {
+        t_instruccion *inst = list_get(instrucciones, i);
+        serializar_instruccion(inst, paquete);
+    }
+}
+
+void serializar_instruccion(t_instruccion *inst, t_paquete paquete)
+{
+    int tamanio_parametro;
+
+    agregar_a_paquete(paquete, &(inst -> operacion), sizeof(op_code));
+   
+    agregar_a_paquete(paquete, &(inst -> cant_parametros), sizeof(int));
+
+    for(int i=0; i < inst-> cant_parametros; i++)
+    {
+        //agrego tamanio del parametro porque es un char*
+
+        tamanio_parametro = strlen(inst->parametros[i]) + 1; //para incluir el caracter nulo
+
+        agregar_a_paquete(paquete, &tamanio_parametro, sizeof(int));
+
+        //agrego parametro
+
+        agregar_a_paquete(paquete, inst-> parametros[i], tamanio_parametro);
+    }
+
+
+}
+
+
+
+//------------
+//  Sockets 
+//------------
+
+void enviar_paquete(t_paquete* paquete,int socket_cliente)
+{	void* a_enviar = serializar_paquete(paquete);
+	int bytes = paquete->buffer->size + 2*sizeof(int);
+	
+
+	send(socket_cliente, a_enviar, bytes, 0);
+
+	free(a_enviar);
+}
+void eliminar_paquete(t_paquete* paquete)
+{
+	free(paquete->buffer->stream);
+	free(paquete->buffer);
+	free(paquete);
+}
+
+void liberar_conexion(int socket_cliente)
+{
+	close(socket_cliente);
+}
+
+
+//-------------------
+//  Deserializacion 
+//-------------------
+
+
+t_contexto_ejecucion *deserializar_contexto(t_buffer *buffer)
+{
+    int desplazamiento = 0;
+
+    //asigno memoria dinamica para el contexto
+    t_contexto_ejecucion *ctx = malloc(sizeof(t_contexto_ejecucion)); //se va a liberar en liberar_contexto
+
+    //copio en el contexto los campos y actualizo el desplazamiento
+    memcpy(&(ctx->pid), buffer-> stream + desplazamiento, sizeof(ctx ->pid));
+    desplazamiento += sizeof(ctx-> pid);
+
+    memcpy(&(ctx->program_counter), buffer-> stream + desplazamiento, sizeof(ctx ->program_counter));
+    desplazamiento += sizeof(ctx-> program_counter);
+
+    //deserializo instrucciones
+    ctx-> instrucciones = list_create();
+    for(int i = 0; i<ctx->cant_inst; i++)
+    {
+        t_instruccion *instruccion = deserializar_instruccion(buffer, &desplazamiento);
+        list_add(ctx->instrucciones, instruccion);
+    }
+
+    //deserializo registros
+
+    ctx->registros = deserializar_registros(buffer, &desplazamiento);
+
+    return ctx;
+
+}
+ //agregar t_registros
+t_registros *deserializar_registros(t_buffer *buffer, int *desplazamiento)
+{
+    t_registros* registros = malloc(sizeof(t_registros));
+
+    memcpy(&(registros->AX), buffer->stream + desplazamiento, sizeof(uint32_t));
+    *desplazamiento += sizeof(uint32_t);
+
+    memcpy(&(registros->BX), buffer->stream + desplazamiento, sizeof(uint32_t));
+    *desplazamiento += sizeof(uint32_t);
+
+    memcpy(&(registros->CX), buffer->stream + desplazamiento, sizeof(uint32_t));
+    *desplazamiento += sizeof(uint32_t);
+
+    memcpy(&(registros->DX), buffer->stream + desplazamiento, sizeof(uint32_t));
+    *desplazamiento += sizeof(uint32_t);
+
+    return registros;
+
+}
+
+t_instruccion *deserializar_instruccion(t_buffer *buffer, int *desplazamiento)
+{
+    t_instruccion *instruccion_deserializada = malloc(sizeof(t_instruccion));
+
+    memcpy(&(instruccion_deserializada->operacion), buffer->stream + *desplazamiento, sizeof(op_code));
+    *desplazamiento += sizeof(int);
+
+    instruccion_deserializada -> parametros = malloc(instruccion_deserializada->cant_parametros * sizeof(char*));
+
+    for(int i=0; i<instruccion_deserializada-> cant_parametros; i++)
+    {
+        int length;
+        memcpy(&length, buffer->stream + desplazamiento, sizeof(int));
+        *desplazamiento += sizeof(int);
+
+        instruccion_deserializada->parametros[i] = malloc(length);
+        memcpy(instruccion_deserializada->parametros[i], buffer -> stream + *desplazamiento, lenght);
+        desplazamiento += length;
+    } 
+
+    return instruccion_deserializada;
+
+}
+
+
+
+//----------------------------------
+//   Liberacion de instrucciones
+//----------------------------------
+
+
+void liberar_instrucciones(t_list *instrucciones)
+{
+    for(int i = 0; i< list_size(instrucciones) - 1; i++)
+    {
+        liberar_instruccion(list_get(instrucciones, i));
+    }
+    list_destroy(instrucciones);
+}
+
+void liberar_instruccion(t_instruccion *instruccion)
+{
+    for(int i = 0; i< instruccion->cant_parametros; i++)
+    {
+        free(instruccion->parametros[i]);
+    }
+    free(instruccion->parametros);
+    free(instruccion);
 }
