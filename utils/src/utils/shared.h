@@ -40,7 +40,7 @@ typedef struct{
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
-	int quantum;
+	int quantum;//USAR uint_32
 	int ejecuto;
 } t_pcb;
 
@@ -80,9 +80,9 @@ typedef enum
 	CONTEXTO_EJECUCION,
 	// Kernel manda a CPU cuando termina el quantum
 	FIN_DE_QUANTUM,
+	PROCESO_DESALOJADO,
 
 	// motivos de desalojo enviados por cpu
-	FINDEQUANTUM,
 	FINPROCESO,
 	IO
 
@@ -131,6 +131,7 @@ void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb);
 void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado);
 void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
+void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb);
 
 t_registros extraer_registros_del_buffer(t_buffer* buffer);
 t_pcb recibir_contexto_ejecucion(t_buffer* buffer);
@@ -141,8 +142,8 @@ uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
 uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
-t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
-
+//t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
+t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
 
 
 

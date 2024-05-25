@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     log_info(logger, "Handshake con Memoria realizado");
 
     //Espero al cliente Kernel - Dispatch
-    int cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 
+    cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 
     //Atender los mensajes de Kernel - Dispatch
     pthread_t hilo_kernel_dispatch;
     int* socket_cliente_kernel_disptach_ptr = malloc(sizeof(int));
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     pthread_detach(hilo_kernel_dispatch);
     log_info(logger, "Atendiendo mensajes de Kernel Dispatch");       
     //Espero al cliente Kernel - Interrupt
-    int cliente_kernel_interrupt = esperar_cliente(servidor_interrupt);    
+    cliente_kernel_interrupt = esperar_cliente(servidor_interrupt);    
     
     //Atender los mensajes de Kernel - Interrupt
     pthread_t hilo_kernel_interrupt;
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     *socket_cliente_kernel_interrupt_ptr = cliente_kernel_interrupt;
     pthread_create(&hilo_kernel_interrupt, NULL, atender_kernel_interrupt, socket_cliente_kernel_interrupt_ptr);
     log_info(logger, "Atendiendo mensajes de Kernel Interrupt");
-    pthread_join(hilo_kernel_interrupt);
+    pthread_join(hilo_kernel_interrupt,NULL);
     
         
     //Atender los mensajes de Memoria  
@@ -64,7 +64,7 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
 		case CONTEXTO_EJECUCION:
 			log_info(logger, "Me llegó contexto ejecución");
             t_buffer* buffer = recibir_buffer(cliente_kd);
-			log_info(logger, "Creamos procesos");                
+			log_info(logger, "EJECUTAMOS procesos");                
             atender_crear_pr(buffer);
 			break;
 		case HANDSHAKE_CPU:
@@ -89,8 +89,10 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     while (control_key){
     op_code handshake = recibir_operacion(cliente_ki);    
 	switch(handshake) {
-		case HANDSHAKE_KERNEL:
-			log_info(logger, "Se conecto el Kernel");
+		case FIN_DE_QUANTUM:
+			log_info(logger, "Me llegó FIN DE QUANTUM");
+            t_buffer* buffer = recibir_buffer(cliente_ki);			              
+            atender_fin_quantum(buffer);
 			break;
 		case HANDSHAKE_CPU:
 			log_info(logger, "Se conecto el CPU");
@@ -109,7 +111,31 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 }
 
 void atender_crear_pr(t_buffer* buffer){
-    recibir_contexto_ejecucion(buffer);   
-
+      
+    t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
+    log_info(logger, "Creamos PCB: %d", pcbb->pid); 
+    
     destruir_buffer(buffer);
+}
+
+void devolver_pcb(t_pcb pcb){
+    t_buffer* buffer_cpu_k = crear_buffer();    
+    cargar_pcb_a_buffer2(buffer_cpu_k,pcb);    
+	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_k);
+    enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
+    destruir_buffer(buffer_cpu_k);
+
+}
+
+void atender_fin_quantum(t_buffer* buffer){
+      
+    t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
+    log_info(logger, "Fin de Quantum: %d", pcbb->pid);   
+    destruir_buffer(buffer) ;
+    t_buffer* buffer_cpu_ki = crear_buffer();    
+    cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
+    log_info(logger, "Enviamos PCB de proceso desalojado - PID %d a Kernel Interrupt", pcbb->pid);   
+	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_ki);
+    enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
+    
 }

@@ -239,25 +239,34 @@ void* extraer_de_buffer(t_buffer* buffer){
     return valor;
 }
 
-t_pcb recibir_contexto_ejecucion(t_buffer* buffer){
-    t_pcb pcb = extraer_pcb_del_buffer(buffer);
-
+/*t_pcb recibir_contexto_ejecucion(t_buffer* buffer){
+    t_pcb pcb = extraer_pcb_del_buffer(buffer);    
     //Esto es solo para probar que se recibio bien el pcb
     log_info(logger, "PID: %d", pcb.pid);
     log_info(logger, "PC: %d", pcb.program_counter);
     log_info(logger,"ejecuto: %d", pcb.ejecuto);
+
     return pcb;
-}
-t_pcb extraer_pcb_del_buffer(t_buffer* buffer){
+}*/
+/*t_pcb extraer_pcb_del_buffer(t_buffer* buffer){
     t_pcb* pcb = malloc(sizeof(t_pcb));
     pcb = extraer_de_buffer(buffer);
     t_pcb valor_pcb = *pcb;
     free(pcb);
     return valor_pcb;
+}*/
+t_pcb* extraer_pcb_del_buffer(t_buffer* buffer){
+    t_pcb* pcb = malloc(sizeof(t_pcb));
+    pcb = extraer_de_buffer(buffer);
+    
+    return pcb;
 }
-
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb){
     cargar_a_buffer(buffer, pcb, sizeof(t_pcb));
+}
+
+void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb){
+    cargar_a_buffer(buffer, &pcb, sizeof(t_pcb));
 }
 
 

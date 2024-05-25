@@ -35,24 +35,20 @@ int main(int argc, char* argv[]) {
    
     //Inicio el cliente para cpu dispatch
     conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
-    
-    //realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_dispatch);
-    log_info(kernel_logger,"Handshake con CPU realizado");
-    
+        
     //Inicio el cliente para cpu interrupt
     conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
-    realizar_handshake(HANDSHAKE_KERNEL, conexion_cpu_interrupt);
-    log_info(kernel_logger,"Handshake con CPU realizado");
+    
     
     //Inicio el cliente para memoria
     conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
     realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
     log_info(kernel_logger,"Handshake con Memoria realizado");
     //Inicio el servidor
-    int servidor = iniciar_servidor(PUERTO_ESCUCHA);
+    servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
-    int cliente_entradasalida = esperar_cliente(servidor); 
+    cliente_entradasalida = esperar_cliente(servidor); 
 
     
     //Planificacion
@@ -71,12 +67,6 @@ int main(int argc, char* argv[]) {
     *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(kernel_logger, "Atendiendo mensajes de Entrada/Salida");
-    
-
-    
-	
-    
-
     pthread_join(hilo_entradasalida,NULL);
     
     

@@ -42,7 +42,11 @@ void* inicio_plani_corto_plazo(void* arg);
 void* contar_quantum();
 
 
+void atender_crear_pr2(t_buffer* buffer,op_code op_code);
+void atender_cpu_dispatch(void* socket_cliente_ptr);
+void *round_robin(void * pcb);
+void atender_proceso_desalojado(t_buffer* buffer, op_code op_code);
 
-
+void *manejo_quantum(void * pcb);
 
 #endif 

@@ -23,6 +23,7 @@ algoritmos  algoritmo_plani;
 
 int multiprogramacion;
 
+sem_t (planificacion_activa);
 //Semaforos para multiprogramacion
 sem_t multiPermiteIngresar;
 sem_t lugares_ready_llenos;
@@ -68,7 +69,7 @@ void crear_pcb(int pid){
 	sem_wait(&sem_total_pcbs);
 	list_add(total_pcbs, nuevo_pcb);
 	sem_post(&sem_total_pcbs);
-
+	
 	agregar_a_new(nuevo_pcb);
 	log_info(kernel_logger, "Nuevo proceso %d en NEW", pid);
 	
@@ -107,6 +108,7 @@ void inicializar_semaforos(){
 	sem_init(&sem_exec, 0, 1);
 	sem_init(&sem_block, 0, 1);
 	sem_init(&sem_exit, 0, 1);
+	sem_init (&planificacion_activa,0,0);
 	
 }
 
@@ -167,18 +169,18 @@ algoritmos obtener_algoritmo(){
 // ---------------------------------------------------
 
 void* inicio_plani_largo_plazo(void* arg){
+	sem_wait(&planificacion_activa);
 	while(1){
 		// Espero a que haya procesos en new 			
 		sem_wait(&hayPCBsEnNew);
 		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
 		
-		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM
+		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM		
 		sem_wait(&lugares_ready_vacios);
 		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
 		
 		//Se agrega el pcb a READY
-		t_pcb* pcb = sacar_siguiente_de_new();
-		// cambiar_estado_pcb(pcb, READY); pongo esto en la funcion agregar_a_ready asi no lo hacemos cada vez
+		t_pcb* pcb = sacar_siguiente_de_new();		
 		agregar_a_ready(pcb);
 		log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
 		
@@ -193,8 +195,7 @@ void* inicio_plani_largo_plazo(void* arg){
 //             PLANIFICADOR CORTO PLAZO
 // ---------------------------------------------------
 void* inicio_plani_corto_plazo(void* arg){
-	//int pcb_nuevo = 1;
-
+	
 	while(1){
 		sem_wait(&hayPCBsEnReady);
 		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
@@ -205,52 +206,43 @@ void* inicio_plani_corto_plazo(void* arg){
 		t_pcb* pcb;
 		
 		pcb = sacar_de_ready();
-			agregar_a_exec(pcb);
+		agregar_a_exec(pcb);
 		
 
 		//MANDAR CONTEXTO A CPU PARA QUE EJECUTE		
   		mandar_contexto_a_CPU(pcb);
 
-		//ESPERAR RESPUESTA DE CPU PARA SACAR PCB DE EXEC O LO QUE SEA QUE SE HAGA
-		//cod_op operacion_recibida = recibir_operacion(socket_cpu_plani);
+		//Implemento hilo para contar quantum en RR 
+		if(algoritmo_plani==FIFO){
 
-//aca podriamos correr un hilo para q me empiece a contar el quantum
-         if(algoritmo_plani == RR){
-                pthread_t hilo_quantum;
-                pthread_create(&hilo_quantum, NULL, (void *)contar_quantum, NULL);
-				pthread_detach(hilo_quantum);
-        	}
+		}
+		else {
+		pthread_t hilo_quantum;
+    	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
+    	//*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
+    	pthread_create(&hilo_quantum, NULL, (void *)manejo_quantum, (void*)pcb);
+    	log_info(kernel_logger, "Creo hilo para contar quantum en RR");
+    	pthread_detach(hilo_quantum);
+		}
+			
 
-		//IMPLEMENTAR COMO VAMOS A RECIBIR EL CONTEXTO DE EJECUCIón
-		// lo tengo q recibir junto con un motivo de desalojo, idea:
-
-		op_code op_code = recibir_operacion(conexion_cpu_interrupt);
-		t_buffer* buffer = recibir_buffer(conexion_cpu_interrupt);
-		t_pcb pcbDesalojado = recibir_contexto_ejecucion(buffer); 
-		log_info(kernel_logger, "pid: %d", pcbDesalojado.pid);
-		
-		sacar_de_exec(pcb, op_code);
+		//IMPLEMENTAR COMO VAMOS A RECIBIR EL CONTEXTO DE EJECUCIÓN
+		pthread_t hilo_kernel_dispatch;
+    	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
+    	*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
+    	pthread_create(&hilo_kernel_dispatch, NULL, atender_cpu_dispatch, socket_cliente_cpu_dispatch_ptr);
+    	log_info(kernel_logger, "Atendiendo mensajes de CPU Interrupt");
+    	pthread_detach(hilo_kernel_dispatch);
 			
 
 	}
 
 }
 
-void iniciar_planificacion(){
-	t_pcb* pcb;
-	while (1){
-
-		sem_wait(&lugares_ready_llenos);
-		sem_wait(&mutex_multiprogramacion);
-			pcb = sacar_de_ready();
-			cambiar_estado_pcb(pcb, EXEC);
-			agregar_a_exec(pcb);
-			// mandar a CPU contexto de ejecucion
-			mandar_contexto_a_CPU(pcb);
-		sem_post(&mutex_multiprogramacion);
-		sem_post(&lugares_ready_vacios);
+void iniciar_planificacion(){	
 		
-	}
+		sem_post(&planificacion_activa);		
+	
 }
 
 // -------------------------------------------------
@@ -271,8 +263,7 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 void agregar_a_ready(t_pcb* nuevo_pcb){
 	//semaforo tipo productor-consumidor
 	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
-	// sem_wait(&lugares_ready_vacios); --> lo pongo en plani largo plazo
-
+	
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
@@ -295,11 +286,11 @@ t_pcb* sacar_de_ready(){
 			pcb = list_remove(plani_ready, 0);
 		sem_post(&sem_ready);
 		return pcb;
-	//ESTO es RR en realidad pero le pongo VRR para probar con lo que está configurado.
-	case VRR: 
+	
+	case RR: 
 		sem_wait(&sem_ready);
         pcb = list_remove(plani_ready, 0);
-        sem_post(&sem_ready);
+        sem_post(&sem_ready);		
 		return pcb;
 
 	//TODO IMPLEMENTAR MAGIAS de VRR
@@ -318,14 +309,14 @@ void agregar_a_exec(t_pcb* pcb){
 }
 void sacar_de_exec(t_pcb* pcb, op_code op_code){
 	sem_wait(&sem_exec);
-		list_remove(plani_exec, pcb);
+		list_remove_element(plani_exec, pcb);
 	sem_post(&sem_exec);
 		switch (op_code)
 			{
 			case IO:
 				agregar_a_bloqueado(pcb);
 			break;
-			case FINDEQUANTUM:
+			case FIN_DE_QUANTUM:			
 				agregar_a_ready(pcb);
 			break;
 			default: // FINPROCESO
@@ -366,13 +357,21 @@ void mandar_contexto_a_CPU(t_pcb* pcb){
     cargar_pcb_a_buffer(buffer_cpu,pcb);    
 	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
+
+		
+	
+
+
+	
 }
 
 void enviar_interrupcion_por_quantum(t_pcb* pcb){
-    t_buffer* buffer_cpu = crear_buffer();    
-    cargar_pcb_a_buffer(buffer_cpu,pcb);    
-	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu);
-    enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+    t_buffer* buffer_cpu2 = crear_buffer();    
+    cargar_pcb_a_buffer(buffer_cpu2,pcb);  
+	log_info(kernel_logger, "Envio interrupcion por fin de quantum a CPU %d", pcb->pid);  
+	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu2);
+    enviar_paquete(paquete_cpu, conexion_cpu_interrupt); 
+	destruir_buffer(buffer_cpu2);
 }
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	char* estadoAnteriorString = string_new();
@@ -410,4 +409,79 @@ char* estado_a_string(t_estado estado) {
 	default:
 		return "ESTADO DESCONOCIDO";
 	}
+}
+
+void atender_cpu_dispatch(void* socket_cliente_ptr) {
+    int cliente_kd = *(int*)socket_cliente_ptr;
+    free(socket_cliente_ptr);    
+    op_code op_code = recibir_operacion(cliente_kd);	
+	sem_post(&puedeEntrarAExec);
+	log_info(kernel_logger,"OP CODE: %d", op_code);
+	switch(op_code) {
+		case FIN_DE_QUANTUM:
+			log_info(kernel_logger, "Me llegó el proceso por fin de quantum ");
+            t_buffer* buffer = recibir_buffer(cliente_kd);			             
+            atender_crear_pr2(buffer,op_code);
+			break;
+		case PROCESO_DESALOJADO:
+			log_info(kernel_logger, "Llegó proceso desalojado");
+			t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
+            atender_proceso_desalojado(buffer2,op_code);
+			break;
+		case HANDSHAKE_MEMORIA:
+			log_info(kernel_logger, "Se conecto la Memoria");
+			break;
+		case HANDSHAKE_ES:
+			log_info(kernel_logger, "Se conecto el IO");
+			break;
+		default:
+			log_error(kernel_logger, "No se reconoce el handshake");
+			break;
+	}   
+
+}
+
+void atender_crear_pr2(t_buffer* buffer,op_code op_code){
+	t_pcb* pcb = extraer_pcb_del_buffer(buffer);
+	
+	//REVISAR ACÄ COMO CONTINUAR
+	sacar_de_exec(pcb, op_code);
+     
+    log_info(kernel_logger, "Me llegó el proceso desalojado: %d", pcb->pid); 
+
+    destruir_buffer(buffer);
+}
+
+
+
+void atender_proceso_desalojado(t_buffer* buffer, op_code op_code){
+	t_pcb* pcb;
+	//t_pcb pcbb = recibir_contexto_ejecucion(buffer); 
+	pcb = extraer_de_buffer(buffer);
+    t_pcb valor_pcb = *pcb;
+    //free(pcb);
+   
+	//REVISAR ACÄ COMO CONTINUAR
+	sacar_de_exec(pcb, op_code);
+     
+    log_info(kernel_logger, "LLEGO A KERNEL PROCESO DESALOJADO - LO MANDO A READY XQ ESTOY EN RR: %d", valor_pcb.pid); 
+
+    destruir_buffer(buffer);
+}
+
+void *manejo_quantum(void * pcb){
+	switch(algoritmo_plani){
+		case RR:
+			contar_quantum();
+			//CHEQUEAR SI SIGUE EL PCB EJECUTANDO o si recibí algo.
+			enviar_interrupcion_por_quantum(pcb);	
+			break;
+		case VRR:
+			
+			break;
+		
+	
+	log_info(kernel_logger, "Fin de hilo Quantum");
+	}
+
 }

@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <planificacion.h>
 
+
 extern int conexion_k_memoria;
 extern void iterator(char* value);
 extern t_log* kernel_logger;

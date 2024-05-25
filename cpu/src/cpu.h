@@ -6,6 +6,7 @@
 #include <utils/hello.h>
 #include <utils/logging.h>
 #include <utils/shared.h>
+#include <pthread.h>
 
 
 
@@ -24,6 +25,7 @@ int cliente_kernel_interrupt;
 void atender_kernel_dispatch(void* socket_cliente_ptr);
 void atender_kernel_interrupt(void* socket_cliente_ptr);
 void atender_crear_pr(t_buffer* buffer);
+void atender_fin_quantum(t_buffer* buffer);
 
 
 #endif
