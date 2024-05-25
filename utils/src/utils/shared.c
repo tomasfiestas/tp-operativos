@@ -204,6 +204,10 @@ void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
 void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros){
     cargar_a_buffer(buffer, &registros, sizeof(t_registros));
 }
+void cargar_instrucciones_a_buffer(t_buffer* buffer, t_instrucciones valor){
+    cargar_a_buffer(buffer, &valor, sizeof(t_instrucciones));
+}
+
 void* extraer_de_buffer(t_buffer* buffer){
     if(buffer->size == 0){
        printf("\n Error al extraer contenido del buffer VACIO\n");
@@ -309,6 +313,11 @@ uint32_t extraer_uint32_del_buffer(t_buffer* buffer){
     uint32_t valor_int = *entero;
     free(entero);
     return valor_int;
+}
+
+t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer){
+    t_instrucciones* instrucciones = extraer_de_buffer(buffer);
+    return instrucciones;
 }
 
 t_buffer* recibir_buffer(int conexion){

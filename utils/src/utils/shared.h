@@ -82,11 +82,33 @@ typedef enum
 	FIN_DE_QUANTUM,
 	PROCESO_DESALOJADO,
 
+	// CPU
+	SOLICITUD_INST,
+	SOLICITUD_INST_OK,
+
 	// motivos de desalojo enviados por cpu
 	FINPROCESO,
 	IO
 
 }op_code;
+
+typedef struct {
+	uint32_t longitud;
+	char* parametro;
+} t_parametro;
+
+typedef struct {
+	uint32_t instruccion_longitud;
+    char* instruccion;
+	uint32_t parametros_cantidad;
+	t_parametro* parametros;
+} t_instruccion;
+
+typedef struct {
+	int pid;
+	int cantidad;
+	t_instruccion* instrucciones;
+} t_instrucciones;
 
 // CLIENTE
 typedef struct
@@ -124,6 +146,7 @@ t_buffer* recibir_buffer(int conexion);
 void destruir_buffer(t_buffer* buffer);
 void cargar_a_buffer(t_buffer* buffer, void* valor, int tamanio);
 void cargar_int_a_buffer(t_buffer* buffer, int valor);
+void cargar_instrucciones_a_buffer(t_buffer* buffer, t_instrucciones instrucciones);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
 void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
@@ -141,6 +164,7 @@ int extraer_int_del_buffer(t_buffer* buffer);
 uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
 uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
+t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
