@@ -11,6 +11,46 @@
 #include<commons/log.h>
 #include<commons/collections/list.h>
 #include<assert.h>
+#include <string.h>
+
+typedef enum{
+	NEW,
+	READY,
+	EXEC,
+	BLOCK,
+	FIN
+} t_estado;
+
+typedef struct{
+	uint8_t AX;
+	uint8_t BX;
+	uint8_t CX;
+	uint8_t DX;
+	uint32_t EAX;
+	uint32_t EBX;
+	uint32_t ECX;
+	uint32_t EDX;
+	uint32_t SI;
+	uint32_t DI;
+} t_registros;
+
+typedef struct{
+	int pid;
+	int program_counter;
+	t_estado estado;
+	t_registros registros;	
+	//t_list* tabla_archivos;	
+	int quantum;//USAR uint_32
+	int ejecuto;
+} t_pcb;
+
+
+
+typedef enum{
+	FIFO,
+	VRR,
+	RR
+} algoritmos;
 
 typedef enum {
 	EJECUTAR_SCRIPT,
@@ -35,7 +75,17 @@ typedef enum
 
 	//KERNEL
 	//Kernel le avisa a memoria que tiene que crear un proceso
-	CREAR_PROCESO_KM
+	CREAR_PROCESO_KM,
+	//Kernel manda contexto de ejecucion a CPU
+	CONTEXTO_EJECUCION,
+	// Kernel manda a CPU cuando termina el quantum
+	FIN_DE_QUANTUM,
+	PROCESO_DESALOJADO,
+
+	// motivos de desalojo enviados por cpu
+	FINPROCESO,
+	IO
+
 }op_code;
 
 // CLIENTE
@@ -75,12 +125,25 @@ void destruir_buffer(t_buffer* buffer);
 void cargar_a_buffer(t_buffer* buffer, void* valor, int tamanio);
 void cargar_int_a_buffer(t_buffer* buffer, int valor);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
+void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
+void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
+void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb);
+void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado);
+void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
+void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
+void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb);
 
+t_registros extraer_registros_del_buffer(t_buffer* buffer);
+t_pcb recibir_contexto_ejecucion(t_buffer* buffer);
+t_estado extraer_estado_del_buffer(t_buffer* buffer);
 void* extraer_de_buffer(t_buffer* buffer);
 int extraer_int_del_buffer(t_buffer* buffer);
+uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
+uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
-
+//t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
+t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
 
 
 
