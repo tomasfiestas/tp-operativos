@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     *socket_cliente_memoria_ptr = conexion_kernel;
     pthread_create(&hilo_memoria, NULL,atender_mensajes_memoria, socket_cliente_memoria_ptr);
     log_info(logger, "Esperando mensajes de Memoria");
-    pthread_join(hilo_memoria);
+    pthread_join(hilo_memoria,NULL);
 
 
 
