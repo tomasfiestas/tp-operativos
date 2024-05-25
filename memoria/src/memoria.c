@@ -98,7 +98,7 @@ void atender_cpu(void* socket_cliente_ptr) {
 
         t_buffer *response_buffer = crear_buffer();
         cargar_instrucciones_a_buffer(response_buffer, instrucciones_a_enviar);
-        t_paquete *response = crear_paquete(SOLICITUD_INST_OK, buffer);
+        t_paquete *response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
 
         // TODO: ver como enviar paquete al cliente.
         enviar_paquete(response, cliente);
