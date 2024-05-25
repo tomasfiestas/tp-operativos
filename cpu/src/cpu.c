@@ -83,7 +83,11 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
 			log_error(logger, "No se reconoce el handshake");
 			control_key = 0;
 			break;
-	}   } 
+	}   }
+
+    pthread_t conexion_cpu_dispatch;
+    pthread_create(&conexion_cpu_dispatch, NULL, (void*)esperar_contextos, &cliente_kernel_dispatch);
+
 }
 void atender_kernel_interrupt(void* socket_cliente_ptr) {
     int cliente_ki = *(int*)socket_cliente_ptr;
