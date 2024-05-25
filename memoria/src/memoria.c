@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     log_info(logger, "Servidor de memoria iniciado ");    
     
      //Espero conexion de CPU
-    int cliente_cpu = esperar_cliente(servidor_memoria); 
+    cliente_cpu = esperar_cliente(servidor_memoria); 
     //Atiendo mensajes de CPU
     pthread_t hilo_cpu;
     int* socket_cliente_cpu_ptr = malloc(sizeof(int));
