@@ -1,6 +1,6 @@
 #include "../include/ciclo_inst_cpu.h"
 
-int hayInterrupcion;
+int existe_interrupcion;
 sem_t recibir_inst;
 sem_t mutex_ctx;
 
@@ -11,13 +11,13 @@ void empezar_ciclo_instruccion(t_contexto_ejecucion *ctx)
     sem_init(&recibir_inst,0,0);
     sem_init(&mutex_ctx,0,1);
     t_instruccion *inst_a_ejecutar;
-    hayInterrupcion = 0;
+    existe_interrupcion = 0;
     pthread_t hilo_interrupciones;
 
     //creo hilo que recibe interrupciones de kernel
     pthread_create(&hilo_interrupciones, NULL, (void*)check_interrupt, ctx);
 
-    while(context_global != NULL && !hayInterrupcion)
+    while(context_global != NULL && !existe_interrupcion)
     {
         inst_a_ejecutar = fetch(context_global);
 
@@ -34,10 +34,10 @@ void empezar_ciclo_instruccion(t_contexto_ejecucion *ctx)
 
             log_info(logger_cpu, "PID: %d - Ejecutando SET - %s %s", ctx->pid, instruccion->parametros[0], instruccion->parametros[1]);
             asignar_registro(instruccion->parametros[0]);
-            return NADA,;
+            return NADA;
         
 
-        //completar
+        //Completar en siguiente checkpoint
 
 
         case NADA:
@@ -48,7 +48,7 @@ void empezar_ciclo_instruccion(t_contexto_ejecucion *ctx)
 
     }
 
-    if(hayInterrupcion)
+    if(existe_interrupcion)
     {
         sem_post(&recibir_inst);
         pthread_join(hilo_interrupciones, NULL);
@@ -79,14 +79,17 @@ int execute(t_contexto_ejecucion** contexto_ejec, t_instruccion instruccion_actu
     switch (instruccion_actual -> operacion)
     {
     case SET: 
+        log_info(logger_cpu, "PID: %d - Ejecutando: SET - %s %s", contexto_ejec->pid, instruccion_actual->parametros[0], instruccion_actual->parametros[1]);
         asignar_registro(instruccion_actual->parametros[0], instruccion_actual->parametros[1], contexto_ejec->registros);
         break;;
     
     case SUM: 
+        log_info(logger_cpu, "PID: %d - Ejecutando: SUM - %s %s", contexto_ejec->pid, instruccion_actual->parametros[0], instruccion_actual->parametros[1]);
         operar_con_registros(instruccion_actual->operacion, instruccion_actual->parametros[0], instruccion_actual->parametros[1], contexto_ejec->registros);
         break;
 
-    case SUM: 
+    case SUB: 
+        log_info(logger_cpu, "PID: %d - Ejecutando: SUB - %s %s", contexto_ejec->pid, instruccion_actual->parametros[0], instruccion_actual->parametros[1]);
         operar_con_registros(instruccion_actual->operacion, instruccion_actual->parametros[0], instruccion_actual->parametros[1], contexto_ejec->registros);
         break;
 
@@ -137,6 +140,7 @@ void asignar_registro(char* reg, char* valor, t_registros *registros)
         memcpy((registros->AX), valor, 4);
     if(!strcmp("DX", reg))
         memcpy((registros->AX), valor, 4);
+    
 
 }
 
