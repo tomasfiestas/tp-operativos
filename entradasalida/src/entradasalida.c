@@ -47,46 +47,14 @@ int main(int argc, char* argv[]) {
 
 
 
-
-//Agregando verificacion de interfaz...
-
-    while(1){
     
-    int cliente = *(int*)socket_cliente_memoria_ptr;
 
-    t_paquete* paquete = recibir_buffer(cliente);
-    op_code instruccion_recibida = recibir_operacion(paquete); 
+    
 
-        switch(instruccion_recibida){
-        
-        case IO_GEN_SLEEP:
+    
 
-            int tiempo_unidad_trabajo = config_get_int_value(entradasalida_config, "TIEMPO_UNIDAD_TRABAJO");
-            int* cantidad_dormir = extraer_int_del_buffer(paquete);
-            int tiempo_sleep = tiempo_unidad_trabajo * (*cantidad_dormir);
-            if(tiempo_sleep > 0){
-
-                    sleep(tiempo_sleep);
-
-                    printf("Dormi %d ", tiempo_sleep);
-
-            } else {
-
-                printf("El parametro no es valido");
-
-            }
-
-        break;
-
-        default: 
-
-            printf("Instruccion no reconocida");
-
-        break;
-
-    }
-
-    destruir_buffer(paquete);
+    
+    
 	
     return EXIT_SUCCESS;
 }
