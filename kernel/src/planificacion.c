@@ -271,7 +271,7 @@ void agregar_a_ready(t_pcb* nuevo_pcb){
 	sem_post(&hayPCBsEnReady);
 }
 void mostrar_pids_ready() {
-	log_info(kernel_logger, "Procesos en READY: ");
+	
 	char* pids = string_new();
 	for (int i = 0; i < list_size(plani_ready); i++) {
 		t_pcb* pcb = list_get(plani_ready, i);
@@ -280,7 +280,11 @@ void mostrar_pids_ready() {
 		string_append(&pids, ", "); // Add a comma and space separator
 		free(pid_str);
 	}
-	log_info(kernel_logger, "%s", pids);
+	// Remove the last comma and space separator
+	if (strlen(pids) > 0) {
+		pids[strlen(pids) - 2] = '\0';
+	}
+	log_info(kernel_logger, "Cola Ready : [%s ]", pids);	
 	free(pids);
 }
 t_pcb* sacar_siguiente_de_new(){
