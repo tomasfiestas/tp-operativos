@@ -262,15 +262,27 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 
 void agregar_a_ready(t_pcb* nuevo_pcb){
 	//semaforo tipo productor-consumidor
-	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
-	
+	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip	
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
 	cambiar_estado_pcb(nuevo_pcb, READY);
+	mostrar_pids_ready();	
 	sem_post(&hayPCBsEnReady);
 }
-
+void mostrar_pids_ready() {
+	log_info(kernel_logger, "Procesos en READY: ");
+	char* pids = string_new();
+	for (int i = 0; i < list_size(plani_ready); i++) {
+		t_pcb* pcb = list_get(plani_ready, i);
+		char* pid_str = string_itoa(pcb->pid);
+		string_append(&pids, pid_str);
+		string_append(&pids, ", "); // Add a comma and space separator
+		free(pid_str);
+	}
+	log_info(kernel_logger, "%s", pids);
+	free(pids);
+}
 t_pcb* sacar_siguiente_de_new(){
 	sem_wait(&sem_new);
 	t_pcb* pcb = queue_pop(plani_new);
@@ -419,7 +431,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	log_info(kernel_logger,"OP CODE: %d", op_code);
 	switch(op_code) {
 		case FIN_DE_QUANTUM:
-			log_info(kernel_logger, "Me llegó el proceso por fin de quantum ");
+			
             t_buffer* buffer = recibir_buffer(cliente_kd);			             
             atender_crear_pr2(buffer,op_code);
 			break;
@@ -447,7 +459,7 @@ void atender_crear_pr2(t_buffer* buffer,op_code op_code){
 	//REVISAR ACÄ COMO CONTINUAR
 	sacar_de_exec(pcb, op_code);
      
-    log_info(kernel_logger, "Me llegó el proceso desalojado: %d", pcb->pid); 
+    log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
 
     destruir_buffer(buffer);
 }

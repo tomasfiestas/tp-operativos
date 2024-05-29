@@ -23,7 +23,7 @@ t_pcb* pcb_de_exec();
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo);
 char* estado_a_string(t_estado estado);
 
-
+void mostrar_pids_ready();
 
 void inicializar_semaforos();
 void inicializar_listas();
