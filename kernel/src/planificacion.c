@@ -23,7 +23,8 @@ algoritmos  algoritmo_plani;
 
 int multiprogramacion;
 
-sem_t (planificacion_activa);
+sem_t planificacion_largo_plazo_activa;
+sem_t planificacion_corto_plazo_activa;
 //Semaforos para multiprogramacion
 sem_t multiPermiteIngresar;
 sem_t lugares_ready_llenos;
@@ -108,7 +109,8 @@ void inicializar_semaforos(){
 	sem_init(&sem_exec, 0, 1);
 	sem_init(&sem_block, 0, 1);
 	sem_init(&sem_exit, 0, 1);
-	sem_init (&planificacion_activa,0,0);
+	sem_init (&planificacion_largo_plazo_activa,0,0);
+	sem_init (&planificacion_corto_plazo_activa,0,0);
 	
 }
 
@@ -169,8 +171,12 @@ algoritmos obtener_algoritmo(){
 // ---------------------------------------------------
 
 void* inicio_plani_largo_plazo(void* arg){
-	sem_wait(&planificacion_activa);
-	while(1){
+	sem_wait(&planificacion_largo_plazo_activa);
+	int valor = 0;
+	sem_getvalue(&planificacion_largo_plazo_activa, &valor);
+
+	while(valor ==1){		
+		
 		// Espero a que haya procesos en new 			
 		sem_wait(&hayPCBsEnNew);
 		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
@@ -184,6 +190,7 @@ void* inicio_plani_largo_plazo(void* arg){
 		agregar_a_ready(pcb);
 		log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
 		
+		sem_getvalue(&planificacion_largo_plazo_activa, &valor);
 	}
 
 	return NULL;
@@ -195,8 +202,12 @@ void* inicio_plani_largo_plazo(void* arg){
 //             PLANIFICADOR CORTO PLAZO
 // ---------------------------------------------------
 void* inicio_plani_corto_plazo(void* arg){
+	sem_wait(&planificacion_corto_plazo_activa);
+	int valor_corto_plazo = 0;
+	sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
 	
-	while(1){
+	while(valor_corto_plazo ==1){
+		
 		sem_wait(&hayPCBsEnReady);
 		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
@@ -233,6 +244,8 @@ void* inicio_plani_corto_plazo(void* arg){
     	pthread_create(&hilo_kernel_dispatch, NULL, atender_cpu_dispatch, socket_cliente_cpu_dispatch_ptr);
     	log_info(kernel_logger, "Atendiendo mensajes de CPU Interrupt");
     	pthread_detach(hilo_kernel_dispatch);
+		sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
+		
 			
 
 	}
@@ -241,9 +254,16 @@ void* inicio_plani_corto_plazo(void* arg){
 
 void iniciar_planificacion(){	
 		
-		sem_post(&planificacion_activa);		
+		sem_post(&planificacion_largo_plazo_activa);	
+		sem_post(&planificacion_largo_plazo_activa);
+		sem_post(&planificacion_corto_plazo_activa);
+		sem_post(&planificacion_corto_plazo_activa);		
 	
 }
+void detener_planificacion(){
+	sem_wait(&planificacion_largo_plazo_activa);
+	sem_wait(&planificacion_corto_plazo_activa);
+}	
 
 // -------------------------------------------------
 //             FUNCIONES GENERALES
@@ -490,7 +510,8 @@ void *manejo_quantum(void * pcb){
 		case RR:
 			contar_quantum();
 			//CHEQUEAR SI SIGUE EL PCB EJECUTANDO o si recibí algo.
-			enviar_interrupcion_por_quantum(pcb);	
+			enviar_interrupcion_por_quantum(pcb);
+			
 			break;
 		case VRR:
 			

@@ -62,13 +62,13 @@ void leer_consola()
                     break;
                 case INICIAR_PLANIFICACION:
                     log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
-                    pthread_t hilo_plani_corto_plazo;
-	                pthread_create(&hilo_plani_corto_plazo, NULL, iniciar_planificacion, NULL);
-	                pthread_detach(hilo_plani_corto_plazo);
+	                iniciar_planificacion();           
 
                     break;
                 case DETENER_PLANIFICACION:
-                    printf("DETENER_PLANIFICACION\n");
+                    detener_planificacion();
+                    log_info(kernel_logger, "DETENER_PLANIFICACION\n");
+                    
                     break; 
                 case MULTIPROGRAMACION:
                     printf("MULTIPROGRAMACION\n");

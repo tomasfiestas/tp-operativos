@@ -28,6 +28,7 @@ void mostrar_pids_ready();
 void inicializar_semaforos();
 void inicializar_listas();
 void iniciar_planificacion();
+void detener_planificacion();
 
 algoritmos obtener_algoritmo();
 
