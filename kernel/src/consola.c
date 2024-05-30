@@ -57,8 +57,13 @@ void leer_consola()
                     iniciar_proceso(buffer);
 
                     break;
-                case FINALIZAR_PROCESO: //ultimo check
+                case FINALIZAR_PROCESO: 
                     printf("FINALIZAR_PROCESO\n");
+                    t_buffer* buffer_finalizar_proceso = crear_buffer();
+                    int pids = atoi(argumentos[1]);
+                    cargar_int_a_buffer(buffer_finalizar_proceso, pids);                    
+                    finalizar_proceso(buffer_finalizar_proceso);
+
                     break;
                 case INICIAR_PLANIFICACION:
                     log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
@@ -108,9 +113,7 @@ void iniciar_proceso(t_buffer* buffer){
     char* path = extraer_string_del_buffer(buffer); 
     printf("El path del proceso a iniciar es: %s\n", path);     
 
-    //VER QUE Mäs AGREGAR 
-    // crear_proceso()??
-    
+           
     destruir_buffer(buffer);
 
     int pid = asignar_pid();
@@ -124,6 +127,29 @@ void iniciar_proceso(t_buffer* buffer){
     t_paquete* paquete_memoria = crear_paquete(CREAR_PROCESO_KM, buffer_memoria);
     enviar_paquete(paquete_memoria, conexion_k_memoria);
 }
+void finalizar_proceso(t_buffer* buffer){    
+    int pid= extraer_int_del_buffer(buffer); 
+    printf("El proceso a finalizar es: %d\n", pid);         
+    
+    destruir_buffer(buffer);   
+    
+
+    t_pcb * pcb_a_finalizar = buscarPcb(pid);
+    if(pcb_a_finalizar->estado == EXEC){ 
+    //Le aviso a CPU interrupt que quiero terminar un proceso
+    t_buffer* buffer_cpu_interrupt = crear_buffer();
+    pthread_cancel(hilo_quantum); //Detengo el hilo que cuenta el quantum
+    cargar_pcb_a_buffer(buffer_cpu_interrupt, pcb_a_finalizar);
+    t_paquete* paquete_cpu = crear_paquete(FINPROCESO, buffer_cpu_interrupt);
+    enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+
+    }
+    else{
+        sacar_pcb_de_lista(pcb_a_finalizar);
+        agregar_a_exit(pcb_a_finalizar,CONSOLA);
+    }
+}
+
 
 
 

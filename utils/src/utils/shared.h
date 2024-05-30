@@ -78,6 +78,7 @@ typedef enum
 	CREAR_PROCESO_KM,
 	//Kernel manda contexto de ejecucion a CPU
 	CONTEXTO_EJECUCION,
+	CONSOLA,
 	// Kernel manda a CPU cuando termina el quantum
 	FIN_DE_QUANTUM,
 	PROCESO_DESALOJADO,
@@ -88,6 +89,7 @@ typedef enum
 
 	// motivos de desalojo enviados por cpu
 	FINPROCESO,
+	SUCCESS,
 	IO,
 
 	//Entrada Saldia

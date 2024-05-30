@@ -6,7 +6,7 @@ char** instancias_recursos;
 
 
 //Listas de estados
-t_queue* plani_new;
+t_list* plani_new;
 t_list* plani_ready;
 t_list* total_pcbs;
 t_list* plani_exec;
@@ -125,7 +125,7 @@ void inicializar_listas(){
 
 	
 	// Inicio listas
-	plani_new = queue_create();
+	plani_new = list_create();
 	total_pcbs = list_create();
 	plani_ready = list_create();
 	plani_exec = list_create();
@@ -182,7 +182,7 @@ void* inicio_plani_largo_plazo(void* arg){
 		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
 		
 		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM		
-		sem_wait(&lugares_ready_vacios);
+		
 		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
 		
 		//Se agrega el pcb a READY
@@ -228,7 +228,7 @@ void* inicio_plani_corto_plazo(void* arg){
 
 		}
 		else {
-		pthread_t hilo_quantum;
+		//pthread_t hilo_quantum;
     	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
     	//*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
     	pthread_create(&hilo_quantum, NULL, (void *)manejo_quantum, (void*)pcb);
@@ -272,17 +272,17 @@ void detener_planificacion(){
 
 
 void agregar_a_new(t_pcb* nuevo_pcb){
-	sem_wait(&sem_new);
-		queue_push(plani_new, nuevo_pcb);
+	sem_wait(&sem_new);	
+		list_add(plani_new, nuevo_pcb);
 		log_info(kernel_logger, "Se crea el proceso %d en NEW", nuevo_pcb->pid);
 	sem_post(&sem_new);
-	sem_post(&hayPCBsEnNew);	
-	log_info(kernel_logger, "le mandé el post a PCB");	
+	sem_post(&hayPCBsEnNew);		
 }
 
 void agregar_a_ready(t_pcb* nuevo_pcb){
 	//semaforo tipo productor-consumidor
-	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip	
+	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
+	sem_wait(&lugares_ready_vacios);	
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
@@ -309,7 +309,7 @@ void mostrar_pids_ready() {
 }
 t_pcb* sacar_siguiente_de_new(){
 	sem_wait(&sem_new);
-	t_pcb* pcb = queue_pop(plani_new);
+	t_pcb* pcb = list_remove(plani_new,0);
 	sem_post(&sem_new);
 	return pcb;
 }
@@ -355,8 +355,11 @@ void sacar_de_exec(t_pcb* pcb, op_code op_code){
 			case FIN_DE_QUANTUM:			
 				agregar_a_ready(pcb);
 			break;
+			case FINPROCESO:
+				agregar_a_exit(pcb,op_code);
+			break;
 			default: // FINPROCESO
-				agregar_a_exit(pcb);
+				agregar_a_exit(pcb,op_code);
 			break;
 			}
 }
@@ -374,11 +377,14 @@ void sacar_de_bloqueado(t_pcb* pcb){
 	sem_post(&sem_block);
 }
 
-void agregar_a_exit(t_pcb* pcb){
+void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
 	sem_wait(&sem_exit);
 		list_add(plani_exit, pcb);
 	sem_post(&sem_exit);
-	cambiar_estado_pcb(pcb, EXIT);
+	cambiar_estado_pcb(pcb, FIN);
+	sem_post(&lugares_ready_vacios);
+	char *motivo = mensaje_a_string(motivo_a_mostrar);
+	log_info(kernel_logger, "Finaliza el proceso %d - Motivo: %s", pcb->pid, motivo);
 }
 
 t_pcb* pcb_de_exec(){
@@ -441,7 +447,7 @@ char* estado_a_string(t_estado estado) {
 	case BLOCK:
 		return "BLOCK";
 	case FIN:
-		return "EXIT";
+		return "FIN";
 	default:
 		return "ESTADO DESCONOCIDO";
 	}
@@ -464,8 +470,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
             atender_proceso_desalojado(buffer2,op_code);
 			break;
-		case HANDSHAKE_MEMORIA:
-			log_info(kernel_logger, "Se conecto la Memoria");
+		case FINPROCESO:
+			log_info(kernel_logger, "llegó fin de proceso");
+			t_buffer* buffer3 = recibir_buffer(cliente_kd);			        
+			atender_fin_proceso(buffer3,op_code);			
 			break;
 		case HANDSHAKE_ES:
 			log_info(kernel_logger, "Se conecto el IO");
@@ -522,3 +530,121 @@ void *manejo_quantum(void * pcb){
 	}
 
 }
+
+void atender_fin_proceso(t_buffer* buffer,op_code op_code){
+	t_pcb* pcb;	
+	pcb = extraer_de_buffer(buffer);
+    t_pcb valor_pcb = *pcb;
+    //free(pcb);
+   
+	
+	sacar_de_exec(pcb, op_code);
+     
+    log_info(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
+	finalizarProceso(valor_pcb.pid);
+    destruir_buffer(buffer);
+}
+
+void finalizarProceso(int pid){
+	//Le aviso a la memoria que voy a finalizar un proceso [int pid] 
+    t_buffer* buffer_memoria = crear_buffer();
+    cargar_int_a_buffer(buffer_memoria, pid);
+    //LIBERAR RECURSOS Y ARCHIVOS
+    
+    t_paquete* paquete_memoria = crear_paquete(FINPROCESO, buffer_memoria);
+    enviar_paquete(paquete_memoria, conexion_k_memoria);
+}
+
+t_pcb *buscarPcb(int pid_a_buscar)
+{
+    t_pcb *pcb;
+    
+    for (int i = 0; i < (list_size(total_pcbs)); i++) {
+        pcb = list_get(total_pcbs,i);
+        if (pcb->pid == pid_a_buscar) {
+            return pcb;
+        }
+    }
+    return NULL;
+}
+
+
+void sacar_pcb_de_lista(t_pcb* pcb){
+    int cant_colas_bloqueadas;
+    int cant_proc_cola_bloqueada;
+
+    switch(pcb->estado){
+        case READY:
+            sacar_de_lista(plani_ready, pcb->pid);
+            sem_wait(&hayPCBsEnReady);
+            break;
+        case NEW:
+            sacar_de_lista(plani_new, pcb->pid);
+            //sem_wait(&hayPCBsEnNew);
+            break;
+        case BLOCK:
+            /*cant_colas_bloqueadas = list_size(lista_block);
+            for(int i = 0; i < cant_colas_bloqueadas ; i++){
+                t_cola_block *cola_a_analizar = list_get(lista_block,i);
+                cant_proc_cola_bloqueada = queue_size(cola_a_analizar->cola_bloqueados);
+                for(int j = 0; j < cant_proc_cola_bloqueada; j++){
+                    int* pid_bloqueado = (int *)queue_pop(cola_a_analizar->cola_bloqueados);
+                    if(pcb->contexto_ejecucion->pid == *pid_bloqueado){
+                        i=cant_colas_bloqueadas;
+                        break;
+                    }
+                    queue_push(cola_a_analizar->cola_bloqueados, pid_bloqueado);
+                }
+            }*/
+            break;
+        default:
+			log_info(kernel_logger, "No se encontro el proceso en ninguna cola");
+            exit(EXIT_FAILURE);
+            break;
+    }    
+}
+void sacar_de_lista(t_list * lista, int pid){
+    int elementos_lista = list_size(lista);
+    t_pcb* pcb;
+    for(int i=0; i<elementos_lista; i++){
+        pcb = list_get(lista, i);
+        if(pcb->pid == pid){
+            list_remove(lista, i);
+			int elementos_lista2 = list_size(lista);
+			printf("Elementos en lista: %d\n", elementos_lista2);
+            return;
+			
+        }
+    }
+	
+    //exit(EXIT_FAILURE);
+}
+
+char *mensaje_a_string(op_code motivo){
+	switch (motivo){
+    /*case SUCCESS:    
+	    return "SUCCESS";
+    case INVALID_WRITE:
+        return "INVALID_WRITE";
+    case PAGE_FAULT:
+        return "PAGE_FAULT";
+    case INVALID_RESOURCE:
+        return "INVALID_RESOURCE";
+    case FIN_QUANTUM:
+        return "FIN_QUANTUM";
+    case NUEVA_PRIORIDAD:
+        return "NUEVA_PRIORIDAD";
+    case DEADLOCK:
+        return "DEADLOCK";*/
+    case CONSOLA:
+        return "CONSOLA";
+    /*case ABRE_ARCHIVO_W:
+        return "ABRE_ARCHIVO_W";
+    case ABRE_ARCHIVO_R:
+        return "ABRE_ARCHIVO_R";*/
+    default:
+        return "ERROR";
+	}
+}
+
+

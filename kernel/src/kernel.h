@@ -28,6 +28,7 @@ int cliente_entradasalida;
 pthread_mutex_t mutex_pid;
 int identificador_PID = 1;
 int contador_pcbs;
+pthread_t hilo_quantum;
 
 
 void atender_entradasalida2(void* socket_cliente_ptr);

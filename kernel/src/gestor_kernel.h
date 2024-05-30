@@ -41,4 +41,7 @@ extern pthread_mutex_t mutex_pid;
 extern int identificador_PID;
 extern int contador_pcbs;
 
+
+extern pthread_t hilo_quantum;
+
 #endif 

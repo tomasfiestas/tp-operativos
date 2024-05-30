@@ -8,6 +8,7 @@
 void leer_consola();
 void ejecutar_script(t_buffer* buffer);
 void iniciar_proceso(t_buffer* buffer);
+void finalizar_proceso(t_buffer* buffer);
 int extraigo_string_delbuffer(t_buffer* buffer);
 
 

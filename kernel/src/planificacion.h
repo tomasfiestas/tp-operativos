@@ -22,6 +22,7 @@ t_pcb* sacar_de_ready();
 t_pcb* pcb_de_exec();
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo);
 char* estado_a_string(t_estado estado);
+//pthread_t hilo_quantum;
 
 void mostrar_pids_ready();
 
@@ -49,5 +50,13 @@ void *round_robin(void * pcb);
 void atender_proceso_desalojado(t_buffer* buffer, op_code op_code);
 
 void *manejo_quantum(void * pcb);
+
+void finalizarProceso(int pid);
+t_pcb *buscarPcb(int pid_a_buscar);
+void sacar_de_lista(t_list * lista, int pid);
+void sacar_pcb_de_lista(t_pcb* pcb);
+void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar);
+char *mensaje_a_string(op_code motivo);
+
 
 #endif 
