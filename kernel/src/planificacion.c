@@ -282,7 +282,7 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 void agregar_a_ready(t_pcb* nuevo_pcb){
 	//semaforo tipo productor-consumidor
 	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
-	sem_wait(&lugares_ready_vacios);	
+	//sem_wait(&lugares_ready_vacios);	
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
@@ -382,7 +382,7 @@ void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
 		list_add(plani_exit, pcb);
 	sem_post(&sem_exit);
 	cambiar_estado_pcb(pcb, FIN);
-	sem_post(&lugares_ready_vacios);
+	sem_post(&multiPermiteIngresar);
 	char *motivo = mensaje_a_string(motivo_a_mostrar);
 	log_info(kernel_logger, "Finaliza el proceso %d - Motivo: %s", pcb->pid, motivo);
 }
