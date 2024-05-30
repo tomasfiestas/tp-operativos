@@ -470,7 +470,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
             atender_proceso_desalojado(buffer2,op_code);
 			break;
-		case FINPROCESO:
+		case CONSOLA:
 			log_info(kernel_logger, "llegó fin de proceso");
 			t_buffer* buffer3 = recibir_buffer(cliente_kd);			        
 			atender_fin_proceso(buffer3,op_code);			
