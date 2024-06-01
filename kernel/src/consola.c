@@ -22,9 +22,6 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
     if(strcmp(mensaje_consola,"PROCESO_ESTADO") == 0){
         return PROCESO_ESTADO;
     }
-    if(strcmp(mensaje_consola,"EXIT") == 0){
-        return EXIT;
-    }
     else
         return ERROR;
 }
@@ -80,10 +77,7 @@ void leer_consola()
                     break;
                 case PROCESO_ESTADO:
                     printf("PROCESO_ESTADO\n");
-                    break;
-                case EXIT:
-                    exit(0);
-                    break;
+                    break;                
                 case ERROR:
                     printf("Este comando es invalido\n");
                     break;               
@@ -146,7 +140,7 @@ void finalizar_proceso(t_buffer* buffer){
     }
     else{
         sacar_pcb_de_lista(pcb_a_finalizar);
-        agregar_a_exit(pcb_a_finalizar,CONSOLA);
+        agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
     }
 }
 

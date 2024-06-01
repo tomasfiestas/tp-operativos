@@ -50,7 +50,8 @@ sem_t sem_exec;
 sem_t sem_block;
 sem_t sem_exit;
 sem_t sem_recursos;
-sem_t sem_inst_recursos;
+
+sem_t semaforo_recursos[2];
 
 
 void crear_pcb(int pid){
@@ -111,6 +112,13 @@ void inicializar_semaforos(){
 	sem_init(&sem_exit, 0, 1);
 	sem_init (&planificacion_largo_plazo_activa,0,0);
 	sem_init (&planificacion_corto_plazo_activa,0,0);
+	for (int i = 0; i < string_array_size(RECURSOS); i++) {
+		int instancia_recurso = atoi(INSTANCIAS_RECURSOS[i]);
+        sem_init(&semaforo_recursos[i], 0, instancia_recurso); 
+    }
+	
+
+
 	
 }
 
@@ -131,10 +139,14 @@ void inicializar_listas(){
 	plani_exec = list_create();
 	plani_block = list_create();
     plani_exit = list_create();
+	lista_recursos_bloqueados = list_create();
 
 
 	inicializar_semaforos();
 	inicializar_hilos();
+	inicializar_colas_bloqueo_de_recusos();
+	//crear_lista_recursos();
+	
 	
 } 
 
@@ -358,6 +370,11 @@ void sacar_de_exec(t_pcb* pcb, op_code op_code){
 			case FINPROCESO:
 				agregar_a_exit(pcb,op_code);
 			break;
+			case SUCCESS:
+				agregar_a_exit(pcb,op_code);
+			break;
+			case INVALID_RESOURCE:
+				agregar_a_exit(pcb,op_code);
 			default: // FINPROCESO
 				agregar_a_exit(pcb,op_code);
 			break;
@@ -381,7 +398,7 @@ void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
 	sem_wait(&sem_exit);
 		list_add(plani_exit, pcb);
 	sem_post(&sem_exit);
-	cambiar_estado_pcb(pcb, FIN);
+	cambiar_estado_pcb(pcb, EXIT);
 	sem_post(&multiPermiteIngresar);
 	char *motivo = mensaje_a_string(motivo_a_mostrar);
 	log_info(kernel_logger, "Finaliza el proceso %d - Motivo: %s", pcb->pid, motivo);
@@ -398,13 +415,7 @@ void mandar_contexto_a_CPU(t_pcb* pcb){
 	t_buffer* buffer_cpu = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu,pcb);    
 	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
-    enviar_paquete(paquete_cpu, conexion_cpu_dispatch);
-
-		
-	
-
-
-	
+    enviar_paquete(paquete_cpu, conexion_cpu_dispatch);	
 }
 
 void enviar_interrupcion_por_quantum(t_pcb* pcb){
@@ -446,8 +457,8 @@ char* estado_a_string(t_estado estado) {
 		return "EXEC";
 	case BLOCK:
 		return "BLOCK";
-	case FIN:
-		return "FIN";
+	case EXIT:
+		return "EXIT";
 	default:
 		return "ESTADO DESCONOCIDO";
 	}
@@ -470,13 +481,36 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
             atender_proceso_desalojado(buffer2,op_code);
 			break;
-		case CONSOLA:
+		case INTERRUPTED_BY_USER:
 			log_info(kernel_logger, "llegó fin de proceso");
 			t_buffer* buffer3 = recibir_buffer(cliente_kd);			        
 			atender_fin_proceso(buffer3,op_code);			
 			break;
-		case HANDSHAKE_ES:
-			log_info(kernel_logger, "Se conecto el IO");
+		case SUCCESS:
+			log_info(kernel_logger, "Se finalizó correctamente el proceso");
+			t_buffer* buffer4 = recibir_buffer(cliente_kd);			        
+			atender_fin_proceso_success(buffer4,op_code);
+			break;
+		case SOLICITAR_WAIT:
+			log_info(kernel_logger, "Llegó solicitud de wait");
+			t_buffer* buffer5 = recibir_buffer(cliente_kd);
+			t_pcb* pcb = extraer_de_buffer(buffer5);
+			char* recurso_wait = extraer_string_del_buffer(buffer5);
+
+			wait_recurso(pcb,recurso_wait);
+            free(recurso_wait);
+            
+            /*/if(terminarNoBloqueantes){
+                log_error(kernel_logger, "PID: %d - Desalojado por fin de quantum", pcb->pid);
+                sacar_de_execute();
+                cambiar_estado_pcb(pcb, BLOCK);
+                agregar_a_ready(pcb);
+            //}*/
+                
+
+                break;
+			
+
 			break;
 		default:
 			log_error(kernel_logger, "No se reconoce el handshake");
@@ -535,11 +569,8 @@ void atender_fin_proceso(t_buffer* buffer,op_code op_code){
 	t_pcb* pcb;	
 	pcb = extraer_de_buffer(buffer);
     t_pcb valor_pcb = *pcb;
-    //free(pcb);
-   
-	
-	sacar_de_exec(pcb, op_code);
-     
+    //free(pcb);	
+	sacar_de_exec(pcb, op_code);     
     log_info(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
 	finalizarProceso(valor_pcb.pid);
     destruir_buffer(buffer);
@@ -553,6 +584,17 @@ void finalizarProceso(int pid){
     
     t_paquete* paquete_memoria = crear_paquete(FINPROCESO, buffer_memoria);
     enviar_paquete(paquete_memoria, conexion_k_memoria);
+}
+
+void atender_fin_proceso_success(t_buffer* buffer,op_code op_code){
+	t_pcb* pcb;	
+	pcb = extraer_de_buffer(buffer);
+    t_pcb valor_pcb = *pcb;
+    //free(pcb);	
+	sacar_de_exec(pcb, op_code);     
+    log_info(kernel_logger, "Llegó el proceso finalizado: %d", valor_pcb.pid); 
+	finalizarProceso(valor_pcb.pid);
+    destruir_buffer(buffer);
 }
 
 t_pcb *buscarPcb(int pid_a_buscar)
@@ -583,9 +625,9 @@ void sacar_pcb_de_lista(t_pcb* pcb){
             //sem_wait(&hayPCBsEnNew);
             break;
         case BLOCK:
-            /*cant_colas_bloqueadas = list_size(lista_block);
+            /*cant_colas_bloqueadas = list_size(lista_recursos_bloqueados);
             for(int i = 0; i < cant_colas_bloqueadas ; i++){
-                t_cola_block *cola_a_analizar = list_get(lista_block,i);
+                t_cola_block *cola_a_analizar = list_get(lista_recursos_bloqueados,i);
                 cant_proc_cola_bloqueada = queue_size(cola_a_analizar->cola_bloqueados);
                 for(int j = 0; j < cant_proc_cola_bloqueada; j++){
                     int* pid_bloqueado = (int *)queue_pop(cola_a_analizar->cola_bloqueados);
@@ -636,8 +678,8 @@ char *mensaje_a_string(op_code motivo){
         return "NUEVA_PRIORIDAD";
     case DEADLOCK:
         return "DEADLOCK";*/
-    case CONSOLA:
-        return "CONSOLA";
+    case INTERRUPTED_BY_USER:
+        return "INTERRUPTED_BY_USER";
     /*case ABRE_ARCHIVO_W:
         return "ABRE_ARCHIVO_W";
     case ABRE_ARCHIVO_R:
@@ -647,4 +689,51 @@ char *mensaje_a_string(op_code motivo){
 	}
 }
 
+void wait_recurso(t_pcb *pcb, char *recurso_recibido){
+    
+    /*t_recurso *recurso = solicitar_recurso(recurso_recibido);
+
+    if(recurso == NULL){        
+        sacar_de_exec(pcb, INVALID_RESOURCE);        
+        return;
+    }*/
+	int posicion_recurso = encontrar_posicion_recurso( recurso_recibido);
+	if(posicion_recurso == -1){
+		log_error(kernel_logger, "No se encontro el recurso %s", recurso_recibido);
+		sacar_de_exec(pcb, INVALID_RESOURCE);
+		return;
+	}
+
+	
+	if (sem_trywait(&semaforo_recursos[posicion_recurso]) == 0) {
+		list_add(lista_recursos_bloqueados[posicion_recurso], pcb);
+		// Semaforo adquirido con éxito
+		// Coloca aquí el código que deseas ejecutar cuando el semáforo está disponible
+	} else {
+		sem_wait(&semaforo_recursos[posicion_recurso]);
+	}
+
+    //disminuir_cantidad_recurso(pcb, recurso);
+
+    /*if(recurso->cantidad < 0){
+        sacar_de_exec();
+        agregar_a_blocked(pcb, "recurso", recurso->nombre);
+        cambiar_estado_pcb(pcb, BLOCKED);
+        log_info(kernel_logger, "PID: %d - Bloqueado por: %s", pcb->contexto_ejecucion->pid, recurso_recibido);
+        return;
+    }*/  
+    
+}
+int encontrar_posicion_recurso(char* target_char) {
+		int position = -1;
+		int cant_recursos =  string_array_size(RECURSOS);
+
+		for (int i = 0; cant_recursos; i++) {
+			if (strcmp(RECURSOS[i], target_char) == 0) {
+				position = i;
+				break;
+			}
+		}
+		return position;
+}
 

@@ -12,6 +12,7 @@
 #include <commons/collections/list.h>
 #include <pthread.h>
 #include <planificacion.h>
+#include <servicios_kernel.h>
 
 
 extern int conexion_k_memoria;
@@ -35,6 +36,12 @@ extern int conexion_cpu_interrupt;
 extern void iterator(char* value);
 extern int recibir_cosas(int cliente_fd);
 extern int cliente_entradasalida;
+extern int instancias_recurso_1; 
+extern int instancias_recurso_2; 
+extern int instancias_recurso_3; 
+extern t_list *recursos_del_sistema;
+extern t_list *lista_recursos_bloqueados;
+extern  int tamanio_lista_recursos;
 
  
 extern pthread_mutex_t mutex_pid;
@@ -43,5 +50,10 @@ extern int contador_pcbs;
 
 
 extern pthread_t hilo_quantum;
+typedef struct{
+    //char* identificador;
+    t_queue* cola_bloqueados_recurso;//puede ser una cola de un struct que tiene pcb y motivo de bloqueo
+    //char* tipo; //cola de archivo o recurso
+}t_cola_block;
 
 #endif 

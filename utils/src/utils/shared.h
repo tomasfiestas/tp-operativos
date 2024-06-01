@@ -18,7 +18,7 @@ typedef enum{
 	READY,
 	EXEC,
 	BLOCK,
-	FIN
+	EXIT
 } t_estado;
 
 typedef struct{
@@ -33,6 +33,11 @@ typedef struct{
 	uint32_t SI;
 	uint32_t DI;
 } t_registros;
+
+typedef struct{
+    char *nombre;        
+}t_recurso;
+
 
 typedef struct{
 	int pid;
@@ -60,8 +65,8 @@ typedef enum {
     INICIAR_PLANIFICACION,
     MULTIPROGRAMACION,
     PROCESO_ESTADO,
-	ERROR,
-	EXIT
+	ERROR
+	
 } t_mensajes_consola;
 
 typedef enum
@@ -78,18 +83,21 @@ typedef enum
 	CREAR_PROCESO_KM,
 	//Kernel manda contexto de ejecucion a CPU
 	CONTEXTO_EJECUCION,
-	CONSOLA,
+	INTERRUPTED_BY_USER,
 	// Kernel manda a CPU cuando termina el quantum
 	FIN_DE_QUANTUM,
 	PROCESO_DESALOJADO,
 
 	// CPU
+	SOLICITAR_WAIT,
 	SOLICITUD_INST,
 	SOLICITUD_INST_OK,
+	
 
 	// motivos de desalojo enviados por cpu
 	FINPROCESO,
 	SUCCESS,
+	INVALID_RESOURCE,
 	IO,
 
 	//Entrada Saldia

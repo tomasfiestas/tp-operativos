@@ -27,12 +27,12 @@ int main(int argc, char* argv[]) {
     RECURSOS = config_get_array_value(kernel_config, "RECURSOS");
     log_info(kernel_logger, "RECURSOS: %s|%s|%s",RECURSOS[0],RECURSOS[1],RECURSOS[2]);
     INSTANCIAS_RECURSOS = config_get_array_value(kernel_config, "INSTANCIAS_RECURSOS");
-    log_info(kernel_logger, "INSTANCIAS_RECURSOS %s|%s|%s", INSTANCIAS_RECURSOS[0], INSTANCIAS_RECURSOS[1], INSTANCIAS_RECURSOS[2]);
+    log_info(kernel_logger, "INSTANCIAS_RECURSOS %s|%s|%s", INSTANCIAS_RECURSOS[0], INSTANCIAS_RECURSOS[1], INSTANCIAS_RECURSOS[2]);    
     GRADO_MULTIPROGRAMACION = config_get_int_value(kernel_config, "GRADO_MULTIPROGRAMACION");
-    log_info(kernel_logger, "GRADO_MULTIPROGRAMACION %d", GRADO_MULTIPROGRAMACION);
+    log_info(kernel_logger, "GRADO_MULTIPROGRAMACION %d", GRADO_MULTIPROGRAMACION);   
+    tamanio_lista_recursos;
+    tamanio_lista_recursos = string_array_size(RECURSOS); 
     
-    
-   
     //Inicio el cliente para cpu dispatch
     conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
         
@@ -40,15 +40,15 @@ int main(int argc, char* argv[]) {
     conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     
     
-    //Inicio el cliente para memoria
+    /*//Inicio el cliente para memoria
     conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
     realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
-    log_info(kernel_logger,"Handshake con Memoria realizado");
+    log_info(kernel_logger,"Handshake con Memoria realizado");*/
     //Inicio el servidor
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
-    cliente_entradasalida = esperar_cliente(servidor); 
+    //cliente_entradasalida = esperar_cliente(servidor); 
 
     
     //Planificacion
@@ -58,16 +58,16 @@ int main(int argc, char* argv[]) {
     //Leer consola
     pthread_t hilo_consola;
     pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
-    pthread_detach(hilo_consola);
+    pthread_join(hilo_consola,NULL);
 
 
-    //Atiendo mensajes de Entrada/Salida
+    /*//Atiendo mensajes de Entrada/Salida
     pthread_t hilo_entradasalida;
     int* socket_cliente_entradasalida2_ptr = malloc(sizeof(int));
     *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(kernel_logger, "Atendiendo mensajes de Entrada/Salida");
-    pthread_join(hilo_entradasalida,NULL);
+    pthread_join(hilo_entradasalida,NULL);*/
     
     
     
@@ -103,5 +103,6 @@ void atender_entradasalida2(void* socket_cliente_ptr){
         }
     }
 }
+
 
 

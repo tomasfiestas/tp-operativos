@@ -29,9 +29,13 @@ pthread_mutex_t mutex_pid;
 int identificador_PID = 1;
 int contador_pcbs;
 pthread_t hilo_quantum;
-
+int instancias_recurso_1; 
+int instancias_recurso_2; 
+int instancias_recurso_3; 
+int tamanio_lista_recursos;
 
 void atender_entradasalida2(void* socket_cliente_ptr);
+
 
 
 #endif
