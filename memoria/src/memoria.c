@@ -1,4 +1,5 @@
 #include "memoria.h"
+#include "memoria_usuario.h"
 #include <string.h>
 
 extern t_log* logger;
@@ -26,9 +27,7 @@ int main(int argc, char *argv[])
     RETARDO_RESPUESTA = config_get_string_value(memoria_config, "RETARDO_RESPUESTA");
     log_info(logger, "RETARDO_RESPUESTA: %s", RETARDO_RESPUESTA);
 
-    //CHECKPOINT 2: Estas estructuras por ahora no se cargaran.
-    void* memoria_total = reservar_memoria();
-    tabla_paginas* tabla = iniciar_tabla_paginas(memoria_total);
+    inicializar_memoria();
 
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
@@ -176,7 +175,7 @@ void atender_entradasalida(void* socket_cliente_ptr){
     }
 }
 
-void parse_file(const char* filePath, int pid) {
+t_instrucciones* parse_file(const char* filePath, int pid) {
     FILE* file = fopen(filePath, "r");
     if (file == NULL) {
         log_error(logger, "No se pudo abrir el archivo de instrucciones.");
@@ -185,9 +184,7 @@ void parse_file(const char* filePath, int pid) {
 
     char linea[256];
 
-    // TODO: Puede ser insignificante, pero capaz se puede cambiar este
-    // espacio fijo por uno que arranque en 10 y escale a medida sea necesario.
-    t_instruccion instrucciones[200];
+    t_instruccion* instrucciones = malloc(sizeof(t_instruccion));
     int cantidad_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
         t_instruccion instruccion;
@@ -218,37 +215,19 @@ void parse_file(const char* filePath, int pid) {
 
         log_instruccion(instruccion);
 
+        instrucciones = realloc(instrucciones, (cantidad_instrucciones + 1) * sizeof(t_instruccion));
         instrucciones[cantidad_instrucciones] = instruccion;
         cantidad_instrucciones++;
-
     }
-
-    instrucciones_a_enviar.pid = pid;
-    instrucciones_a_enviar.instrucciones = instrucciones;
-    instrucciones_a_enviar.cantidad = cantidad_instrucciones;
     
     fclose(file);
-}
 
-void* reservar_memoria() {
-    void* totalMemory = malloc(atoi(TAM_MEMORIA));
-    if(totalMemory == NULL) {
-        log_error(logger, "No se pudo reservar la memoria necesaria.");
-        abort();
-    }
-    return totalMemory;
-}
+    t_instrucciones resultado = malloc(sizeof(t_instrucciones));
+    resultado.pid = pid;
+    resultado.cantidad = cantidad_instrucciones;
+    resultado.instrucciones = instrucciones;
 
-tabla_paginas* iniciar_tabla_paginas(void* memoria) {
-    int cantidad_paginas = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA);
-    tabla_paginas* tabla = (tabla_paginas*)memoria;
-    tabla->registros = (registro_tabla_paginas*)((char*)memoria + sizeof(tabla_paginas));
-    tabla->size = cantidad_paginas;
-    for (int i = 0; i < cantidad_paginas; i++) {
-        tabla->registros[i].numeroFrame = i;
-        tabla->registros[i].estaPresente = false;
-    }
-    return tabla;
+    return resultado;
 }
 
 void atender_crear_proceso(t_buffer* buffer){
@@ -261,7 +240,8 @@ void atender_crear_proceso(t_buffer* buffer){
     sprintf(path, "%s/%s", PATH_INSTRUCCIONES, filename);
     free(filename);
 
-    parse_file(path, pid);
+    t_instrucciones* parse_file(path, pid);
+    //cargar proceso
     free(path);
 }
 

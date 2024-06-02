@@ -9,15 +9,14 @@
 #include <sys/socket.h>
 
 typedef struct {
-    unsigned int numeroFrame;
-    bool estaPresente;
-    // agregar mas info luego
-} registro_tabla_paginas;
+    char frame[atoi(TAM_PAGINA)];
+    bool presente;
+} t_pagina;
 
 typedef struct {
-    registro_tabla_paginas* registros;
-    size_t size;
-} tabla_paginas;
+    int pid;
+    t_pagina* paginas;
+} t_tabla_paginas;
 
 t_log* memoria_logger;
 t_config* memoria_config;
@@ -31,14 +30,15 @@ void iterator(char* value);
 int cliente_entradasalida;
 int cliente_kernel;
 int cliente_cpu;
-t_instrucciones instrucciones_a_enviar;
+void* memoria_total;
+int cantidad_procesos;
 
 
 void atender_cpu(void* socket_cliente_ptr);
 void atender_entradasalida(void* socket_cliente_ptr);
 void atender_kernel(void* socket_cliente_ptr);
 void* reservar_memoria();
-void parse_file(const char* filePath, int pid);
-tabla_paginas* iniciar_tabla_paginas(void* memoria);
+t_instrucciones* parse_file(const char* filePath);
+t_tabla_paginas* iniciar_tabla_paginas(void* memoria);
 
 #endif
