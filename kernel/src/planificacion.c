@@ -471,7 +471,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     int cliente_kd = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);    
     op_code op_code = recibir_operacion(cliente_kd);	
-	sem_post(&puedeEntrarAExec);
+	sem_post(&puedeEntrarAExec); // donde los estoy sacando de exec??
 	log_info(kernel_logger,"OP CODE: %d", op_code);
 	switch(op_code) {
 		case FIN_DE_QUANTUM:
@@ -502,16 +502,18 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 			wait_recurso(pcb,recurso_wait);
             free(recurso_wait);
-            
-            /*/if(terminarNoBloqueantes){
-                log_error(kernel_logger, "PID: %d - Desalojado por fin de quantum", pcb->pid);
-                sacar_de_execute();
-                cambiar_estado_pcb(pcb, BLOCK);
-                agregar_a_ready(pcb);
-            //}*/
-                
 
-                break;
+            break;
+		case SOLICITAR_SIGNAL:
+			log_info(kernel_logger, "Llegó solicitud de signal");
+			t_buffer* buffer6 = recibir_buffer(cliente_kd);
+			t_pcb* pcb2 = extraer_de_buffer(buffer6);
+			char* recurso_signal = extraer_string_del_buffer(buffer6);
+
+			signal_recurso(pcb2,recurso_signal);
+            free(recurso_wait);
+
+            break;
 			
 
 			break;
@@ -694,13 +696,8 @@ char *mensaje_a_string(op_code motivo){
 
 void wait_recurso(t_pcb *pcb, char *recurso_recibido){
     
-    /*t_recurso *recurso = solicitar_recurso(recurso_recibido);
-
-    if(recurso == NULL){        
-        sacar_de_exec(pcb, INVALID_RESOURCE);        
-        return;
-    }*/
-	int posicion_recurso = encontrar_posicion_recurso( recurso_recibido);
+	// si el recurso que me pide no existe lo mando a exit
+	int posicion_recurso = encontrar_posicion_recurso(recurso_recibido);
 	if(posicion_recurso == -1){
 		log_error(kernel_logger, "No se encontro el recurso %s", recurso_recibido);
 		sacar_de_exec(pcb, INVALID_RESOURCE);
@@ -714,23 +711,40 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		sem_post(&mutex_recursos);
 		//lo manejo
 		agregar_a_bloqueado(pcb); // hasta q otro haga un signal del recurso que quiere	y lo mando a ready
-	} else { // si lo esta --> lo decrementa
+	} else { // si lo esta --> lo decrementa y va a ready
 		sem_wait(&semaforo_recursos[posicion_recurso]);
+		agregar_a_ready(pcb);
 	}
-
-    //disminuir_cantidad_recurso(pcb, recurso);
-
-    /*if(recurso->cantidad < 0){
-        sacar_de_exec();
-        agregar_a_blocked(pcb, "recurso", recurso->nombre);
-        cambiar_estado_pcb(pcb, BLOCKED);
-        log_info(kernel_logger, "PID: %d - Bloqueado por: %s", pcb->contexto_ejecucion->pid, recurso_recibido);
-        return;
-    }*/  
     
 }
+void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 
-	
+	// si el recurso que me pide no existe lo mando a exit
+	int posicion_recurso = encontrar_posicion_recurso(recurso_recibido);
+	if(posicion_recurso == -1){
+		log_error(kernel_logger, "No se encontro el recurso %s", recurso_recibido);
+		sacar_de_exec(pcb, INVALID_RESOURCE);
+		return;
+	}
+
+	// le subo una instancia al recurso
+
+	sem_post(&semaforo_recursos[posicion_recurso]);
+
+
+	// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
+	if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
+		t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
+
+		sacar_de_bloqueado(pcb_bloqueado);
+		agregar_a_ready(pcb_bloqueado);
+
+		sem_wait(&semaforo_recursos[posicion_recurso]);
+
+	}
+}
+
+
 
 int encontrar_posicion_recurso(char* target_char) {
 		int position = -1;
