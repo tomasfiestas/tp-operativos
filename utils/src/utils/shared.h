@@ -34,9 +34,7 @@ typedef struct{
 	uint32_t DI;
 } t_registros;
 
-typedef struct{
-    char *nombre;        
-}t_recurso;
+
 
 
 typedef struct{

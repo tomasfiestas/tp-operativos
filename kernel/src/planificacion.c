@@ -49,9 +49,10 @@ sem_t sem_ready;
 sem_t sem_exec;
 sem_t sem_block;
 sem_t sem_exit;
-sem_t sem_recursos;
 
-sem_t semaforo_recursos[2];
+//semaforo recursos
+sem_t mutex_recursos; 
+sem_t semaforo_recursos[];
 
 
 void crear_pcb(int pid){
@@ -112,13 +113,12 @@ void inicializar_semaforos(){
 	sem_init(&sem_exit, 0, 1);
 	sem_init (&planificacion_largo_plazo_activa,0,0);
 	sem_init (&planificacion_corto_plazo_activa,0,0);
+	sem_init(&mutex_recursos,0,1);
 	for (int i = 0; i < string_array_size(RECURSOS); i++) {
 		int instancia_recurso = atoi(INSTANCIAS_RECURSOS[i]);
         sem_init(&semaforo_recursos[i], 0, instancia_recurso); 
+		//log_info(kernel_logger, "el recurso en posicion %d tiene %d instancias para utilizar", i, instancia_recurso);
     }
-	
-
-
 	
 }
 
@@ -126,12 +126,9 @@ void inicializar_semaforos(){
 void inicializar_listas(){
 	log_info(kernel_logger, "Algoritmo planificacion: %s", ALGORITMO_PLANIFICACION);
 	
-	
 	algoritmo_plani = obtener_algoritmo();
-	
+	int cant_recursos = string_array_size(RECURSOS);
 
-
-	
 	// Inicio listas
 	plani_new = list_create();
 	total_pcbs = list_create();
@@ -139,12 +136,18 @@ void inicializar_listas(){
 	plani_exec = list_create();
 	plani_block = list_create();
     plani_exit = list_create();
-	lista_recursos_bloqueados = list_create();
-
+	
+	//inicializo lista de colas para manejar los bloqueados por recurso 
+	t_queue ** lista_recursos_bloqueados = malloc(sizeof(t_queue*)*cant_recursos);
+	for(int i = 0; i < cant_recursos; i++){
+		lista_recursos_bloqueados[i] = queue_create();
+		//log_info(kernel_logger, "cola de recurso en posicion %d inicializada", i);
+	}
+	plani_block_recursos = lista_recursos_bloqueados;
 
 	inicializar_semaforos();
 	inicializar_hilos();
-	inicializar_colas_bloqueo_de_recusos();
+	//inicializar_colas_bloqueo_de_recusos();
 	//crear_lista_recursos();
 	
 	
@@ -704,12 +707,14 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		return;
 	}
 
-	
-	if (sem_trywait(&semaforo_recursos[posicion_recurso]) == 0) {
-		list_add(lista_recursos_bloqueados[posicion_recurso], pcb);
-		// Semaforo adquirido con éxito
-		// Coloca aquí el código que deseas ejecutar cuando el semáforo está disponible
-	} else {
+	// si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso
+	if (sem_trywait(&semaforo_recursos[posicion_recurso]) != 0) {
+		sem_wait(&mutex_recursos);
+			queue_push(plani_block_recursos[posicion_recurso], pcb);
+		sem_post(&mutex_recursos);
+		//lo manejo
+		agregar_a_bloqueado(pcb); // hasta q otro haga un signal del recurso que quiere	y lo mando a ready
+	} else { // si lo esta --> lo decrementa
 		sem_wait(&semaforo_recursos[posicion_recurso]);
 	}
 
@@ -724,6 +729,9 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
     }*/  
     
 }
+
+	
+
 int encontrar_posicion_recurso(char* target_char) {
 		int position = -1;
 		int cant_recursos =  string_array_size(RECURSOS);

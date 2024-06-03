@@ -52,7 +52,7 @@ void atender_proceso_desalojado(t_buffer* buffer, op_code op_code);
 void atender_fin_proceso_success(t_buffer* buffer,op_code op_code);
 void wait_recurso(t_pcb *pcb, char *recurso_recibido);
 bool existe_recurso(char *recurso_recibido);
-void disminuir_cantidad_recurso(t_pcb  *pcb, t_recurso *recurso);
+//void disminuir_cantidad_recurso(t_pcb  *pcb, t_recurso *recurso);
 int encontrar_posicion_recurso(char* target_char);
 
 void *manejo_quantum(void * pcb);

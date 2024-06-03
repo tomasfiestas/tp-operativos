@@ -18,7 +18,7 @@ void inicializar_colas_bloqueo_de_recusos(){
     //char** recursos = recursos_config();
     
     //creamos inicialmente una cola por cada recurso que hay en el archivo de config
-    int cant_recursos = string_array_size(RECURSOS);
+   // int cant_recursos = string_array_size(RECURSOS);
     
     /*for(int i = 0; i < cant_recursos; i++){
         t_cola_block *recurso_existente = malloc(sizeof(t_cola_block));
@@ -27,15 +27,20 @@ void inicializar_colas_bloqueo_de_recusos(){
         //recurso_existente->tipo = "recurso";
         list_add(lista_recursos_bloqueados, recurso_existente);
         log_info(kernel_logger, "Se creo la cola de bloqueo para el recurso %s", recurso_existente->identificador);
-    }*/  
+    }
     for(int i = 0; i < cant_recursos; i++){
         t_queue *cola_bloqueados_recurso = queue_create();
         list_add(lista_recursos_bloqueados, cola_bloqueados_recurso);
         log_info(kernel_logger, "Se creo la cola de bloqueo para el recurso %s", RECURSOS[i]);
     }  
     
+    t_list** lista_recursos_bloqueados = malloc(sizeof(t_queue*)*total_recursos());
+	for(int i = 0; i < cant_recursos; i++){
+		lista_bloqueos_recursos[i] = queue_create();
+	}
+    */  
 }
-
+/*
 void crear_lista_recursos(){
     //char **recursos_aux = recursos_config();
     
@@ -54,4 +59,4 @@ void crear_lista_recursos(){
 
     }
     
-}
+}*/
