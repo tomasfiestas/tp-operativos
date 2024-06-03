@@ -134,8 +134,10 @@ void atender_fin_quantum(t_buffer* buffer){
     destruir_buffer(buffer) ;
     t_buffer* buffer_cpu_ki = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
+    char * recurso = "RB";
+    cargar_string_a_buffer(buffer_cpu_ki,recurso);
     log_info(logger, "Enviamos PCB de proceso desalojado - PID %d a Kernel Interrupt", pcbb->pid);   
-	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_ki);
+	t_paquete* paquete_cpu = crear_paquete(SOLICITAR_WAIT, buffer_cpu_ki);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
     
 }

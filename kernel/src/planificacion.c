@@ -141,7 +141,7 @@ void inicializar_listas(){
 	t_queue ** lista_recursos_bloqueados = malloc(sizeof(t_queue*)*cant_recursos);
 	for(int i = 0; i < cant_recursos; i++){
 		lista_recursos_bloqueados[i] = queue_create();
-		//log_info(kernel_logger, "cola de recurso en posicion %d inicializada", i);
+		log_info(kernel_logger, "cola de recurso en posicion %d inicializada", i);
 	}
 	plani_block_recursos = lista_recursos_bloqueados;
 
@@ -367,6 +367,9 @@ void sacar_de_exec(t_pcb* pcb, op_code op_code){
 			case IO:
 				agregar_a_bloqueado(pcb);
 			break;
+			case ESPERA_RECURSO:
+				agregar_a_bloqueado(pcb);
+			break;
 			case FIN_DE_QUANTUM:			
 				agregar_a_ready(pcb);
 			break;
@@ -511,7 +514,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			char* recurso_signal = extraer_string_del_buffer(buffer6);
 
 			signal_recurso(pcb2,recurso_signal);
-            free(recurso_wait);
+            free(recurso_signal);
 
             break;
 			
@@ -696,6 +699,7 @@ char *mensaje_a_string(op_code motivo){
 
 void wait_recurso(t_pcb *pcb, char *recurso_recibido){
     
+	
 	// si el recurso que me pide no existe lo mando a exit
 	int posicion_recurso = encontrar_posicion_recurso(recurso_recibido);
 	if(posicion_recurso == -1){
@@ -705,16 +709,16 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 	}
 
 	// si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso
-	if (sem_trywait(&semaforo_recursos[posicion_recurso]) != 0) {
+	if (sem_trywait(&semaforo_recursos[posicion_recurso]) >= 0) { // si lo esta --> lo decrementa y va a ready
+		//sem_wait(&semaforo_recursos[posicion_recurso]);
+		agregar_a_ready(pcb);
+	}else {
 		sem_wait(&mutex_recursos);
 			queue_push(plani_block_recursos[posicion_recurso], pcb);
 		sem_post(&mutex_recursos);
 		//lo manejo
-		agregar_a_bloqueado(pcb); // hasta q otro haga un signal del recurso que quiere	y lo mando a ready
-	} else { // si lo esta --> lo decrementa y va a ready
-		sem_wait(&semaforo_recursos[posicion_recurso]);
-		agregar_a_ready(pcb);
-	}
+		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
+	} 
     
 }
 void signal_recurso(t_pcb *pcb, char *recurso_recibido){
@@ -728,13 +732,14 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 	}
 
 	// le subo una instancia al recurso
-
 	sem_post(&semaforo_recursos[posicion_recurso]);
 
 
 	// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
 	if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
-		t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
+		sem_wait(&mutex_recursos);
+			t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
+		sem_post(&mutex_recursos);
 
 		sacar_de_bloqueado(pcb_bloqueado);
 		agregar_a_ready(pcb_bloqueado);

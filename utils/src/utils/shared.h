@@ -98,6 +98,7 @@ typedef enum
 	SUCCESS,
 	INVALID_RESOURCE,
 	IO,
+	ESPERA_RECURSO,
 
 	//Entrada Saldia
 	IO_GEN_SLEEP,
