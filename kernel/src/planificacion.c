@@ -54,6 +54,9 @@ sem_t sem_exit;
 sem_t mutex_recursos; 
 sem_t semaforo_recursos[];
 
+//semaforo para quantum
+sem_t sem_volvioContexto;
+
 
 void crear_pcb(int pid){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
@@ -113,6 +116,7 @@ void inicializar_semaforos(){
 	sem_init(&sem_exit, 0, 1);
 	sem_init (&planificacion_largo_plazo_activa,0,0);
 	sem_init (&planificacion_corto_plazo_activa,0,0);
+	sem_init(&sem_volvioContexto,0,0);
 	sem_init(&mutex_recursos,0,1);
 	for (int i = 0; i < string_array_size(RECURSOS); i++) {
 		int instancia_recurso = atoi(INSTANCIAS_RECURSOS[i]);
@@ -239,10 +243,7 @@ void* inicio_plani_corto_plazo(void* arg){
   		mandar_contexto_a_CPU(pcb);
 
 		//Implemento hilo para contar quantum en RR 
-		if(algoritmo_plani==FIFO){
-
-		}
-		else {
+		if(algoritmo_plani!=FIFO){
 		//pthread_t hilo_quantum;
     	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
     	//*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
@@ -340,12 +341,21 @@ t_pcb* sacar_de_ready(){
 	
 	case RR: 
 		sem_wait(&sem_ready);
-        pcb = list_remove(plani_ready, 0);
+    		pcb = list_remove(plani_ready, 0);
         sem_post(&sem_ready);		
 		return pcb;
 
-	//TODO IMPLEMENTAR MAGIAS de VRR
-
+	case VRR:
+		if(!list_is_empty(plani_block)){
+			sem_wait(&sem_block);
+    			pcb = list_remove(plani_block, 0);
+       		sem_post(&sem_block);	
+		}else{
+			sem_wait(&sem_ready);
+    			pcb = list_remove(plani_ready, 0);
+        	sem_post(&sem_ready);	
+		}
+		return pcb;
 	default:
 		return NULL;
 	}
@@ -474,7 +484,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     int cliente_kd = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);    
     op_code op_code = recibir_operacion(cliente_kd);	
-	sem_post(&puedeEntrarAExec); // donde los estoy sacando de exec??
+	sem_post(&puedeEntrarAExec); 
+	sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum
 	log_info(kernel_logger,"OP CODE: %d", op_code);
 	switch(op_code) {
 		case FIN_DE_QUANTUM:
@@ -560,8 +571,10 @@ void *manejo_quantum(void * pcb){
 		case RR:
 			contar_quantum();
 			//CHEQUEAR SI SIGUE EL PCB EJECUTANDO o si recibí algo.
+			if(sem_trywait(&sem_volvioContexto) != 0){ //este semaforo se levanta cuando 
+			//me llega algo de cpu --> si no llego nada mando interrupcion por quantum
 			enviar_interrupcion_por_quantum(pcb);
-			
+			}
 			break;
 		case VRR:
 			
