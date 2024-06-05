@@ -266,7 +266,7 @@ void* inicio_plani_corto_plazo(void* arg){
     	pthread_join(hilo_kernel_dispatch,NULL);//REVISAR
 		sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
 		
-			
+		pthread_cancel(hilo_quantum);	
 
 	}
 
@@ -489,7 +489,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);    
     op_code op_code = recibir_operacion(cliente_kd);	
 	sem_post(&puedeEntrarAExec); 
-	sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum
+	//sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum
+	llego_contexto = true;
 	if(algoritmo_plani == VRR){
 		temporal_stop(timer);
 		log_info(kernel_logger, "Se detiene el timer : %d", timer->elapsed_ms);
@@ -543,7 +544,9 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		default:
 			log_error(kernel_logger, "No se reconoce el handshake");
 			break;
-	}   
+	}
+	
+	//pthread_cancel(hilo_quantum);   
 
 }
 
@@ -587,16 +590,20 @@ void *manejo_quantum(t_pcb * pcb){
 			break;
 		case VRR:			
 			timer = temporal_create();
-			usleep(pcb->quantum*1000);
-
-			if(sem_trywait(&sem_volvioContexto) >= 0){
+			//usleep((pcb->quantum)*1000);
+			log_info(kernel_logger, "Se contó el quantum");
+			//result = sem_trywait(&sem_volvioContexto);
+			if(llego_contexto){
 				tiempo_ejecutado = temporal_gettime(timer);
+				log_info(kernel_logger, "Tiempo ejecutado: %d", tiempo_ejecutado);
 				if(pcb->quantum - tiempo_ejecutado >1){
 					pcb->quantum -= tiempo_ejecutado;
+					log_info(kernel_logger, "Quantum restante: %d", pcb->quantum);
 				}else {
-					pcb->quantum = (int64_t)QUANTUM;					
+					pcb->quantum = (int64_t)QUANTUM;
+					log_info(kernel_logger, "Reiniciando, quantum restante: %d", pcb->quantum);					
 				}
-								
+				llego_contexto = false;							
 
 			}
 			else {

@@ -45,7 +45,8 @@ extern t_list *recursos_del_sistema;
 extern t_list *lista_recursos_bloqueados;
 extern  int tamanio_lista_recursos;
 
- 
+extern int result;
+extern bool llego_contexto; 
 extern pthread_mutex_t mutex_pid;
 extern int identificador_PID;
 extern int contador_pcbs;

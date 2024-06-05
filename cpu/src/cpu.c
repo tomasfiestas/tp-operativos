@@ -120,8 +120,8 @@ void atender_crear_pr(t_buffer* buffer){
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);    
     char * recurso = "RA";
     //cargar_string_a_buffer(buffer_cpu_ki,recurso);
-    usleep(550);
-	t_paquete* paquete_cpu = crear_paquete(SUCCESS, buffer_cpu_ki);
+    usleep(950);
+	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_ki);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
     destruir_buffer(buffer_cpu_ki);
 }

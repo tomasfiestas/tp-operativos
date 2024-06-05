@@ -34,6 +34,8 @@ int instancias_recurso_1;
 int instancias_recurso_2; 
 int instancias_recurso_3; 
 int tamanio_lista_recursos;
+int result;
+bool llego_contexto = false;
 
 void atender_entradasalida2(void* socket_cliente_ptr);
 
