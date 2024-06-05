@@ -43,7 +43,7 @@ typedef struct{
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
-	int quantum;//USAR uint_32
+	int64_t quantum;//USAR uint_32
 	int ejecuto;
 } t_pcb;
 

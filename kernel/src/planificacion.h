@@ -6,6 +6,8 @@
 #include <gestor_kernel.h>
 #include <commons/string.h>
 #include <semaphore.h>
+#include <commons/temporal.h>  
+
 
 
 
@@ -45,6 +47,7 @@ void* inicio_plani_corto_plazo(void* arg);
 void* contar_quantum();
 
 
+
 void atender_crear_pr2(t_buffer* buffer,op_code op_code);
 void atender_cpu_dispatch(void* socket_cliente_ptr);
 void *round_robin(void * pcb);
@@ -55,7 +58,7 @@ bool existe_recurso(char *recurso_recibido);
 //void disminuir_cantidad_recurso(t_pcb  *pcb, t_recurso *recurso);
 int encontrar_posicion_recurso(char* target_char);
 
-void *manejo_quantum(void * pcb);
+void *manejo_quantum(t_pcb * pcb);
 
 void finalizarProceso(int pid);
 t_pcb *buscarPcb(int pid_a_buscar);

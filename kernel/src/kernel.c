@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
     log_info(kernel_logger, "ALGORITMO_PLANIFICACION %s", ALGORITMO_PLANIFICACION);
     QUANTUM = config_get_int_value(kernel_config, "QUANTUM");
     log_info(kernel_logger, "QUANTUM %d", QUANTUM);
+    quantum_64 = (int64_t)QUANTUM;
     RECURSOS = config_get_array_value(kernel_config, "RECURSOS");
     log_info(kernel_logger, "RECURSOS: %s|%s|%s",RECURSOS[0],RECURSOS[1],RECURSOS[2]);
     INSTANCIAS_RECURSOS = config_get_array_value(kernel_config, "INSTANCIAS_RECURSOS");

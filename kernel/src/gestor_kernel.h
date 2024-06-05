@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <planificacion.h>
 #include <servicios_kernel.h>
+#include <commons/temporal.h>  
 
 
 extern int conexion_k_memoria;
@@ -27,6 +28,7 @@ extern char* PUERTO_CPU_DISPATCH;
 extern char* PUERTO_CPU_INTERRUPT;
 extern char* ALGORITMO_PLANIFICACION;
 extern int QUANTUM;
+extern int64_t quantum_64;
 extern char** RECURSOS;
 extern char** INSTANCIAS_RECURSOS;
 extern int GRADO_MULTIPROGRAMACION;
@@ -47,6 +49,8 @@ extern  int tamanio_lista_recursos;
 extern pthread_mutex_t mutex_pid;
 extern int identificador_PID;
 extern int contador_pcbs;
+extern t_temporal* timer;
+extern int64_t tiempo_ejecutado;
 
 
 extern pthread_t hilo_quantum;

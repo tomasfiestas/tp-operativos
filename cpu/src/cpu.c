@@ -23,12 +23,12 @@ int main(int argc, char* argv[]) {
     //Inicio el servidor de la cpu
     int servidor_dispatch = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH);
     int servidor_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT);
-    //Inicio la conexion como cliente con la memoria
+    /*//Inicio la conexion como cliente con la memoria
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(logger, "Conexion con memoria establecida");  
 
     realizar_handshake(HANDSHAKE_CPU,conexion_memoria);
-    log_info(logger, "Handshake con Memoria realizado");
+    log_info(logger, "Handshake con Memoria realizado");*/
 
     //Espero al cliente Kernel - Dispatch
     cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 
@@ -114,18 +114,26 @@ void atender_crear_pr(t_buffer* buffer){
       
     t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
     log_info(logger, "Creamos PCB: %d", pcbb->pid); 
-    
     destruir_buffer(buffer);
+    t_buffer* buffer_cpu_ki = crear_buffer();  
+    
+    cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);    
+    char * recurso = "RA";
+    //cargar_string_a_buffer(buffer_cpu_ki,recurso);
+    usleep(550);
+	t_paquete* paquete_cpu = crear_paquete(SUCCESS, buffer_cpu_ki);
+    enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
+    destruir_buffer(buffer_cpu_ki);
 }
 
-void devolver_pcb(t_pcb pcb){
+/*void devolver_pcb(t_pcb pcb){
     t_buffer* buffer_cpu_k = crear_buffer();    
     cargar_pcb_a_buffer2(buffer_cpu_k,pcb);    
 	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_k);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
     destruir_buffer(buffer_cpu_k);
 
-}
+}*/
 
 void atender_fin_quantum(t_buffer* buffer){
       
@@ -134,7 +142,7 @@ void atender_fin_quantum(t_buffer* buffer){
     destruir_buffer(buffer) ;
     t_buffer* buffer_cpu_ki = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
-    char * recurso = "RB";
+    char * recurso = "RA";
     cargar_string_a_buffer(buffer_cpu_ki,recurso);
     log_info(logger, "Enviamos PCB de proceso desalojado - PID %d a Kernel Interrupt", pcbb->pid);   
 	t_paquete* paquete_cpu = crear_paquete(SOLICITAR_WAIT, buffer_cpu_ki);

@@ -3,6 +3,8 @@
 t_pcb* pcb_nuevo;
 char** recursos;
 char** instancias_recursos;
+t_temporal* timer;
+int64_t tiempo_ejecutado;
 
 
 //Listas de estados
@@ -65,7 +67,7 @@ void crear_pcb(int pid){
 	//nuevo_pcb->tabla_archivos = list_create(); //Comento porque no se para que sirve
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
-	nuevo_pcb->quantum = QUANTUM;
+	nuevo_pcb->quantum = quantum_64;
 
 	
 	inicializar_registros(nuevo_pcb);
@@ -140,6 +142,8 @@ void inicializar_listas(){
 	plani_exec = list_create();
 	plani_block = list_create();
     plani_exit = list_create();
+	
+	
 	
 	//inicializo lista de colas para manejar los bloqueados por recurso 
 	t_queue ** lista_recursos_bloqueados = malloc(sizeof(t_queue*)*cant_recursos);
@@ -259,7 +263,7 @@ void* inicio_plani_corto_plazo(void* arg){
     	*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
     	pthread_create(&hilo_kernel_dispatch, NULL, atender_cpu_dispatch, socket_cliente_cpu_dispatch_ptr);
     	log_info(kernel_logger, "Atendiendo mensajes de CPU Interrupt");
-    	pthread_detach(hilo_kernel_dispatch);
+    	pthread_join(hilo_kernel_dispatch,NULL);//REVISAR
 		sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
 		
 			
@@ -486,6 +490,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     op_code op_code = recibir_operacion(cliente_kd);	
 	sem_post(&puedeEntrarAExec); 
 	sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum
+	if(algoritmo_plani == VRR){
+		temporal_stop(timer);
+		log_info(kernel_logger, "Se detiene el timer : %d", timer->elapsed_ms);
+
+	}
 	log_info(kernel_logger,"OP CODE: %d", op_code);
 	switch(op_code) {
 		case FIN_DE_QUANTUM:
@@ -566,22 +575,36 @@ void atender_proceso_desalojado(t_buffer* buffer, op_code op_code){
     destruir_buffer(buffer);
 }
 
-void *manejo_quantum(void * pcb){
+void *manejo_quantum(t_pcb * pcb){
 	switch(algoritmo_plani){
 		case RR:
 			contar_quantum();
 			//CHEQUEAR SI SIGUE EL PCB EJECUTANDO o si recibí algo.
-			if(sem_trywait(&sem_volvioContexto) != 0){ //este semaforo se levanta cuando 
+			if(sem_trywait(&sem_volvioContexto) >= 0 ){ //este semaforo se levanta cuando 
 			//me llega algo de cpu --> si no llego nada mando interrupcion por quantum
 			enviar_interrupcion_por_quantum(pcb);
 			}
 			break;
-		case VRR:
-			
-			break;
-		
-	
-	log_info(kernel_logger, "Fin de hilo Quantum");
+		case VRR:			
+			timer = temporal_create();
+			usleep(pcb->quantum*1000);
+
+			if(sem_trywait(&sem_volvioContexto) >= 0){
+				tiempo_ejecutado = temporal_gettime(timer);
+				if(pcb->quantum - tiempo_ejecutado >1){
+					pcb->quantum -= tiempo_ejecutado;
+				}else {
+					pcb->quantum = (int64_t)QUANTUM;					
+				}
+								
+
+			}
+			else {
+				enviar_interrupcion_por_quantum(pcb);
+			}
+
+			log_info(kernel_logger, "Fin de hilo Quantum");
+			break;	
 	}
 
 }
@@ -685,8 +708,8 @@ void sacar_de_lista(t_list * lista, int pid){
 
 char *mensaje_a_string(op_code motivo){
 	switch (motivo){
-    /*case SUCCESS:    
-	    return "SUCCESS";
+    case SUCCESS:    
+	    return "SUCCESS";/*
     case INVALID_WRITE:
         return "INVALID_WRITE";
     case PAGE_FAULT:
