@@ -202,16 +202,16 @@ void* inicio_plani_largo_plazo(void* arg){
 		
 		// Espero a que haya procesos en new 			
 		sem_wait(&hayPCBsEnNew);
-		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
+		//log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
 		
 		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM		
 		
-		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
+		//log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
 		
 		//Se agrega el pcb a READY
 		t_pcb* pcb = sacar_siguiente_de_new();		
 		agregar_a_ready(pcb);
-		log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
+		//log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
 		
 		sem_getvalue(&planificacion_largo_plazo_activa, &valor);
 	}
@@ -232,10 +232,10 @@ void* inicio_plani_corto_plazo(void* arg){
 	while(valor_corto_plazo ==1){
 		
 		sem_wait(&hayPCBsEnReady);
-		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
+		  //log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
 		sem_wait(&puedeEntrarAExec);
-		  log_info(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
+		  //log_info(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
 
 		t_pcb* pcb;
 		
@@ -251,8 +251,7 @@ void* inicio_plani_corto_plazo(void* arg){
 		//pthread_t hilo_quantum;
     	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
     	//*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
-    	pthread_create(&hilo_quantum, NULL, (void *)manejo_quantum, (void*)pcb);
-    	log_info(kernel_logger, "Creo hilo para contar quantum en RR");
+    	pthread_create(&hilo_quantum, NULL, (void *)manejo_quantum, (void*)pcb);    	
     	pthread_detach(hilo_quantum);
 		}
 			
@@ -384,11 +383,14 @@ void sacar_de_exec(t_pcb* pcb, op_code op_code){
 			case ESPERA_RECURSO:
 				agregar_a_bloqueado(pcb);
 			break;
-			case FIN_DE_QUANTUM:			
+			case PROCESO_DESALOJADO:			
 				agregar_a_ready(pcb);
 			break;
 			case FINPROCESO:
 				agregar_a_exit(pcb,op_code);
+			break;
+			case FIN_DE_QUANTUM: //ES SOLO DE PRUEBA!!
+				agregar_a_ready(pcb);
 			break;
 			case SUCCESS:
 				agregar_a_exit(pcb,op_code);
@@ -487,26 +489,46 @@ char* estado_a_string(t_estado estado) {
 void atender_cpu_dispatch(void* socket_cliente_ptr) {
     int cliente_kd = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);    
-    op_code op_code = recibir_operacion(cliente_kd);	
+    op_code op_code = recibir_operacion(cliente_kd);
 	sem_post(&puedeEntrarAExec); 
-	//sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum
+	t_buffer* buffer = recibir_buffer(cliente_kd);	
+	t_pcb* pcb = extraer_pcb_del_buffer(buffer);	
+	//sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum	
 	llego_contexto = true;
+	//sleep(7);
 	if(algoritmo_plani == VRR){
 		temporal_stop(timer);
-		log_info(kernel_logger, "Se detiene el timer : %d", timer->elapsed_ms);
-
-	}
-	log_info(kernel_logger,"OP CODE: %d", op_code);
+		log_info(kernel_logger, "Se detiene el timer : %d", timer->elapsed_ms);		
+			tiempo_ejecutado = temporal_gettime(timer);	
+			temporal_destroy(timer);				
+				if(op_code != PROCESO_DESALOJADO){					
+				if (pcb->quantum - tiempo_ejecutado > 1 || pcb->quantum - tiempo_ejecutado == 0) {
+					if (pcb->quantum - tiempo_ejecutado > 1) {
+						pcb->quantum -= tiempo_ejecutado;
+						log_info(kernel_logger, "Quantum restante: %d", pcb->quantum);						
+					} else {
+						pthread_cancel(hilo_quantum);
+						log_info(kernel_logger, "cancelo el hilo de quantum ya que justo dio cero");
+						pcb->quantum = (int64_t)QUANTUM;
+						log_info(kernel_logger, "Reiniciando ya que dió cero JUSTO, quantum restante: %d", pcb->quantum);						
+					}
+				} 
+				}
+	}	
+	pthread_cancel(hilo_quantum);   
+	
 	switch(op_code) {
-		case FIN_DE_QUANTUM:
+		case PROCESO_DESALOJADO:			
+            
+			sacar_de_exec(pcb, op_code);     
+    		log_info(kernel_logger, "LLEGO EL PROCESO QUE DESALOJé por FIN de Q", pcb->pid); 
+			destruir_buffer(buffer);
 			
-            t_buffer* buffer = recibir_buffer(cliente_kd);			             
-            atender_crear_pr2(buffer,op_code);
 			break;
-		case PROCESO_DESALOJADO:
-			log_info(kernel_logger, "Llegó proceso desalojado");
-			t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
-            atender_proceso_desalojado(buffer2,op_code);
+		case FIN_DE_QUANTUM:
+			sacar_de_exec(pcb, op_code);     
+    		log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
+			destruir_buffer(buffer);
 			break;
 		case INTERRUPTED_BY_USER:
 			log_info(kernel_logger, "llegó fin de proceso");
@@ -519,11 +541,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			atender_fin_proceso_success(buffer4,op_code);
 			break;
 		case SOLICITAR_WAIT:
-			log_info(kernel_logger, "Llegó solicitud de wait");
-			t_buffer* buffer5 = recibir_buffer(cliente_kd);
-			t_pcb* pcb = extraer_de_buffer(buffer5);
-			char* recurso_wait = extraer_string_del_buffer(buffer5);
-
+			//log_info(kernel_logger, "Llegó solicitud de wait");
+			//t_buffer* buffer5 = recibir_buffer(cliente_kd);
+			//t_pcb* pcb = extraer_de_buffer(buffer5);
+			char* recurso_wait = extraer_string_del_buffer(buffer);
+			destruir_buffer(buffer);
 			wait_recurso(pcb,recurso_wait);
             free(recurso_wait);
 
@@ -545,20 +567,20 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			log_error(kernel_logger, "No se reconoce el handshake");
 			break;
 	}
+	llego_contexto = false;
 	
-	//pthread_cancel(hilo_quantum);   
 
 }
 
-void atender_crear_pr2(t_buffer* buffer,op_code op_code){
-	t_pcb* pcb = extraer_pcb_del_buffer(buffer);
+void atender_crear_pr2(t_pcb* pcb,op_code op_code){
+	//t_pcb* pcb = extraer_pcb_del_buffer(buffer);
 	
 	//REVISAR ACÄ COMO CONTINUAR
 	sacar_de_exec(pcb, op_code);
      
-    log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
+    //log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
 
-    destruir_buffer(buffer);
+    //destruir_buffer(buffer);
 }
 
 
@@ -583,38 +605,31 @@ void *manejo_quantum(t_pcb * pcb){
 		case RR:
 			contar_quantum();
 			//CHEQUEAR SI SIGUE EL PCB EJECUTANDO o si recibí algo.
-			if(sem_trywait(&sem_volvioContexto) >= 0 ){ //este semaforo se levanta cuando 
+			//result = sem_trywait(&sem_volvioContexto);
+			if(!llego_contexto){ //este semaforo se levanta cuando 
 			//me llega algo de cpu --> si no llego nada mando interrupcion por quantum
 			enviar_interrupcion_por_quantum(pcb);
 			}
 			break;
 		case VRR:			
 			timer = temporal_create();
-			//usleep((pcb->quantum)*1000);
-			log_info(kernel_logger, "Se contó el quantum");
-			//result = sem_trywait(&sem_volvioContexto);
-			if(llego_contexto){
-				tiempo_ejecutado = temporal_gettime(timer);
-				log_info(kernel_logger, "Tiempo ejecutado: %d", tiempo_ejecutado);
-				if(pcb->quantum - tiempo_ejecutado >1){
-					pcb->quantum -= tiempo_ejecutado;
-					log_info(kernel_logger, "Quantum restante: %d", pcb->quantum);
-				}else {
-					pcb->quantum = (int64_t)QUANTUM;
-					log_info(kernel_logger, "Reiniciando, quantum restante: %d", pcb->quantum);					
-				}
-				llego_contexto = false;							
-
+			log_info(kernel_logger, "Es el hilo numero %d", identificador_hilo);
+			identificador_hilo++;
+			usleep((pcb->quantum)*1000);
+				
+			if(!llego_contexto){				
+				pcb->quantum = (int64_t)QUANTUM;
+				log_info(kernel_logger, "Reiniciando quantum ya que mando interrupcion restante: %d", pcb->quantum);	
+				enviar_interrupcion_por_quantum(pcb);			
 			}
-			else {
-				enviar_interrupcion_por_quantum(pcb);
-			}
-
-			log_info(kernel_logger, "Fin de hilo Quantum");
+			
 			break;	
 	}
+	log_info(kernel_logger, "Fin de hilo Quantum");
+	//pthread_cancel(hilo_quantum);			
 
 }
+
 
 void atender_fin_proceso(t_buffer* buffer,op_code op_code){
 	t_pcb* pcb;	

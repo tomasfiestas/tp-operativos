@@ -52,6 +52,7 @@ extern int identificador_PID;
 extern int contador_pcbs;
 extern t_temporal* timer;
 extern int64_t tiempo_ejecutado;
+extern int identificador_hilo;
 
 
 extern pthread_t hilo_quantum;
