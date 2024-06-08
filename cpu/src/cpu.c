@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     //Espero al cliente Kernel - Dispatch
     cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 
     //Atender los mensajes de Kernel - Dispatch
-    pthread_t hilo_kernel_dispatch;
+    hilo_kernel_dispatch;
     int* socket_cliente_kernel_disptach_ptr = malloc(sizeof(int));
     *socket_cliente_kernel_disptach_ptr = cliente_kernel_dispatch;
     pthread_create(&hilo_kernel_dispatch, NULL, atender_kernel_dispatch, socket_cliente_kernel_disptach_ptr);
@@ -87,7 +87,9 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-    op_code handshake = recibir_operacion(cliente_ki);    
+    op_code handshake = recibir_operacion(cliente_ki);  
+    pthread_cancel(hilo_kernel_dispatch);
+    //log_info(cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
 	switch(handshake) {
 		case FIN_DE_QUANTUM:
 			log_info(logger, "Me llegó FIN DE QUANTUM");
@@ -118,9 +120,10 @@ void atender_crear_pr(t_buffer* buffer){
     t_buffer* buffer_cpu_ki = crear_buffer();  
     
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);    
-    char * recurso = "RA";
+    //char * recurso = "RA";
     //cargar_string_a_buffer(buffer_cpu_ki,recurso);
-    usleep(5000000);
+    //usleep(5000000);
+    sleep(3);
 	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_ki);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
     destruir_buffer(buffer_cpu_ki);
