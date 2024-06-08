@@ -104,8 +104,8 @@ void inicializar_registros(t_pcb* nuevo_pcb){
 
 void inicializar_semaforos(){
 	sem_init(&multiPermiteIngresar, 0,GRADO_MULTIPROGRAMACION );
-	sem_init(&lugares_ready_llenos, 0, 0);
-	sem_init(&lugares_ready_vacios,0, GRADO_MULTIPROGRAMACION);
+	//sem_init(&lugares_ready_llenos, 0, 0);
+	// sem_init(&lugares_ready_vacios,0, GRADO_MULTIPROGRAMACION); no los usamos nunca ja
 	sem_init(&puedeEntrarAExec, 0, 1);
 	sem_init(&mutex_multiprogramacion, 0, 1);
 	sem_init(&hayPCBsEnReady, 0, 0);
@@ -205,7 +205,7 @@ void* inicio_plani_largo_plazo(void* arg){
 		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
 		
 		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM		
-		
+		sem_wait(&multiPermiteIngresar); // estaba aca (por el comentario d arriba) no se pq ni cuando desaparecio
 		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
 		
 		//Se agrega el pcb a READY
@@ -299,9 +299,7 @@ void agregar_a_new(t_pcb* nuevo_pcb){
 }
 
 void agregar_a_ready(t_pcb* nuevo_pcb){
-	//semaforo tipo productor-consumidor
-	//kernel productor va a esperar a q haya espacio para un proceso en ready segun multip
-	//sem_wait(&lugares_ready_vacios);	
+	
 	sem_wait(&mutex_multiprogramacion);
 		list_add(plani_ready, nuevo_pcb);
 	sem_post(&mutex_multiprogramacion);
