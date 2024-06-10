@@ -434,6 +434,7 @@ t_pcb* pcb_de_exec(){
 void mandar_contexto_a_CPU(t_pcb* pcb){
 	t_buffer* buffer_cpu = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu,pcb);    
+	log_info(kernel_logger, "Envio contexto de ejecucion a CPU %d", pcb->pid);
 	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);	
 }
@@ -504,7 +505,6 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			tiempo_ejecutado = temporal_gettime(timer);	
 			temporal_destroy(timer);				
 				if(op_code != PROCESO_DESALOJADO){					
-				if (pcb->quantum - tiempo_ejecutado > 1 || pcb->quantum - tiempo_ejecutado == 0) {
 					if (pcb->quantum - tiempo_ejecutado > 1) {
 						pcb->quantum -= tiempo_ejecutado;
 						log_info(kernel_logger, "Quantum restante: %d", pcb->quantum);						
@@ -515,7 +515,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 						log_info(kernel_logger, "Reiniciando ya que dió cero JUSTO, quantum restante: %d", pcb->quantum);						
 					}
 				} 
-				}
+				
 	}	
 	//pthread_cancel(hilo_quantum);   
 	

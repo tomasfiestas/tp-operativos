@@ -21,6 +21,7 @@ char* ALGORITMO_TLB;
 int conexion_memoria;
 int cliente_kernel_dispatch;
 int cliente_kernel_interrupt;
+bool llego_interrupcion = false;
 
 void atender_kernel_dispatch(void* socket_cliente_ptr);
 void atender_kernel_interrupt(void* socket_cliente_ptr);
