@@ -394,7 +394,7 @@ void sacar_de_exec(t_pcb* pcb, op_code op_code){
 				agregar_a_exit(pcb,op_code);
 			break;
 			case INVALID_RESOURCE:
-				agregar_a_exit(pcb,op_code);
+				agregar_a_exit(pcb,op_code);				
 			default: // FINPROCESO
 				agregar_a_exit(pcb,op_code);
 			break;
@@ -437,6 +437,7 @@ void mandar_contexto_a_CPU(t_pcb* pcb){
 	log_info(kernel_logger, "Envio contexto de ejecucion a CPU %d", pcb->pid);
 	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);	
+	destruir_paquete(paquete_cpu);
 }
 
 void enviar_interrupcion_por_quantum(t_pcb* pcb){
@@ -491,17 +492,14 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     op_code op_code = recibir_operacion(cliente_kd);
 	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
 	sem_post(&puedeEntrarAExec); 
-	llego_contexto = true;
-	//sleep(3);
+	llego_contexto = true;	
 	pthread_cancel(hilo_quantum); 
 	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
 	t_pcb* pcb = extraer_pcb_del_buffer(buffer);	
-	//sem_post(&sem_volvioContexto); // levanto el semaforo para que no me desaloje por quantum	sleep(3);		
-	//sleep(7);
 	if(algoritmo_plani == VRR){		
 		temporal_stop(timer);
-		log_info(kernel_logger, "Se detiene el timer : %d", timer->elapsed_ms);		
+		log_info(kernel_logger, "Se detiene el timer : %d, Quantum restante antes de restar: %d", timer->elapsed_ms,pcb->quantum);		
 			tiempo_ejecutado = temporal_gettime(timer);	
 			temporal_destroy(timer);				
 				if(op_code != PROCESO_DESALOJADO){					
@@ -552,20 +550,21 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//log_info(kernel_logger, "Llegó solicitud de wait");
 			//t_buffer* buffer5 = recibir_buffer(cliente_kd);
 			//t_pcb* pcb = extraer_de_buffer(buffer5);
-			char* recurso_wait = extraer_string_del_buffer(buffer);
+			char recurso_wait = extraer_string_del_buffer2(buffer);
+
 			destruir_buffer(buffer);
 			wait_recurso(pcb,recurso_wait);
-            free(recurso_wait);
+            //free(recurso_wait);
 
             break;
 		case SOLICITAR_SIGNAL:
 			log_info(kernel_logger, "Llegó solicitud de signal");
 			//t_buffer* buffer6 = recibir_buffer(cliente_kd);
 			//t_pcb* pcb2 = extraer_de_buffer(buffer6);
-			char* recurso_signal = extraer_string_del_buffer(buffer);
+			char recurso_signal = extraer_string_del_buffer2(buffer);
 
 			signal_recurso(pcb,recurso_signal);
-            free(recurso_signal);
+            //free(recurso_signal);
 
             break;
 			
@@ -676,9 +675,9 @@ void atender_fin_proceso_success(t_buffer* buffer,op_code op_code){
 
 t_pcb *buscarPcb(int pid_a_buscar)
 {
-    t_pcb *pcb;
-    
-    for (int i = 0; i < (list_size(total_pcbs)); i++) {
+t_pcb *pcb;
+   
+        for (int i = 0; i < (list_size(total_pcbs)); i++) {
         pcb = list_get(total_pcbs,i);
         if (pcb->pid == pid_a_buscar) {
             return pcb;

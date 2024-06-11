@@ -305,6 +305,12 @@ char* extraer_string_del_buffer(t_buffer* buffer){
     char* string = extraer_de_buffer(buffer);
     return string;
 }
+char extraer_string_del_buffer2(t_buffer* buffer){
+    char* string = extraer_de_buffer(buffer);
+    char valor_string = *string;
+    free(string);
+    return valor_string;
+}
 uint8_t extraer_uint8_del_buffer(t_buffer* buffer){
     uint8_t* entero = extraer_de_buffer(buffer);
     uint8_t valor_int = *entero;
