@@ -508,12 +508,18 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 					if (pcb->quantum - tiempo_ejecutado > 1) {
 						pcb->quantum -= tiempo_ejecutado;
 						log_info(kernel_logger, "Quantum restante: %d", pcb->quantum);						
-					} else {
+					} else if(pcb->quantum - tiempo_ejecutado == 0){
 						pthread_cancel(hilo_quantum);
 						log_info(kernel_logger, "cancelo el hilo de quantum ya que justo dio cero");
 						pcb->quantum = (int64_t)QUANTUM;
 						log_info(kernel_logger, "Reiniciando ya que dió cero JUSTO, quantum restante: %d", pcb->quantum);						
+					}else if(pcb->quantum - tiempo_ejecutado < 0){
+						pthread_cancel(hilo_quantum);
+						log_info(kernel_logger, "cancelo el hilo de quantum ya que dio negativo");
+						pcb->quantum = (int64_t)QUANTUM;
+						log_info(kernel_logger, "Reiniciando ya que dió negativo, quantum restante: %d", pcb->quantum);						
 					}
+
 				} 
 				
 	}	
