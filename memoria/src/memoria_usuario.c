@@ -2,39 +2,200 @@
 #include "memoria_usuario.h"
 #include <commons/bitarray.h>
 
-void inicializar_memoria() {
+void inicializar_memoria()
+{
     memoria_total = reservar_memoria();
-    bitarray_create_with_mode(bitmap, atoi(TAM_MEMORIA) / atoi(TAM_PAGINA), LSB_FIRST);
+    bitarray = bitarray_create_with_mode(bitmap, atoi(TAM_MEMORIA) / atoi(TAM_PAGINA), LSB_FIRST);
 }
 
-void crear_proceso(int pid, t_instrucciones* instrucciones) {
-    t_tabla_paginas* tabla_paginacion = iniciar_tabla_paginas(pid);
-    alocar_memoria(tabla_paginacion, instrucciones);
+t_list *iniciar_tabla_paginas(int pid)
+{
+    t_list *paginas = list_create();
+    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+    {
+        t_pagina *pagina = malloc(sizeof(t_pagina));
+        pagina->presente = false;
+        list_add(paginas, pagina);
+    }
+    return paginas;
 }
 
-void* reservar_memoria() {
-    void* totalMemory = malloc(atoi(TAM_MEMORIA));
-    if(totalMemory == NULL) {
-        log_error(logger, "No se pudo reservar la memoria necesaria.");
+void finalizar_proceso(int pid)
+{
+    t_proceso *proceso = obtener_proceso(pid);
+    if (proceso == NULL)
+    {
+        log_error(memoria_logger, "No se encontro el proceso con PID %d", pid);
+        return;
+    }
+
+    t_list_iterator *iterator = list_iterator_create(proceso->paginas);
+    while (list_iterator_has_next(iterator))
+    {
+        t_pagina *pagina = list_iterator_next(iterator);
+        if (pagina->presente)
+        {
+            bitarray_clean_bit(bitarray, list_iterator_current_position(iterator));
+            pagina->presente = false;
+        }
+    }
+}
+
+int quitar_memoria(t_proceso *proceso, int cantidad_paginas)
+{
+    for (int i = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i > 0 && cantidad_paginas > 0; i--)
+    {
+        t_pagina *pagina = list_get(proceso->paginas, i);
+        if (pagina->presente)
+        {
+            bitarray_clean_bit(bitarray, i);
+            pagina->presente = false;
+            cantidad_paginas--;
+        }
+    }
+}
+
+int resize(int pid, int bytes)
+{
+    t_proceso *proceso = obtener_proceso(pid);
+    if (proceso == NULL)
+    {
+        log_error(memoria_logger, "No se encontro el proceso con PID %d", pid);
+        return 0;
+    }
+
+    int paginas_pedidas = ceil((double)bytes / atoi(TAM_PAGINA));
+    int paginas_en_uso_proceso = obtener_cantidad_paginas_en_uso(proceso);
+    int marcos_disponibles = obtener_cantidad_marcos_disponibles();
+
+    if (paginas_pedidas == paginas_en_uso_proceso)
+    {
+        return 0; // No hay que hacer nada
+    }
+
+    // Ampliacion
+    if (paginas_pedidas > paginas_en_uso_proceso)
+    {
+        // En un caso de resize de ampliacion, hay que chequear que se disponga de marcos.
+        if (paginas_pedidas - paginas_en_uso_proceso > marcos_disponibles)
+        {
+            return -1; // Out of memory
+        }
+
+        return asignar_memoria(proceso, paginas_pedidas - paginas_en_uso_proceso);
+    }
+    else
+    {
+        // Reduccion
+        return quitar_memoria(proceso, paginas_en_uso_proceso - paginas_pedidas);
+    }
+}
+
+int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
+{
+    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+    {
+        if (!bitarray_test_bit(bitarray, i))
+        {
+            t_pagina *pagina = list_get(proceso->paginas, i);
+            pagina->presente = true;
+            pagina->frame = i;
+            bitarray_set_bit(bitarray, i);
+            cantidad_paginas--;
+        }
+    }
+
+    return 1;
+}
+
+/**
+ * Obtiene un numero de marco a partir de un numero de pagina.
+ * Una pagina solo puede corresponderse a un unico marco.
+ * 
+ * Retorna -1 si la pagina no esta poblada para ningun proceso.
+ */
+int obtener_numero_marco(int numero_pagina)
+{
+    t_list_iterator *iterator = list_iterator_create(procesos);
+    while (list_iterator_has_next(iterator))
+    {
+        t_proceso *proceso = list_iterator_next(iterator);
+        t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
+        if (pagina->presente)
+        {
+            list_iterator_destroy(iterator);
+            return pagina->frame;
+        }
+    }
+    list_iterator_destroy(iterator);
+    return -1;
+}
+
+bool validar_si_existen_marcos(int cantidad_paginas)
+{
+    int marcos_disponibles = 0;
+    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+    {
+        if (!bitarray_test_bit(bitarray, i))
+        {
+            marcos_disponibles++;
+        }
+    }
+    return marcos_disponibles >= cantidad_paginas;
+}
+
+void *reservar_memoria()
+{
+    void *totalMemory = malloc(atoi(TAM_MEMORIA));
+    if (totalMemory == NULL)
+    {
+        log_error(memoria_logger, "No se pudo reservar la memoria necesaria.");
         abort();
     }
     return totalMemory;
 }
 
-t_tabla_paginas* iniciar_tabla_paginas(int pid) {
-    t_tabla_paginas* tabla = (t_tabla_paginas*) *(memoria_total + sizeof(t_tabla_paginas) * cantidad_procesos);
-    tabla->pid = pid;
-    tabla->paginas = (t_pagina*) (cantidad_procesos + sizeof(t_tabla_paginas));
-    for(int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++) {
-        tabla->paginas[i].presente = false;
+t_proceso *obtener_proceso(int pid)
+{
+    t_list_iterator *iterator = list_iterator_create(procesos);
+    while (list_iterator_has_next(iterator))
+    {
+        t_proceso *proceso = list_iterator_next(iterator);
+        if (proceso->pid == pid)
+        {
+            list_iterator_destroy(iterator);
+            return proceso;
+        }
     }
-    cantidad_procesos++;
-    return tabla;
+    list_iterator_destroy(iterator);
+    return NULL;
 }
 
-void alocar_memoria(t_tabla_paginas* tabla, t_instrucciones* instrucciones) {
+int obtener_cantidad_marcos_disponibles()
+{
+    int marcos_disponibles = 0;
+    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+    {
+        if (!bitarray_test_bit(bitarray, i))
+        {
+            marcos_disponibles++;
+        }
+    }
+    return marcos_disponibles;
+}
 
-    // TODO. Ni idea como se hace esto. La idea es tener una tabla por proceso???
-    // los frames seran las particiones de la memoria reservada anteriormente.
-
+int obtener_cantidad_paginas_en_uso(t_proceso *proceso)
+{
+    int paginas_en_uso = 0;
+    t_list_iterator *iterator = list_iterator_create(proceso->paginas);
+    while (list_iterator_has_next(iterator))
+    {
+        t_pagina *pagina = list_iterator_next(iterator);
+        if (pagina->presente)
+        {
+            paginas_en_uso++;
+        }
+    }
+    list_iterator_destroy(iterator);
+    return paginas_en_uso;
 }

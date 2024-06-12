@@ -1,6 +1,8 @@
 #include "memoria.h"
 #include "memoria_usuario.h"
 #include <string.h>
+#include <commons/collections/list.h>
+#include <bits/pthreadtypes.h>
 
 extern t_log* logger;
 
@@ -28,6 +30,7 @@ int main(int argc, char *argv[])
     log_info(logger, "RETARDO_RESPUESTA: %s", RETARDO_RESPUESTA);
 
     inicializar_memoria();
+    procesos = list_create();
 
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
@@ -91,16 +94,15 @@ void atender_cpu(void* socket_cliente_ptr) {
         log_info(logger, "Solicitud de instrucciones");
         t_buffer *buffer = recibir_buffer(cliente);
 
-        // TODO: En la entrega 3 tendremos que cargar en memoria
-        // y luego buscaremos PCBs por PID creo?
-        int pid = extraer_int_del_buffer(buffer);
+        // // TODO: En la entrega 3 tendremos que cargar en memoria
+        // // y luego buscaremos PCBs por PID creo?
+        // int pid = extraer_int_del_buffer(buffer);
 
-        t_buffer *response_buffer = crear_buffer();
-        cargar_instrucciones_a_buffer(response_buffer, instrucciones_a_enviar);
-        t_paquete *response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
+        // t_buffer *response_buffer = crear_buffer();
+        // cargar_instrucciones_a_buffer(response_buffer, instrucciones_a_enviar);
+        // t_paquete *response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
 
-        // TODO: ver como enviar paquete al cliente.
-        enviar_paquete(response, cliente);
+        // enviar_paquete(response, cliente);
 
         // // Con este codigo es posible recibir paquete y extraer del buffer:
         // t_buffer* buffer = recibir_buffer(<socket que envia el paquete>);
@@ -140,6 +142,11 @@ void atender_kernel(void* socket_cliente_ptr){
 			    log_info(logger, "Creamos procesos");                
                 atender_crear_proceso(buffer);
                 break;
+            case FINALIZAR_PROCESO:
+                log_info(logger, "Solicitud de finalizacion de proceso");
+                t_buffer* buffer = recibir_buffer(cliente_k);
+                atender_eliminar_proceso(buffer);
+                break;
 		    default:
 			    log_error(logger, "No se reconoce el handshake");
 			    control_key = 0;
@@ -175,7 +182,7 @@ void atender_entradasalida(void* socket_cliente_ptr){
     }
 }
 
-t_instrucciones* parse_file(const char* filePath, int pid) {
+t_list* parse_file(const char* filePath) {
     FILE* file = fopen(filePath, "r");
     if (file == NULL) {
         log_error(logger, "No se pudo abrir el archivo de instrucciones.");
@@ -184,78 +191,59 @@ t_instrucciones* parse_file(const char* filePath, int pid) {
 
     char linea[256];
 
-    t_instruccion* instrucciones = malloc(sizeof(t_instruccion));
+    t_list* instrucciones = list_create();
     int cantidad_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
-        t_instruccion instruccion;
+        t_instruccion* instruccion = malloc(sizeof(t_instruccion));
         char* token = strtok(linea, " ");
         
-        size_t length = strlen(token);
-        instruccion.instruccion = malloc(length + 1);
-        instruccion.instruccion_longitud = length;
-        strncpy(instruccion.instruccion, token, length + 1);
+        instruccion->operacion = (op_code) token;
 
-        instruccion.parametros = NULL;
-        instruccion.parametros_cantidad = 0;
+        instruccion->parametros = list_create();
         while ((token = strtok(NULL, " ")) != NULL) {
             token[strcspn(token, "\n")] = 0;
-            t_parametro parametro;
-
-            size_t parametro_length = strlen(token);
-            parametro.parametro = malloc(parametro_length + 1);
-            parametro.longitud = parametro_length;
-            strncpy(parametro.parametro, token, parametro_length + 1);
-
-            instruccion.parametros_cantidad++;
-            instruccion.parametros = realloc(instruccion.parametros, instruccion.parametros_cantidad * sizeof(t_parametro));
-
-            instruccion.parametros[instruccion.parametros_cantidad - 1] = parametro;
-
+            char* parametro = strdup(token); 
+            list_add(instruccion->parametros, parametro);
         }
 
-        log_instruccion(instruccion);
-
-        instrucciones = realloc(instrucciones, (cantidad_instrucciones + 1) * sizeof(t_instruccion));
-        instrucciones[cantidad_instrucciones] = instruccion;
+        list_add(instrucciones, instruccion);
         cantidad_instrucciones++;
     }
     
     fclose(file);
 
-    t_instrucciones resultado = malloc(sizeof(t_instrucciones));
-    resultado.pid = pid;
-    resultado.cantidad = cantidad_instrucciones;
-    resultado.instrucciones = instrucciones;
-
-    return resultado;
+    return instrucciones;
 }
 
 void atender_crear_proceso(t_buffer* buffer){
     int pid = extraer_int_del_buffer(buffer);
     char* filename = extraer_string_del_buffer(buffer);   
-    log_info(logger, "PID: %d ,Filename: %s",pid, filename);    
+    log_info(logger, "PID: %d ,Filename: %s",pid, filename);
+
     destruir_buffer(buffer);
 
     char* path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(filename) + 2);
     sprintf(path, "%s/%s", PATH_INSTRUCCIONES, filename);
     free(filename);
 
-    t_instrucciones* parse_file(path, pid);
-    //cargar proceso
+    t_list* instrucciones = parse_file(path);
+
+    t_pagina* tabla = iniciar_tabla_paginas();
+
+    t_proceso* proceso = malloc(sizeof(t_proceso));
+    proceso->pid = pid;
+    proceso->pc = 0;
+    proceso->instrucciones = instrucciones;
+    proceso->paginas = tabla;
+
+    list_add(procesos, proceso);
+
     free(path);
 }
 
-void log_instruccion(t_instruccion instruccion) {
-    char* log_message = malloc(strlen(instruccion.instruccion) + 20);
-    sprintf(log_message, "Instruccion: %s", instruccion.instruccion);
-
-    for (int i = 0; i < instruccion.parametros_cantidad; i++) {
-        char* old_log_message = log_message;
-        log_message = malloc(strlen(old_log_message) + strlen(instruccion.parametros[i].parametro) + 5);
-        sprintf(log_message, "%s %s", old_log_message, instruccion.parametros[i].parametro);
-        free(old_log_message);
-    }
-
-    log_info(logger, "%s", log_message);
-    free(log_message);
+void atender_eliminar_proceso(t_buffer* buffer){
+    int pid = extraer_int_del_buffer(buffer);
+    log_info(logger, "Destruyendo proceso PID: %d", pid);
+    destruir_buffer(buffer);
+    finalizar_proceso(pid);
 }
