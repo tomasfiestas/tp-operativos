@@ -833,3 +833,24 @@ int encontrar_posicion_recurso(char* target_char) {
 		return position;
 }
 
+void mostrar_pids_y_estados() {
+	char* pids_estados = string_new();
+	char* estados[] = {"NEW", "READY", "EXEC", "BLOCKED", "EXIT"};
+	for (int i = 0; i < 5; i++) {
+		string_append(&pids_estados, estados[i]);
+		string_append(&pids_estados, ":\n");
+		for (int j = 0; j < list_size(total_pcbs); j++) {
+			t_pcb* pcb = list_get(total_pcbs, j);
+			if (pcb->estado == i) {
+				char* pid_str = string_itoa(pcb->pid);
+				string_append(&pids_estados, "PID: ");
+				string_append(&pids_estados, pid_str);
+				string_append(&pids_estados, "\n");
+				free(pid_str);
+			}			
+		}
+		string_append(&pids_estados, "\n");
+	}
+	log_info(kernel_logger, "Lista total_pcbs:\n%s", pids_estados);
+	free(pids_estados);
+}

@@ -67,6 +67,7 @@ void sacar_de_lista(t_list * lista, int pid);
 void sacar_pcb_de_lista(t_pcb* pcb);
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar);
 char *mensaje_a_string(op_code motivo);
+void mostrar_pids_y_estados();
 
 
 #endif 
