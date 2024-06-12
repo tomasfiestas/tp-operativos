@@ -53,6 +53,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr);
 void *round_robin(void * pcb);
 void atender_proceso_desalojado(t_buffer* buffer, op_code op_code);
 void atender_fin_proceso_success(t_buffer* buffer,op_code op_code);
+void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb);
 void wait_recurso(t_pcb *pcb, char *recurso_recibido);
 bool existe_recurso(char *recurso_recibido);
 //void disminuir_cantidad_recurso(t_pcb  *pcb, t_recurso *recurso);

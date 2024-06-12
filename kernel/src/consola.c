@@ -2,7 +2,7 @@
 t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
     
     if(strcmp(mensaje_consola,"EJECUTAR_SCRIPT") == 0){
-        return EJECUTAR_SCRIPT;        
+        return EJECUTAR_SCRIPT;
     }
     if(strncmp(mensaje_consola,"INICIAR_PROCESO",14) == 0){
         return INICIAR_PROCESO;
@@ -40,14 +40,51 @@ void leer_consola()
         if (linea) {
             add_history(linea);
             char** argumentos = string_split(linea, " ");
-            t_mensajes_consola mensaje_consola;              
-            mensaje_consola = mensaje_a_consola(argumentos[0]);        
-            procesar_mensaje(mensaje_consola, argumentos);               
-                     
+            t_mensajes_consola mensaje_consola;
+            mensaje_consola = mensaje_a_consola(argumentos[0]);                            
+
+            switch(mensaje_consola){
+                case EJECUTAR_SCRIPT:
+                    printf("EJECUTAR_SCRIPT\n");
+                    break;
+                case INICIAR_PROCESO:
+                    //TODO: habría que verificar que siempre pasen el PATH. 
+                    t_buffer* buffer = crear_buffer();
+                    cargar_string_a_buffer(buffer, argumentos[1]); //PATH     
+                    iniciar_proceso(buffer);
+
+                    break;
+                case FINALIZAR_PROCESO: 
+                    printf("FINALIZAR_PROCESO\n");
+                    t_buffer* buffer_finalizar_proceso = crear_buffer();
+                    int pids = atoi(argumentos[1]);
+                    cargar_int_a_buffer(buffer_finalizar_proceso, pids);                    
+                    finalizar_proceso(buffer_finalizar_proceso);
+
+                    break;
+                case INICIAR_PLANIFICACION:
+                    log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
+	                iniciar_planificacion();           
+
+                    break;
+                case DETENER_PLANIFICACION:
+                    detener_planificacion();
+                    log_info(kernel_logger, "DETENER_PLANIFICACION\n");
+                    
+                    break; 
+                case MULTIPROGRAMACION:
+                    printf("MULTIPROGRAMACION\n");
+                    break;
+                case PROCESO_ESTADO:
+                    printf("PROCESO_ESTADO\n");
+                    break;                
+                case ERROR:
+                    printf("Este comando es invalido\n");
+                    break;               
+
+            }           
         
         free(linea);
-        free(argumentos);
-        
     }
     
 }
@@ -58,9 +95,8 @@ void leer_consola()
 //REVISAR
 void ejecutar_script(t_buffer* buffer){ 
     char* script = extraer_string_del_buffer(buffer);
-    ejecutar_archivo(script);
     printf("El script es: %s\n", script);
-    free(script);    
+    free(script);
 }
 
 
@@ -89,9 +125,11 @@ void finalizar_proceso(t_buffer* buffer){
     int pid= extraer_int_del_buffer(buffer); 
     printf("El proceso a finalizar es: %d\n", pid);         
     
-    destruir_buffer(buffer);
+    destruir_buffer(buffer);   
+    
+
     t_pcb * pcb_a_finalizar = buscarPcb(pid);
-        if(pcb_a_finalizar->estado == EXEC){ 
+    if(pcb_a_finalizar->estado == EXEC){ 
     //Le aviso a CPU interrupt que quiero terminar un proceso
     t_buffer* buffer_cpu_interrupt = crear_buffer();
     pthread_cancel(hilo_quantum); //Detengo el hilo que cuenta el quantum
@@ -105,125 +143,3 @@ void finalizar_proceso(t_buffer* buffer){
         agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
     }
 }
-
-
-void ejecutar_archivo(const char* filePath) {
-    // Abrir el archivo y obtener las instrucciones
-    FILE* file = fopen(filePath, "r");
-    if (file == NULL) {
-        printf("No se pudo abrir el archivo de instrucciones.");
-        return;
-    }
-
-    char lineas[256];
-    while (fgets(lineas, sizeof(lineas), file) != NULL) {
-        lineas[strcspn(lineas, "\n")] = '\0'; // Eliminar el salto de línea
-        // Aquí puedes utilizar la variable "lineas" sin el salto de línea
-    
-        // Ejecutar cada instrucción en la consola
-        // Aquí puedes llamar a la función que ejecuta una instrucción en la consola
-        // Pasando la línea como parámetro
-        //mensaje_a_consola(linea);
-        char** argumentos_script = string_split(lineas, " ");
-        t_mensajes_consola mensaje_consola;
-        /*t_buffer* buffer = crear_buffer();
-        cargar_string_a_buffer(buffer, argumentos_script[1]);*/
-        mensaje_consola = mensaje_a_consola(argumentos_script[0]);                           
-        switch(mensaje_consola){                
-                case INICIAR_PROCESO:
-                    //TODO: habría que verificar que siempre pasen el PATH. 
-                    t_buffer* buffer1 = crear_buffer();
-                    cargar_string_a_buffer(buffer1, argumentos_script[1]); //PATH     
-                    iniciar_proceso(buffer1);
-
-                    break;
-                case FINALIZAR_PROCESO: 
-                    printf("FINALIZAR_PROCESO\n");
-                    t_buffer* buffer_finalizar_proceso = crear_buffer();
-                    int pids = atoi(argumentos_script[1]);
-                    cargar_int_a_buffer(buffer_finalizar_proceso, pids);                    
-                    finalizar_proceso(buffer_finalizar_proceso);
-
-                    break;
-                case INICIAR_PLANIFICACION:
-                    log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
-	                iniciar_planificacion();           
-
-                    break;
-                case DETENER_PLANIFICACION:
-                    detener_planificacion();
-                    log_info(kernel_logger, "DETENER_PLANIFICACION\n");
-                    
-                    break; 
-                case MULTIPROGRAMACION:
-                    printf("MULTIPROGRAMACION\n");
-                    break;
-                case PROCESO_ESTADO:
-                    printf("PROCESO_ESTADO\n");
-                    break;                
-                case ERROR:
-                    printf("Este comando es invalido\n");
-                    break;               
-
-            }           
-        
-        //free(lineas);
-        free(argumentos_script);
-
-    
-    }
-    
-    fclose(file);
-
-    // Terminar la función después de leer todas las líneas
-    
-}
-
-void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
-t_buffer* buffer = crear_buffer();     
-switch(mensaje_a_consola){
-                case EJECUTAR_SCRIPT:
-                    printf("EJECUTAR_SCRIPT\n");                    
-                    cargar_string_a_buffer(buffer, argumentos[1]);
-                    ejecutar_script(buffer);
-                    break;
-                case INICIAR_PROCESO:
-                    //TODO: habría que verificar que siempre pasen el PATH.                    
-                    cargar_string_a_buffer(buffer, argumentos[1]); //PATH     
-                    iniciar_proceso(buffer);
-
-                    break;
-                case FINALIZAR_PROCESO: 
-                    printf("FINALIZAR_PROCESO\n");                    
-                    int pids = atoi(argumentos[1]);
-                    cargar_int_a_buffer(buffer, pids);                    
-                    finalizar_proceso(buffer);
-
-                    break;
-                case INICIAR_PLANIFICACION:
-                    log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
-	                iniciar_planificacion();           
-
-                    break;
-                case DETENER_PLANIFICACION:
-                    detener_planificacion();
-                    log_info(kernel_logger, "DETENER_PLANIFICACION\n");
-                    
-                    break; 
-                case MULTIPROGRAMACION:
-                    printf("MULTIPROGRAMACION\n");
-                    break;
-                case PROCESO_ESTADO:
-                    printf("PROCESO_ESTADO\n");
-                    break;                
-                case ERROR:
-                    printf("Este comando es invalido\n");
-                    break;               
-
-            }  
-            destruir_buffer(buffer);
-}
-
-
-
-

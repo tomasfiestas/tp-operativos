@@ -538,8 +538,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			break;
 		case INTERRUPTED_BY_USER:
 			log_info(kernel_logger, "llegó fin de proceso");
-			t_buffer* buffer3 = recibir_buffer(cliente_kd);			        
-			atender_fin_proceso(buffer3,op_code);			
+			//t_buffer* buffer3 = recibir_buffer(cliente_kd);			        
+			atender_fin_proceso(buffer,op_code,pcb);			
 			break;
 		case SUCCESS:
 			log_info(kernel_logger, "Se finalizó correctamente el proceso");
@@ -641,15 +641,16 @@ void *manejo_quantum(t_pcb * pcb){
 }
 
 
-void atender_fin_proceso(t_buffer* buffer,op_code op_code){
-	t_pcb* pcb;	
-	pcb = extraer_de_buffer(buffer);
+void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
+	//t_pcb* pcb;	
+	//pcb = extraer_de_buffer(buffer);
     t_pcb valor_pcb = *pcb;
-    //free(pcb);	
+    
 	sacar_de_exec(pcb, op_code);     
     log_info(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
 	finalizarProceso(valor_pcb.pid);
     destruir_buffer(buffer);
+	free(pcb);	
 }
 
 void finalizarProceso(int pid){

@@ -142,7 +142,7 @@ void atender_crear_pr(t_buffer* buffer){
     //char * recurso = "RA";
     //cargar_string_a_buffer(buffer_cpu_ki,recurso);
     //usleep(5000000);
-    sleep(5);
+    sleep(8);
     t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu_ki);
     log_info(cpu_logger, "Enviamos PCB a Kernel con quantum: %d", pcbb->quantum);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
