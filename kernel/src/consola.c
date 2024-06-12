@@ -53,6 +53,23 @@ void leer_consola()
     
 }
 
+
+void cambiar_grado_multiprogramacion(t_buffer* buffer){
+    
+    int nueva_multi= extraer_int_del_buffer(buffer); 
+    int vieja_multi = GRADO_MULTIPROGRAMACION;
+    printf("viejo grado: %d\n", GRADO_MULTIPROGRAMACION);         
+
+    destruir_buffer(buffer);   
+
+    GRADO_MULTIPROGRAMACION = nueva_multi;
+    
+    printf("nuevo grado: %d\n", GRADO_MULTIPROGRAMACION);  
+
+    resetear_semaforos_multi(vieja_multi);
+}
+
+
 void iniciar_proceso(t_buffer* buffer){    
     char* path = extraer_string_del_buffer(buffer); 
     printf("El path del proceso a iniciar es: %s\n", path);     
@@ -71,7 +88,7 @@ void iniciar_proceso(t_buffer* buffer){
     t_paquete* paquete_memoria = crear_paquete(CREAR_PROCESO_KM, buffer_memoria);
     enviar_paquete(paquete_memoria, conexion_k_memoria);
 }
-void finalizar_proceso(t_buffer* buffer){    
+void finalizar_proceso_por_consola(t_buffer* buffer){    
     int pid= extraer_int_del_buffer(buffer); 
     printf("El proceso a finalizar es: %d\n", pid);         
     
@@ -111,7 +128,7 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
                     t_buffer* buffer_finalizar_proceso = crear_buffer();
                     int pids = atoi(argumentos[1]);
                     cargar_int_a_buffer(buffer_finalizar_proceso, pids);                    
-                    finalizar_proceso(buffer_finalizar_proceso);
+                    finalizar_proceso_por_consola(buffer_finalizar_proceso);
 
                     break;
                 case INICIAR_PLANIFICACION:
@@ -125,7 +142,10 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
                     
                     break; 
                 case MULTIPROGRAMACION:
-                    printf("MULTIPROGRAMACION\n");
+                    t_buffer* buffer_cambiar_multi = crear_buffer();
+                    int nuevo_multi = atoi(argumentos[1]);
+                    cargar_int_a_buffer(buffer_cambiar_multi, nuevo_multi); 
+                    cambiar_grado_multiprogramacion(buffer_cambiar_multi);
                     break;
                 case PROCESO_ESTADO:
                     mostrar_pids_y_estados();

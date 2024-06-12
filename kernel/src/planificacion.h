@@ -31,13 +31,14 @@ void mostrar_pids_ready();
 void inicializar_semaforos();
 void inicializar_listas();
 void iniciar_planificacion();
+void cambiar_grado_multiprogramacion(t_buffer *buffer);
+void resetear_semaforos_multi(int vieja_multi);
+void NewFunction(int nueva_multi);
 void detener_planificacion();
 
 algoritmos obtener_algoritmo();
 
-
-
-void mandar_contexto_a_CPU(t_pcb* pcb);
+void mandar_contexto_a_CPU(t_pcb *pcb);
 
 //Planificadores
 void inicializar_hilos();
