@@ -758,7 +758,7 @@ void sacar_pcb_de_lista(t_pcb* pcb){
             break;
         case NEW:
             sacar_de_lista(plani_new, pcb->pid);
-            //sem_wait(&hayPCBsEnNew);
+            sem_wait(&hayPCBsEnNew);
             break;
         case BLOCK:
 			sacar_de_lista(plani_block, pcb->pid);
