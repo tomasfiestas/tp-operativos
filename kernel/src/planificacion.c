@@ -24,6 +24,7 @@ algoritmos  algoritmo_plani;
 
 
 int multiprogramacion;
+int gradosPendientes = 0;
 
 sem_t planificacion_largo_plazo_activa;
 sem_t planificacion_corto_plazo_activa;
@@ -284,6 +285,49 @@ void detener_planificacion(){
 	sem_wait(&planificacion_corto_plazo_activa);
 }	
 
+void resetear_semaforos_multi(int vieja_multi){
+
+	int i;
+	if ( GRADO_MULTIPROGRAMACION > vieja_multi){
+		for(i=0; i < GRADO_MULTIPROGRAMACION - vieja_multi; i++){
+			sem_post(&multiPermiteIngresar);
+		}
+	}else{
+		for(i=0; i < vieja_multi - GRADO_MULTIPROGRAMACION; i++){
+			if(sem_trywait(&multiPermiteIngresar) == -1){
+				log_info(kernel_logger, "No se puede reducir mas el grado de multiprogramacion ya que se encuentra completo, se veran los cambios una vez que finalice un proceso");
+				gradosPendientes ++;
+			}
+		}
+	}
+	log_info(kernel_logger, "Semaforos de multiprogramacion reseteados");
+
+}
+void finalizar_proceso(t_buffer* buffer){    
+    int pid= extraer_int_del_buffer(buffer); 
+    printf("El proceso a finalizar es: %d\n", pid);         
+    
+    destruir_buffer(buffer);   
+    
+
+    t_pcb * pcb_a_finalizar = buscarPcb(pid);
+    printf("Cuyo estado es: %d\n", pcb_a_finalizar->estado ); 
+
+    if(pcb_a_finalizar->estado == EXEC){ 
+    //Le aviso a CPU interrupt que quiero terminar un proceso
+    t_buffer* buffer_cpu_interrupt = crear_buffer();
+    pthread_cancel(hilo_quantum); //Detengo el hilo que cuenta el quantum
+    cargar_pcb_a_buffer(buffer_cpu_interrupt, pcb_a_finalizar);
+    t_paquete* paquete_cpu = crear_paquete(FINPROCESO, buffer_cpu_interrupt);
+    enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+
+    }
+
+    else{
+        sacar_pcb_de_lista(pcb_a_finalizar);
+        agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
+    }
+}
 // -------------------------------------------------
 //             FUNCIONES GENERALES
 // -------------------------------------------------
@@ -419,7 +463,11 @@ void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
 		list_add(plani_exit, pcb);
 	sem_post(&sem_exit);
 	cambiar_estado_pcb(pcb, EXIT);
-	sem_post(&multiPermiteIngresar);
+	if (gradosPendientes == 0){
+		sem_post(&multiPermiteIngresar);
+	}else{
+		gradosPendientes --;
+	}
 	char *motivo = mensaje_a_string(motivo_a_mostrar);
 	log_info(kernel_logger, "Finaliza el proceso %d - Motivo: %s", pcb->pid, motivo);
 }
@@ -702,6 +750,7 @@ void sacar_pcb_de_lista(t_pcb* pcb){
             //sem_wait(&hayPCBsEnNew);
             break;
         case BLOCK:
+			sacar_de_lista(plani_block, pcb->pid);
             /*cant_colas_bloqueadas = list_size(lista_recursos_bloqueados);
             for(int i = 0; i < cant_colas_bloqueadas ; i++){
                 t_cola_block *cola_a_analizar = list_get(lista_recursos_bloqueados,i);
