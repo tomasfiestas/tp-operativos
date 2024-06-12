@@ -111,6 +111,13 @@ void finalizar_proceso_por_consola(t_buffer* buffer){
     }
 }
 
+void mandar_fin_proceso_a_cpu(t_pcb* pcb_a_finalizar){
+     t_buffer* buffer_cpu_interrupt = crear_buffer();
+      cargar_pcb_a_buffer(buffer_cpu_interrupt, pcb_a_finalizar);
+     t_paquete* paquete_cpu = crear_paquete(FINPROCESO, buffer_cpu_interrupt);
+      enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+}
+
 void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
     switch(mensaje_a_consola){
                 case EJECUTAR_SCRIPT:
@@ -125,10 +132,18 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
                     break;
                 case FINALIZAR_PROCESO: 
                     printf("FINALIZAR_PROCESO\n");
-                    t_buffer* buffer_finalizar_proceso = crear_buffer();
-                    int pids = atoi(argumentos[1]);
-                    cargar_int_a_buffer(buffer_finalizar_proceso, pids);                    
-                    finalizar_proceso_por_consola(buffer_finalizar_proceso);
+                   // t_buffer* buffer_finalizar_proceso = crear_buffer();
+                    int pid = atoi(argumentos[1]);
+                    t_pcb * pcb_a_finalizar = buscarPcb(pid);
+                    //cargar_int_a_buffer(buffer_finalizar_proceso, pids);    
+                    if(pcb_a_finalizar->estado == EXEC){   
+                        pthread_cancel(hilo_quantum);
+                        mandar_fin_proceso_a_cpu(pcb_a_finalizar);
+                    }else {
+                        sacar_pcb_de_lista(pcb_a_finalizar);
+                        agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
+                    }             
+                    //finalizar_proceso_por_consola(buffer_finalizar_proceso);
 
                     break;
                 case INICIAR_PLANIFICACION:

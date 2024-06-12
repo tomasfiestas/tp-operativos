@@ -15,6 +15,7 @@ t_list* plani_exec;
 t_list* plani_block;
 t_queue** plani_block_recursos;
 t_list* plani_exit;
+bool running = false;
 
 //t_list* lista_pcbs_sockets; //No se que es?
 
@@ -195,12 +196,13 @@ algoritmos obtener_algoritmo(){
 // ---------------------------------------------------
 
 void* inicio_plani_largo_plazo(void* arg){
-	sem_wait(&planificacion_largo_plazo_activa);
-	int valor = 0;
-	sem_getvalue(&planificacion_largo_plazo_activa, &valor);
+	//sem_wait(&planificacion_largo_plazo_activa);
+	//int valor = 0;
+	//sem_getvalue(&planificacion_largo_plazo_activa, &valor);
 
-	while(valor ==1){		
-		
+	while(1){		
+		sem_wait(&planificacion_largo_plazo_activa);
+		while(running){
 		// Espero a que haya procesos en new 			
 		sem_wait(&hayPCBsEnNew);
 		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
@@ -214,7 +216,9 @@ void* inicio_plani_largo_plazo(void* arg){
 		agregar_a_ready(pcb);
 		log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
 		
-		sem_getvalue(&planificacion_largo_plazo_activa, &valor);
+		//sem_getvalue(&planificacion_largo_plazo_activa, &valor);
+		//sem_post(&planificacion_largo_plazo_activa);
+		}
 	}
 
 	return NULL;
@@ -226,12 +230,13 @@ void* inicio_plani_largo_plazo(void* arg){
 //             PLANIFICADOR CORTO PLAZO
 // ---------------------------------------------------
 void* inicio_plani_corto_plazo(void* arg){
-	sem_wait(&planificacion_corto_plazo_activa);
-	int valor_corto_plazo = 0;
-	sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
+	//sem_wait(&planificacion_corto_plazo_activa);
+	//int valor_corto_plazo = 0;
+	//sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
 	
-	while(valor_corto_plazo ==1){
-		
+	while(1){
+		sem_wait(&planificacion_corto_plazo_activa);
+		while(running){
 		sem_wait(&hayPCBsEnReady);
 		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
@@ -264,25 +269,31 @@ void* inicio_plani_corto_plazo(void* arg){
     	pthread_create(&hilo_kernel_dispatch, NULL, atender_cpu_dispatch, socket_cliente_cpu_dispatch_ptr);
     	log_info(kernel_logger, "Atendiendo mensajes de CPU Interrupt");
     	pthread_join(hilo_kernel_dispatch,NULL);//REVISAR
-		sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
+		//sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
 		
 		//pthread_cancel(hilo_quantum);	
 
+		//sem_post(&planificacion_corto_plazo_activa);
+		}
 	}
 
 }
 
 void iniciar_planificacion(){	
 		
+		running = true;
 		sem_post(&planificacion_largo_plazo_activa);	
-		sem_post(&planificacion_largo_plazo_activa);
-		sem_post(&planificacion_corto_plazo_activa);
+		//sem_post(&planificacion_largo_plazo_activa);
+		//sem_post(&planificacion_corto_plazo_activa);
 		sem_post(&planificacion_corto_plazo_activa);		
 	
 }
 void detener_planificacion(){
-	sem_wait(&planificacion_largo_plazo_activa);
-	sem_wait(&planificacion_corto_plazo_activa);
+	running = false;
+	//sem_wait(&planificacion_corto_plazo_activa);
+	//printf("detengo corto plazo");
+	//sem_wait(&planificacion_largo_plazo_activa);
+	
 }	
 
 void resetear_semaforos_multi(int vieja_multi){
