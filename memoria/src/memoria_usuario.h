@@ -13,7 +13,9 @@ char* bitmap;
 t_bitarray* bitarray;
 void* memoria_total;
 
-t_list* iniciar_tabla_paginas();
+int iniciar_tabla_paginas(t_proceso* proceso);
+char *leer_memoria(int pid, int direccion_fisica);
+int escribir_memoria(int pid, int direccion_fisica, char *bytes);
 void inicializar_memoria();
 void* reservar_memoria();
 void finalizar_proceso(int pid);

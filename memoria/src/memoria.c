@@ -228,13 +228,12 @@ void atender_crear_proceso(t_buffer* buffer){
 
     t_list* instrucciones = parse_file(path);
 
-    t_pagina* tabla = iniciar_tabla_paginas();
-
     t_proceso* proceso = malloc(sizeof(t_proceso));
     proceso->pid = pid;
     proceso->pc = 0;
     proceso->instrucciones = instrucciones;
-    proceso->paginas = tabla;
+    
+    iniciar_tabla_paginas(proceso);
 
     list_add(procesos, proceso);
 

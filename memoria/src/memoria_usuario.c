@@ -8,7 +8,7 @@ void inicializar_memoria()
     bitarray = bitarray_create_with_mode(bitmap, atoi(TAM_MEMORIA) / atoi(TAM_PAGINA), LSB_FIRST);
 }
 
-t_list *iniciar_tabla_paginas(int pid)
+int iniciar_tabla_paginas(t_proceso *proceso)
 {
     t_list *paginas = list_create();
     for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
@@ -17,7 +17,9 @@ t_list *iniciar_tabla_paginas(int pid)
         pagina->presente = false;
         list_add(paginas, pagina);
     }
-    return paginas;
+    proceso->paginas = paginas;
+    log_info(memoria_logger, "[Creacion de tabla] PID: %d - Tamaño: %d", proceso->pid, list_size(paginas));
+    return 1;
 }
 
 void finalizar_proceso(int pid)
@@ -39,6 +41,7 @@ void finalizar_proceso(int pid)
             pagina->presente = false;
         }
     }
+    log_info(memoria_logger, "[DESTRUCCION DE TABLA] PID: %d - Tamaño: %d", proceso->pid, list_size(proceso->paginas));
 }
 
 int quitar_memoria(t_proceso *proceso, int cantidad_paginas)
@@ -82,13 +85,34 @@ int resize(int pid, int bytes)
             return -1; // Out of memory
         }
 
+        log_info(memoria_logger, "PID: %d - Tamaño actual: %d - Tamaño a Ampliar: %d", pid, paginas_en_uso_proceso, paginas_pedidas - paginas_en_uso_proceso);
         return asignar_memoria(proceso, paginas_pedidas - paginas_en_uso_proceso);
     }
     else
     {
         // Reduccion
+        log_info(memoria_logger, "PID: %d - Tamaño actual: %d - Tamaño a Reducir: %d", pid, paginas_en_uso_proceso, paginas_en_uso_proceso - paginas_pedidas);
         return quitar_memoria(proceso, paginas_en_uso_proceso - paginas_pedidas);
     }
+}
+
+char *leer_memoria(int pid, int direccion_fisica)
+{
+    t_proceso *proceso = obtener_proceso(pid);
+    if (proceso == NULL)
+    {
+        log_error(memoria_logger, "No se encontro el proceso con PID %d", pid);
+        return NULL;
+    }
+    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
+    return &memoria_total[direccion_fisica];
+}
+
+int escribir_memoria(int pid, int direccion_fisica, char *bytes)
+{
+    memcpy(&memoria_total[direccion_fisica], bytes, strlen(bytes));
+    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
+    return 1;
 }
 
 int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
@@ -111,7 +135,7 @@ int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
 /**
  * Obtiene un numero de marco a partir de un numero de pagina.
  * Una pagina solo puede corresponderse a un unico marco.
- * 
+ *
  * Retorna -1 si la pagina no esta poblada para ningun proceso.
  */
 int obtener_numero_marco(int numero_pagina)
@@ -123,6 +147,7 @@ int obtener_numero_marco(int numero_pagina)
         t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
         if (pagina->presente)
         {
+            log_info(memoria_logger, "PID: %d - Pagina: %d - Marco: %d", proceso->pid, numero_pagina, pagina->frame);
             list_iterator_destroy(iterator);
             return pagina->frame;
         }
