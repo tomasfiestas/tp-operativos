@@ -13,6 +13,7 @@ t_list* plani_ready;
 t_list* total_pcbs;
 t_list* plani_exec;
 t_list* plani_block;
+t_queue * cola_prioritaria_vrr; // cola auxiliar prioritaria de VRR
 t_queue** plani_block_recursos;
 t_list* plani_exit;
 bool running = false;
@@ -52,6 +53,7 @@ sem_t sem_total_pcbs;
 sem_t sem_ready;
 sem_t sem_exec;
 sem_t sem_block;
+sem_t sem_aux; //para la cola auxiliar prioritaria
 sem_t sem_exit;
 
 //semaforo recursos
@@ -117,6 +119,7 @@ void inicializar_semaforos(){
 	sem_init(&sem_ready, 0, 1);
 	sem_init(&sem_exec, 0, 1);
 	sem_init(&sem_block, 0, 1);
+	sem_init(&sem_aux, 0, 1);
 	sem_init(&sem_exit, 0, 1);
 	sem_init (&planificacion_largo_plazo_activa,0,0);
 	sem_init (&planificacion_corto_plazo_activa,0,0);
@@ -143,7 +146,9 @@ void inicializar_listas(){
 	plani_ready = list_create();
 	plani_exec = list_create();
 	plani_block = list_create();
+	cola_prioritaria_vrr = queue_create();
     plani_exit = list_create();
+
 	
 	
 	
@@ -362,6 +367,14 @@ void agregar_a_ready(t_pcb* nuevo_pcb){
 	mostrar_pids_ready();	
 	sem_post(&hayPCBsEnReady);
 }
+
+void agregar_a_cola_prioritaria(t_pcb * pcb){
+	sem_wait(&sem_aux);
+		queue_push(cola_prioritaria_vrr, pcb);
+		log_info(kernel_logger, "El proceso %d ingreso a la cola prioritaria");
+	sem_post(&sem_aux);	
+}
+
 void mostrar_pids_ready() {
 	
 	char* pids = string_new();
@@ -402,14 +415,14 @@ t_pcb* sacar_de_ready(){
 		return pcb;
 
 	case VRR:
-		if(!list_is_empty(plani_block)){
-			sem_wait(&sem_block);
-    			pcb = list_remove(plani_block, 0);
-       		sem_post(&sem_block);	
-		}else{
+		if(queue_is_empty(cola_prioritaria_vrr)){
 			sem_wait(&sem_ready);
     			pcb = list_remove(plani_ready, 0);
         	sem_post(&sem_ready);	
+		}else{ // si es VRR va a priorizar sacar de la cola auxiliar
+			sem_wait(&sem_aux);
+    			pcb = queue_pop(cola_prioritaria_vrr);
+        	sem_post(&sem_aux);	
 		}
 		return pcb;
 	default:
@@ -467,6 +480,7 @@ void sacar_de_bloqueado(t_pcb* pcb){
 	sem_wait(&sem_block);
 		list_remove(plani_block, pcb);
 	sem_post(&sem_block);
+	
 }
 
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
@@ -837,14 +851,14 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		return;
 	}
 
-	// si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso
+	
 	if (sem_trywait(&semaforo_recursos[posicion_recurso]) >= 0) { // si lo esta --> lo decrementa y va a ready
-		//sem_wait(&semaforo_recursos[posicion_recurso]);
 		agregar_a_ready(pcb);
-	}else {
+	}else { // si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso y a la lista bloqueados (estado == block)
 		sem_wait(&mutex_recursos);
 			queue_push(plani_block_recursos[posicion_recurso], pcb);
 		sem_post(&mutex_recursos);
+		agregar_a_bloqueado(pcb);
 		//lo manejo
 		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
 	} 
@@ -860,9 +874,8 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		return;
 	}
 
-	// le subo una instancia al recurso
+	// si existe, le subo una instancia al recurso
 	sem_post(&semaforo_recursos[posicion_recurso]);
-
 
 	// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
 	if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
@@ -871,8 +884,11 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		sem_post(&mutex_recursos);
 
 		sacar_de_bloqueado(pcb_bloqueado);
-		agregar_a_ready(pcb_bloqueado);
-
+		if (algoritmo_plani == VRR){
+			agregar_a_cola_prioritaria(pcb_bloqueado);
+		}else{
+			agregar_a_ready(pcb_bloqueado);
+		} 
 		sem_wait(&semaforo_recursos[posicion_recurso]);
 
 	}
