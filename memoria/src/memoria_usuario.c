@@ -8,7 +8,20 @@ void* memoria_total;
 void inicializar_memoria()
 {
     memoria_total = reservar_memoria();
-    bitarray = bitarray_create_with_mode(bitmap, atoi(TAM_MEMORIA) / atoi(TAM_PAGINA), LSB_FIRST);
+}
+
+void inicializar_bitmap() {
+    // un bit por pagina.
+    int cantidad_bits = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA);
+
+    int cantidad_bytes = cantidad_bits / 8;
+
+
+    bitmap = malloc(ceil((double)cantidad_bytes / 8));
+    bitarray = bitarray_create_with_mode(bitmap, (atoi(TAM_MEMORIA) / atoi(TAM_PAGINA)) / 8, LSB_FIRST);
+    for(int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++) {
+        bitarray_clean_bit(bitarray, i);
+    }
 }
 
 int iniciar_tabla_paginas(t_proceso *proceso)
@@ -46,7 +59,7 @@ void finalizar_proceso(int pid)
     log_info(memoria_logger, "[DESTRUCCION DE TABLA] PID: %d - Tamaño: %d", proceso->pid, list_size(proceso->paginas));
     list_destroy_and_destroy_elements(proceso->paginas, free);
     list_destroy_and_destroy_elements(proceso->instrucciones, free);
-    list_remove_and_destroy_element(procesos, list_index_of(procesos, proceso), free);
+    list_remove_and_destroy_element(procesos, obtener_indice_proceso(proceso), free);
 }
 
 int quitar_memoria(t_proceso *proceso, int cantidad_paginas)
@@ -122,7 +135,7 @@ int escribir_memoria(int pid, int direccion_fisica, char *bytes)
 
 int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
 {
-    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA) && cantidad_paginas > 0; i++)
     {
         if (!bitarray_test_bit(bitarray, i))
         {
@@ -212,4 +225,21 @@ int obtener_cantidad_paginas_en_uso(t_proceso *proceso)
     }
     list_iterator_destroy(iterator);
     return paginas_en_uso;
+}
+
+int obtener_indice_proceso(t_proceso* proceso) {
+    int index = 0;
+    t_list_iterator *iterator = list_iterator_create(procesos);
+    while (list_iterator_has_next(iterator))
+    {
+        t_proceso *proceso_iterado = list_iterator_next(iterator);
+        if (proceso_iterado->pid == proceso->pid)
+        {
+            list_iterator_destroy(iterator);
+            return index;
+        }
+        index++;
+    }
+    list_iterator_destroy(iterator);
+    return -1;
 }

@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
     log_info(memoria_logger, "RETARDO_RESPUESTA: %s", RETARDO_RESPUESTA);
 
     inicializar_memoria();
+    inicializar_bitmap();
     procesos = list_create();
 
     // Inicio servidor Memoria
@@ -306,6 +307,8 @@ void atender_crear_proceso(t_buffer* buffer){
 
     // TEST:
     // finalizar_proceso(pid);
+    // resize(pid, 32);
+    // resize(pid, 8);
 }
 
 void atender_eliminar_proceso(t_buffer* buffer){
