@@ -567,7 +567,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
 	sem_post(&puedeEntrarAExec); 
 	llego_contexto = true;	
-	pthread_cancel(hilo_quantum); 
+	//pthread_cancel(hilo_quantum); //TODO REVISAR PORQUE EN FIFO NO HAY QUANTUM
 	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
 	t_pcb* pcb = extraer_pcb_del_buffer(buffer);	
@@ -617,13 +617,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			break;
 		case SUCCESS:
 			log_info(kernel_logger, "Se finalizó correctamente el proceso");
-			t_buffer* buffer4 = recibir_buffer(cliente_kd);			        
-			atender_fin_proceso_success(buffer4,op_code);
+			//t_buffer* buffer4 = recibir_buffer(cliente_kd);			        
+			atender_fin_proceso_success(buffer,op_code);
 			break;
 		case SOLICITAR_WAIT:
-			//log_info(kernel_logger, "Llegó solicitud de wait");
-			//t_buffer* buffer5 = recibir_buffer(cliente_kd);
-			//t_pcb* pcb = extraer_de_buffer(buffer5);
 			char recurso_wait = extraer_string_del_buffer2(buffer);
 
 			destruir_buffer(buffer);
@@ -633,15 +630,24 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
             break;
 		case SOLICITAR_SIGNAL:
 			log_info(kernel_logger, "Llegó solicitud de signal");
-			//t_buffer* buffer6 = recibir_buffer(cliente_kd);
-			//t_pcb* pcb2 = extraer_de_buffer(buffer6);
 			char recurso_signal = extraer_string_del_buffer2(buffer);
 
-			signal_recurso(pcb,recurso_signal);
-            //free(recurso_signal);
+			signal_recurso(pcb,recurso_signal);          
 
             break;
-			
+		case IO_GEN_SLEEP:
+			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
+			char* nombre_interfaz_solicitada = extraer_string_del_buffer(buffer);
+			int unidades_trabajo = extraer_int_del_buffer(buffer);
+			t_entrada_salida* interfaz = buscar_interfaz(nombre_interfaz_solicitada);
+			if(interfaz == NULL || !interfaz->disponible){
+				log_error(kernel_logger, "No se encontró la interfaz solicitada o no está disponible, mando proceso a exit");
+				agregar_a_exit(pcb, INVALID_INTERFACE);
+				break;
+			}
+			//Acá hay que hacer la validación de si la interfaz soporta lo solicitado y si está disponible o no.
+			//Tomi hizo esta logica, me parece que lo mejor sería que la hagamos nosotros.
+
 
 			break;
 		default:
@@ -817,11 +823,11 @@ void sacar_de_lista(t_list * lista, int pid){
 char *mensaje_a_string(op_code motivo){
 	switch (motivo){
     case SUCCESS:    
-	    return "SUCCESS";/*
-    case INVALID_WRITE:
-        return "INVALID_WRITE";
-    case PAGE_FAULT:
-        return "PAGE_FAULT";
+	    return "SUCCESS";
+    /*case INVALID_WRITE:
+        return "INVALID_INTERFACE";*/
+    case INVALID_INTERFACE:
+        return "INVALID_INTERFACE";/*
     case INVALID_RESOURCE:
         return "INVALID_RESOURCE";
     case FIN_QUANTUM:
@@ -931,3 +937,14 @@ void mostrar_pids_y_estados() {
 	log_info(kernel_logger, "Lista total_pcbs:\n%s", pids_estados);
 	free(pids_estados);
 }
+
+t_entrada_salida* buscar_interfaz(char* nombre) {
+	for (int i = 0; i < list_size(lista_interfaces); i++) {
+		t_entrada_salida* entrada_salida = list_get(lista_interfaces, i);
+		if (strcmp(entrada_salida->nombre, nombre) == 0) {
+			return entrada_salida;			
+		}		
+	}
+	return NULL;
+}
+

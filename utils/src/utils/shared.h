@@ -47,6 +47,13 @@ typedef struct{
 	int ejecuto;
 } t_pcb;
 
+typedef struct{
+    char* nombre;
+    char* tipo;    
+    int disponible;
+    int fd_interfaz;
+}t_entrada_salida;
+
 
 
 typedef enum{
@@ -97,6 +104,7 @@ typedef enum
 	FINPROCESO,
 	SUCCESS,
 	INVALID_RESOURCE,
+	INVALID_INTERFACE,
 	IO,
 	ESPERA_RECURSO,
 

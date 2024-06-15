@@ -63,9 +63,6 @@ typedef struct{
     //char* tipo; //cola de archivo o recurso
 }t_cola_block;
 
-typedef struct{
-    char* nombre;
-    char* tipo;    
-}t_entrada_salida;
+
 
 #endif 

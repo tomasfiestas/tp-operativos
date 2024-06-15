@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     cargar_string_a_buffer(buffer, "Tipo INTEL-ULTRA");
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer);
     enviar_paquete(paquete, conexion_kernel);
-    sleep(5);
+    //sleep(5);
     log_info(logger, "Mensaje enviado a Kernel");
     destruir_buffer(buffer);
 
