@@ -18,7 +18,7 @@ typedef enum{
 	READY,
 	EXEC,
 	BLOCK,
-	FIN
+	EXIT
 } t_estado;
 
 typedef struct{
@@ -34,15 +34,27 @@ typedef struct{
 	uint32_t DI;
 } t_registros;
 
+
+
+
 typedef struct{
 	int pid;
 	int program_counter;
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
-	int quantum;//USAR uint_32
+	int64_t quantum;//USAR uint_32
 	int ejecuto;
 } t_pcb;
+
+typedef struct{
+    char* nombre;
+    char* tipo;    
+    int disponible;
+	sem_t sem_disponible;
+    int fd_interfaz;
+	t_queue* cola_procesos_bloqueados;
+}t_entrada_salida;
 
 
 
@@ -60,8 +72,8 @@ typedef enum {
     INICIAR_PLANIFICACION,
     MULTIPROGRAMACION,
     PROCESO_ESTADO,
-	ERROR,
-	EXIT
+	ERROR
+	
 } t_mensajes_consola;
 
 typedef enum
@@ -78,17 +90,25 @@ typedef enum
 	CREAR_PROCESO_KM,
 	//Kernel manda contexto de ejecucion a CPU
 	CONTEXTO_EJECUCION,
+	INTERRUPTED_BY_USER,
 	// Kernel manda a CPU cuando termina el quantum
 	FIN_DE_QUANTUM,
 	PROCESO_DESALOJADO,
 
 	// CPU
+	SOLICITAR_WAIT,
+	SOLICITAR_SIGNAL,
 	SOLICITUD_INST,
 	SOLICITUD_INST_OK,
+	
 
 	// motivos de desalojo enviados por cpu
 	FINPROCESO,
+	SUCCESS,
+	INVALID_RESOURCE,
+	INVALID_INTERFACE,
 	IO,
+	ESPERA_RECURSO,
 
 	//Entrada Saldia
 	IO_GEN_SLEEP,
@@ -98,7 +118,8 @@ typedef enum
 	IO_FS_DELETE,
 	IO_FS_TRUNCATE,
 	IO_FS_WRITE,
-	IO_FS_READ
+	IO_FS_READ,
+	CREAR_NUEVA_INTERFAZ,
 
 }op_code;
 
@@ -174,6 +195,7 @@ int extraer_int_del_buffer(t_buffer* buffer);
 uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
 uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
+char extraer_string_del_buffer2(t_buffer* buffer);
 t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);

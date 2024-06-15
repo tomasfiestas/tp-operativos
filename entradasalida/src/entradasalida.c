@@ -26,16 +26,36 @@ int main(int argc, char* argv[]) {
 
 
     //Creo conexion como cliente hacia Memoria
-    int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-    log_info(logger, "Conexion con Memoria establecida");
+    //int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    //log_info(logger, "Conexion con Memoria establecida");
     
     
 
     //Creo conexion como cliente hacia Kernel
-    int conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
+    conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(logger, "Conexion con Kernel establecida");   
+    t_buffer* buffer = crear_buffer();
+    cargar_string_a_buffer(buffer, "Nueva 1");
+    cargar_string_a_buffer(buffer, "Tipo INTEL-ULTRA");
+    t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer);
+    enviar_paquete(paquete, conexion_kernel);
+    //sleep(5);
+    log_info(logger, "Mensaje enviado a Kernel");
+    destruir_buffer(buffer);
+
+    conexion_kernel2 = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
+    log_info(logger, "Conexion con Kernel establecida");   
+    t_buffer* buffer2 = crear_buffer();
+    cargar_string_a_buffer(buffer2, "Nueva 2");
+    cargar_string_a_buffer(buffer, "Tipo ATOM");
+    t_paquete* paquete2 = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer2);
+    enviar_paquete(paquete, conexion_kernel2);
+    log_info(logger, "Mensaje enviado a Kernel");
+    destruir_buffer(buffer2);
+
+    sleep(500);
     
-    realizar_handshake(HANDSHAKE_ES, conexion_kernel);
+    /*realizar_handshake(HANDSHAKE_ES, conexion_kernel);
     realizar_handshake(HANDSHAKE_ES, conexion_memoria);
 
     pthread_t hilo_memoria;
@@ -89,7 +109,8 @@ int main(int argc, char* argv[]) {
     destruir_buffer(paquete);
     
     return EXIT_SUCCESS;
-}}
+}*/
+}
 
 void atender_mensajes_memoria(void* socket_cliente_ptr){
     int cliente_kernel2 = *(int*)socket_cliente_ptr;
