@@ -53,6 +53,7 @@ extern int contador_pcbs;
 extern t_temporal* timer;
 extern int64_t tiempo_ejecutado;
 extern int identificador_hilo;
+extern t_list* lista_interfaces;
 
 
 extern pthread_t hilo_quantum;
@@ -61,5 +62,10 @@ typedef struct{
     t_queue* cola_bloqueados_recurso;//puede ser una cola de un struct que tiene pcb y motivo de bloqueo
     //char* tipo; //cola de archivo o recurso
 }t_cola_block;
+
+typedef struct{
+    char* nombre;
+    char* tipo;    
+}t_entrada_salida;
 
 #endif 

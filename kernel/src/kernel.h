@@ -38,6 +38,7 @@ int result;
 bool llego_contexto = false;
 int identificador_hilo = 0;
 
+t_list* lista_interfaces;
 void atender_entradasalida2(void* socket_cliente_ptr);
 
 

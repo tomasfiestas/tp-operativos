@@ -108,7 +108,8 @@ typedef enum
 	IO_FS_DELETE,
 	IO_FS_TRUNCATE,
 	IO_FS_WRITE,
-	IO_FS_READ
+	IO_FS_READ,
+	CREAR_NUEVA_INTERFAZ,
 
 }op_code;
 

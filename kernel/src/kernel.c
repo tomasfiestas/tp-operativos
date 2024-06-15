@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
-    //cliente_entradasalida = esperar_cliente(servidor); 
+   //cliente_entradasalida = esperar_cliente(servidor); 
 
     
     //Planificacion
@@ -59,16 +59,26 @@ int main(int argc, char* argv[]) {
     //Leer consola
     pthread_t hilo_consola;
     pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
-    pthread_join(hilo_consola,NULL);
+    pthread_detach(hilo_consola);
 
 
-    /*//Atiendo mensajes de Entrada/Salida
-    pthread_t hilo_entradasalida;
+    //Atiendo mensajes de Entrada/Salida
+    /*pthread_t hilo_entradasalida;
     int* socket_cliente_entradasalida2_ptr = malloc(sizeof(int));
     *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
     log_info(kernel_logger, "Atendiendo mensajes de Entrada/Salida");
     pthread_join(hilo_entradasalida,NULL);*/
+
+    //Acá espero y manejo a entrada y salida. Por cada uno que acepto creo un hilo.
+    while(1){
+        pthread_t hilo_entradasalida;
+        int *fd_conexion_ptr = malloc(sizeof(int));
+        *fd_conexion_ptr = accept(servidor, NULL, NULL);
+        log_info(kernel_logger, "Se conecto una nueva interfaz");        
+        pthread_create(&hilo_entradasalida,NULL,atender_entradasalida2,fd_conexion_ptr);
+        pthread_detach(hilo_entradasalida);
+    }
     
     
     
@@ -83,22 +93,24 @@ void atender_entradasalida2(void* socket_cliente_ptr){
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-        op_code op_code = recibir_operacion(cliente_entradasalida2);
+        op_code op_code = recibir_operacion(cliente_entradasalida2);        
         switch (op_code){
-            case HANDSHAKE_KERNEL:
-			log_info(kernel_logger, "Se conecto el Kernel");
-			break;
-		case HANDSHAKE_CPU:
-			log_info(kernel_logger, "Se conecto el CPU");
-			break;
-		case HANDSHAKE_MEMORIA:
-			log_info(kernel_logger, "Se conecto la Memoria");
-			break;
-		case HANDSHAKE_ES:
-			log_info(kernel_logger, "Se conecto el IO");
-			break;
-		default:
-			log_error(kernel_logger, "No se reconoce el handshake");
+            case CREAR_NUEVA_INTERFAZ:
+            t_buffer *buffer = recibir_buffer(cliente_entradasalida2);
+            char* nombre = extraer_string_del_buffer(buffer);
+            char* tipo = extraer_string_del_buffer(buffer);
+            t_entrada_salida *nueva_interfaz = malloc(sizeof(t_entrada_salida));
+            nueva_interfaz->nombre = nombre;
+            nueva_interfaz->tipo = tipo;
+            log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s",
+            nueva_interfaz->nombre,nueva_interfaz->tipo);
+            list_add(lista_interfaces, nueva_interfaz);
+            log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
+            break;
+        default:
+			log_error(kernel_logger, "Se desconectó la interfaz: %d", op_code);
+            list_remove_element(lista_interfaces, nueva_interfaz);
+            log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
 			control_key = 0;
 			break;
         }

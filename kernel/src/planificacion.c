@@ -141,6 +141,7 @@ void inicializar_listas(){
 	int cant_recursos = string_array_size(RECURSOS);
 
 	// Inicio listas
+	lista_interfaces = list_create();
 	plani_new = list_create();
 	total_pcbs = list_create();
 	plani_ready = list_create();
