@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <netdb.h>
 
 t_log* logger = NULL;
 
@@ -81,6 +82,9 @@ int iniciar_servidor(char* puerto)
 	// Creamos el socket de escucha del servidor
 	socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 
+    if(setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0){
+        perror("setsockopt(SO_REUSEADDR) failed");
+    }
 	// Asociamos el socket a un puerto
 	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
 
@@ -88,7 +92,7 @@ int iniciar_servidor(char* puerto)
 	listen(socket_servidor, SOMAXCONN);
 
 	freeaddrinfo(servinfo);
-	log_trace(logger, "Listo para escuchar a mi cliente");
+	//log_trace(logger, "Listo para escuchar a mi cliente");
 
 	return socket_servidor;
 }
@@ -103,7 +107,7 @@ int esperar_cliente(int socket_servidor)
 	
 		// Aceptamos un nuevo cliente
 		int socket_cliente = accept(socket_servidor, NULL, NULL);
-		log_info(logger, "Se conecto un cliente");
+		//log_info(logger, "Se conecto un cliente");
 
 		if(socket_cliente == -1)
 		{
@@ -182,6 +186,29 @@ void cargar_int_a_buffer(t_buffer* buffer, int valor){
 void cargar_string_a_buffer(t_buffer* buffer, char* valor){
     cargar_a_buffer(buffer, valor, strlen(valor) + 1);
 }
+
+void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor){
+    cargar_a_buffer(buffer, &valor, sizeof(uint32_t));
+}
+void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor){
+    cargar_a_buffer(buffer, &valor, sizeof(uint8_t));
+}
+void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb){
+    cargar_int_a_buffer(buffer, pcb->pid);
+    cargar_int_a_buffer(buffer, pcb->program_counter);
+    cargar_estado_a_buffer(buffer, pcb->estado);
+    cargar_registros_a_buffer(buffer, pcb->registros);
+    cargar_int_a_buffer(buffer, pcb->quantum);
+    cargar_int_a_buffer(buffer, pcb->ejecuto);   
+    
+}
+void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
+    cargar_a_buffer(buffer, &estado, sizeof(t_estado));
+}
+void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros){
+    cargar_a_buffer(buffer, &registros, sizeof(t_registros));
+}
+
 void* extraer_de_buffer(t_buffer* buffer){
     if(buffer->size == 0){
        printf("\n Error al extraer contenido del buffer VACIO\n");
@@ -217,6 +244,65 @@ void* extraer_de_buffer(t_buffer* buffer){
     return valor;
 }
 
+/*t_pcb recibir_contexto_ejecucion(t_buffer* buffer){
+    t_pcb pcb = extraer_pcb_del_buffer(buffer);    
+    //Esto es solo para probar que se recibio bien el pcb
+    log_info(logger, "PID: %d", pcb.pid);
+    log_info(logger, "PC: %d", pcb.program_counter);
+    log_info(logger,"ejecuto: %d", pcb.ejecuto);
+
+    return pcb;
+}*/
+/*t_pcb extraer_pcb_del_buffer(t_buffer* buffer){
+    t_pcb* pcb = malloc(sizeof(t_pcb));
+    pcb = extraer_de_buffer(buffer);
+    t_pcb valor_pcb = *pcb;
+    free(pcb);
+    return valor_pcb;
+}*/
+t_pcb* extraer_pcb_del_buffer(t_buffer* buffer){
+    t_pcb* pcb = malloc(sizeof(t_pcb));
+    pcb = extraer_de_buffer(buffer);
+    
+    return pcb;
+}
+void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb){
+    cargar_a_buffer(buffer, pcb, sizeof(t_pcb));
+}
+
+void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb){
+    cargar_a_buffer(buffer, &pcb, sizeof(t_pcb));
+}
+
+void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion) {
+    cargar_a_buffer(buffer, instruccion, sizeof(t_instruccion));
+}
+
+t_estado extraer_estado_del_buffer(t_buffer* buffer){
+    t_estado* estado = malloc(sizeof(t_estado));
+    estado = extraer_de_buffer(buffer);
+    t_estado valor_estado = *estado;
+    free(estado);
+    return valor_estado;
+}
+
+t_registros extraer_registros_del_buffer(t_buffer* buffer){
+    t_registros* registros = malloc(sizeof(t_registros));
+    registros = extraer_de_buffer(buffer);
+    t_registros valor_registros = *registros;
+    free(registros);
+    return valor_registros;
+}
+
+t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer){
+    t_instruccion* instruccion = malloc(sizeof(t_instruccion));
+    instruccion = extraer_de_buffer(buffer);
+    t_instruccion valor_instruccion = *instruccion;
+    free(instruccion);
+    return valor_instruccion;
+}
+
+
 int extraer_int_del_buffer(t_buffer* buffer){
     int* entero = extraer_de_buffer(buffer);
     int valor_int = *entero;
@@ -227,6 +313,24 @@ int extraer_int_del_buffer(t_buffer* buffer){
 char* extraer_string_del_buffer(t_buffer* buffer){
     char* string = extraer_de_buffer(buffer);
     return string;
+}
+char extraer_string_del_buffer2(t_buffer* buffer){
+    char* string = extraer_de_buffer(buffer);
+    char valor_string = *string;
+    free(string);
+    return valor_string;
+}
+uint8_t extraer_uint8_del_buffer(t_buffer* buffer){
+    uint8_t* entero = extraer_de_buffer(buffer);
+    uint8_t valor_int = *entero;
+    free(entero);
+    return valor_int;
+}
+uint32_t extraer_uint32_del_buffer(t_buffer* buffer){
+    uint32_t* entero = extraer_de_buffer(buffer);
+    uint32_t valor_int = *entero;
+    free(entero);
+    return valor_int;
 }
 
 t_buffer* recibir_buffer(int conexion){

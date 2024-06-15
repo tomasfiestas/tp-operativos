@@ -26,6 +26,7 @@ typedef struct{
     char* tipo;
 } t_interfaz;
 
+
 t_log* entradasalida_logger;
 t_config* entradasalida_config;
 char* TIPO_INTERFAZ;
@@ -37,6 +38,8 @@ char* PUERTO_MEMORIA;
 char* PATH_BASE_DIALFS;
 char* BLOCK_SIZE;
 char* BLOCK_COUNT;
+int conexion_kernel;
+int conexion_kernel2;
 
 typedef enum{
     GENERICA,
