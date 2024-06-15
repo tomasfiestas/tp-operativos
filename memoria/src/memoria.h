@@ -3,42 +3,41 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <utils/hello.h>
 #include <utils/logging.h>
 #include <utils/shared.h>
 #include <sys/socket.h>
+#include <pthread.h>
 
 typedef struct {
-    unsigned int numeroFrame;
-    bool estaPresente;
-    // agregar mas info luego
-} registro_tabla_paginas;
+    int pid;
+    int pc;
+    t_list* instrucciones;
+    t_list* paginas;
+} t_proceso;
 
-typedef struct {
-    registro_tabla_paginas* registros;
-    size_t size;
-} tabla_paginas;
+extern t_log* memoria_logger;
+extern t_config* memoria_config;
+extern t_list* procesos;
 
-t_log* memoria_logger;
-t_config* memoria_config;
+extern char* PUERTO_ESCUCHA;
+extern char* TAM_MEMORIA;
+extern char* TAM_PAGINA;
+extern char* PATH_INSTRUCCIONES;
+extern char* RETARDO_RESPUESTA;
+extern int cliente_entradasalida;
+extern int cliente_kernel;
+extern int cliente_cpu;
+extern int cantidad_procesos;
 
-char* PUERTO_ESCUCHA;
-char* TAM_MEMORIA;
-char* TAM_PAGINA;
-char* PATH_INSTRUCCIONES;
-char* RETARDO_RESPUESTA;
+
 void iterator(char* value);
-int cliente_entradasalida;
-int cliente_kernel;
-int cliente_cpu;
-t_instrucciones instrucciones_a_enviar;
-
-
-void atender_cpu(void* socket_cliente_ptr);
-void atender_entradasalida(void* socket_cliente_ptr);
-void atender_kernel(void* socket_cliente_ptr);
+void* atender_cpu(void* socket_cliente_ptr);
+void* atender_entradasalida(void* socket_cliente_ptr);
+void* atender_kernel(void* socket_cliente_ptr);
 void* reservar_memoria();
-void parse_file(const char* filePath, int pid);
-tabla_paginas* iniciar_tabla_paginas(void* memoria);
+t_list* parse_file(const char* filePath);
+t_proceso* obtener_proceso(int pid);
+void atender_crear_proceso(t_buffer* buffer);
+void atender_eliminar_proceso(t_buffer* buffer);
 
 #endif

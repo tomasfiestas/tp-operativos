@@ -91,6 +91,7 @@ typedef enum
 	//KERNEL
 	//Kernel le avisa a memoria que tiene que crear un proceso
 	CREAR_PROCESO_KM,
+	FINALIZAR_PROCESO_KM,
 	//Kernel manda contexto de ejecucion a CPU
 	CONTEXTO_EJECUCION,
 	INTERRUPTED_BY_USER,
@@ -122,27 +123,28 @@ typedef enum
 	IO_FS_TRUNCATE,
 	IO_FS_WRITE,
 	IO_FS_READ,
-	CREAR_NUEVA_INTERFAZ,
+  CREAR_NUEVA_INTERFAZ,
 
+
+	// Memoria
+	SET,
+	SUM,
+	SUB,
+	MOV_IN,
+	MOV_OUT,
+	RESIZE,
+	JNZ,
+	COPY_STRING,
+	WAIT,
+	SIGNAL,
+	EXIT_OP_CODE,
 }op_code;
 
 typedef struct {
-	uint32_t longitud;
-	char* parametro;
-} t_parametro;
-
-typedef struct {
-	uint32_t instruccion_longitud;
-    char* instruccion;
-	uint32_t parametros_cantidad;
-	t_parametro* parametros;
+	op_code operacion;
+	t_list* parametros;
 } t_instruccion;
 
-typedef struct {
-	int pid;
-	int cantidad;
-	t_instruccion* instrucciones;
-} t_instrucciones;
 
 // CLIENTE
 typedef struct
@@ -180,7 +182,6 @@ t_buffer* recibir_buffer(int conexion);
 void destruir_buffer(t_buffer* buffer);
 void cargar_a_buffer(t_buffer* buffer, void* valor, int tamanio);
 void cargar_int_a_buffer(t_buffer* buffer, int valor);
-void cargar_instrucciones_a_buffer(t_buffer* buffer, t_instrucciones instrucciones);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
 void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
@@ -189,6 +190,7 @@ void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado);
 void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
 void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb);
+void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion);
 
 t_registros extraer_registros_del_buffer(t_buffer* buffer);
 t_pcb recibir_contexto_ejecucion(t_buffer* buffer);
@@ -203,6 +205,7 @@ t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
+t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer);
 
 
 

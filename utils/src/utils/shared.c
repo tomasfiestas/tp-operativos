@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <netdb.h>
 
 t_log* logger = NULL;
 
@@ -207,9 +208,6 @@ void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
 void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros){
     cargar_a_buffer(buffer, &registros, sizeof(t_registros));
 }
-void cargar_instrucciones_a_buffer(t_buffer* buffer, t_instrucciones valor){
-    cargar_a_buffer(buffer, &valor, sizeof(t_instrucciones));
-}
 
 void* extraer_de_buffer(t_buffer* buffer){
     if(buffer->size == 0){
@@ -276,6 +274,9 @@ void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb){
     cargar_a_buffer(buffer, &pcb, sizeof(t_pcb));
 }
 
+void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion) {
+    cargar_a_buffer(buffer, instruccion, sizeof(t_instruccion));
+}
 
 t_estado extraer_estado_del_buffer(t_buffer* buffer){
     t_estado* estado = malloc(sizeof(t_estado));
@@ -291,6 +292,14 @@ t_registros extraer_registros_del_buffer(t_buffer* buffer){
     t_registros valor_registros = *registros;
     free(registros);
     return valor_registros;
+}
+
+t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer){
+    t_instruccion* instruccion = malloc(sizeof(t_instruccion));
+    instruccion = extraer_de_buffer(buffer);
+    t_instruccion valor_instruccion = *instruccion;
+    free(instruccion);
+    return valor_instruccion;
 }
 
 
@@ -322,11 +331,6 @@ uint32_t extraer_uint32_del_buffer(t_buffer* buffer){
     uint32_t valor_int = *entero;
     free(entero);
     return valor_int;
-}
-
-t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer){
-    t_instrucciones* instrucciones = extraer_de_buffer(buffer);
-    return instrucciones;
 }
 
 t_buffer* recibir_buffer(int conexion){
