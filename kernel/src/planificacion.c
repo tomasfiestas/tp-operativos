@@ -653,7 +653,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			sacar_de_exec(pcb,IO);
 			if(sem_trywait(&interfaz->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
-				
+				t_buffer* buffer_interfaz = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz, unidades_trabajo);
+				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
+				enviar_paquete(paquete_interfaz, interfaz->socket);
+				destruir_buffer(buffer_interfaz);				
 			}
 			else
 			queue_push(interfaz->cola_procesos_bloqueados,pcb);
