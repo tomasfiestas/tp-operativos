@@ -21,7 +21,8 @@ typedef enum {
     MULTIPROGRAMACION,
     PROCESO_ESTADO,
 	ERROR,
-	EXIT
+	EXIT,
+	CREAR
 } t_mensajes_consola;
 
 typedef enum
@@ -45,7 +46,10 @@ typedef enum
 	IO_FS_DELETE,
 	IO_FS_TRUNCATE,
 	IO_FS_WRITE,
-	IO_FS_READ
+	IO_FS_READ,
+	CREAR_NUEVA_INTERFAZ,
+	SOLICITAR_LECTURA
+
 
 }op_code;
 
