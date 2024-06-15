@@ -41,10 +41,12 @@ void finalizar_proceso(int pid)
         if (pagina->presente)
         {
             bitarray_clean_bit(bitarray, list_iterator_index(iterator));
-            pagina->presente = false;
         }
     }
     log_info(memoria_logger, "[DESTRUCCION DE TABLA] PID: %d - Tamaño: %d", proceso->pid, list_size(proceso->paginas));
+    list_destroy_and_destroy_elements(proceso->paginas, free);
+    list_destroy_and_destroy_elements(proceso->instrucciones, free);
+    list_remove_and_destroy_element(procesos, list_index_of(procesos, proceso), free);
 }
 
 int quitar_memoria(t_proceso *proceso, int cantidad_paginas)

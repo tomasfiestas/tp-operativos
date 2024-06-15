@@ -21,56 +21,58 @@ int cantidad_procesos;
 
 int main(int argc, char *argv[])
 {
-
     // Inicio el logger de la memoria
     memoria_logger = iniciar_logger("memoria.log", "LOGGER_MEMORIA");
 
     // Inicio la configuracion de la memoria
     memoria_config = iniciar_config("memoria.config");
 
-    t_list* test_instrucciones = list_create();
-    t_instruccion test_instruccion_1 = { .operacion = RESIZE, .parametros = list_create() };
-    char* parametro_1 = "AX";
-    char* parametro_2 = "BX";
-    list_add(test_instruccion_1.parametros, parametro_1);
-    list_add(test_instruccion_1.parametros, parametro_2);
+    // TODO: Charlar tema de comunicacion antes de la entrega.
+    // t_list* test_instrucciones = list_create();
+    // t_instruccion test_instruccion_1 = { .operacion = RESIZE, .parametros = list_create() };
+    // char* parametro_1 = "AX";
+    // char* parametro_2 = "BX";
+    // list_add(test_instruccion_1.parametros, parametro_1);
+    // list_add(test_instruccion_1.parametros, parametro_2);
 
-    t_instruccion test_instruccion_2 = { .operacion = IO_FS_CREATE, .parametros = list_create() };
-    char* parametro_3 = "CX";
-    char* parametro_4 = "DX";
-    list_add(test_instruccion_2.parametros, parametro_3);
-    list_add(test_instruccion_2.parametros, parametro_4);
+    // t_instruccion test_instruccion_2 = { .operacion = IO_FS_CREATE, .parametros = list_create() };
+    // char* parametro_3 = "CX";
+    // char* parametro_4 = "DX";
+    // list_add(test_instruccion_2.parametros, parametro_3);
+    // list_add(test_instruccion_2.parametros, parametro_4);
 
-    t_pagina* test_pagina = malloc(sizeof(t_pagina));
-    test_pagina->frame = 0;
-    test_pagina->presente = true;
+    // t_pagina* test_pagina = malloc(sizeof(t_pagina));
+    // test_pagina->frame = 0;
+    // test_pagina->presente = true;
 
-    t_pagina* test_pagina_2 = malloc(sizeof(t_pagina));
-    test_pagina->frame = 1;
-    test_pagina->presente = true;
+    // t_pagina* test_pagina_2 = malloc(sizeof(t_pagina));
+    // test_pagina->frame = 1;
+    // test_pagina->presente = true;
 
-    t_proceso* test_proceso = malloc(sizeof(t_proceso));
-    test_proceso->pid = 1;
-    test_proceso->pc = 0;
-    test_proceso->instrucciones = list_create();
-    test_proceso->paginas = list_create();
+    // t_proceso* test_proceso = malloc(sizeof(t_proceso));
+    // test_proceso->pid = 1;
+    // test_proceso->pc = 0;
+    // test_proceso->instrucciones = list_create();
+    // test_proceso->paginas = list_create();
 
-    list_add(test_proceso->instrucciones, &test_instruccion_1);
-    list_add(test_proceso->instrucciones, &test_instruccion_2);
+    // list_add(test_proceso->instrucciones, &test_instruccion_1);
+    // list_add(test_proceso->instrucciones, &test_instruccion_2);
 
-    list_add(test_proceso->paginas, test_pagina);
-    list_add(test_proceso->paginas, test_pagina_2);
+    // list_add(test_proceso->paginas, test_pagina);
+    // list_add(test_proceso->paginas, test_pagina_2);
 
 
-        t_instruccion* instruccion = list_get(test_proceso->instrucciones, test_proceso->pc);
-        test_proceso->pc++;
+    // t_instruccion* instruccion = list_get(test_proceso->instrucciones, test_proceso->pc);
+    // test_proceso->pc++;
 
-        t_buffer* response_buffer = crear_buffer();
-        cargar_instruccion_a_buffer(response_buffer, instruccion);
-        t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
+    // t_buffer* response_buffer = crear_buffer();
+    // cargar_instruccion_a_buffer(response_buffer, instruccion);
+    // t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
 
-        //TEST:
-        t_instruccion instruccion_buffer = extraer_instruccion_del_buffer(response_buffer);
+    // //TEST:
+    // t_instruccion instruccion_buffer = extraer_instruccion_del_buffer(response_buffer);
+
+
     
 
     // Obtengo los valores de la configuracion
@@ -150,21 +152,9 @@ void* atender_cpu(void* socket_cliente_ptr) {
         log_info(memoria_logger, "Solicitud de instrucciones");
         t_buffer *buffer = recibir_buffer(cliente);
 
-        // // TODO: En la entrega 3 tendremos que cargar en memoria
-        // // y luego buscaremos PCBs por PID creo?
-        // int pid = extraer_int_del_buffer(buffer);
-
-        // t_buffer *response_buffer = crear_buffer();
-        // cargar_instrucciones_a_buffer(response_buffer, instrucciones_a_enviar);
-        // t_paquete *response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
-
-        // enviar_paquete(response, cliente);
-
-        // // Con este codigo es posible recibir paquete y extraer del buffer:
-        // t_buffer* buffer = recibir_buffer(<socket que envia el paquete>);
-        // t_instrucciones* instrucciones_del_buffer = extraer_instrucciones_del_buffer(buffer);
-
         int pid = extraer_int_del_buffer(buffer);
+
+        destruir_buffer(buffer);
 
         t_proceso* proceso = obtener_proceso(pid);
         if (proceso == NULL) {
@@ -177,9 +167,6 @@ void* atender_cpu(void* socket_cliente_ptr) {
         t_buffer* response_buffer = crear_buffer();
         cargar_instruccion_a_buffer(response_buffer, instruccion);
         t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
-
-        //TEST:
-        // t_instruccion* instruccion = extraer_instruccion_del_buffer(response_buffer);
 
         break;
     case HANDSHAKE_KERNEL:
@@ -316,6 +303,9 @@ void atender_crear_proceso(t_buffer* buffer){
     list_add(procesos, proceso);
 
     free(path);
+
+    // TEST:
+    // finalizar_proceso(pid);
 }
 
 void atender_eliminar_proceso(t_buffer* buffer){
