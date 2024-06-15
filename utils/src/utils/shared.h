@@ -51,7 +51,9 @@ typedef struct{
     char* nombre;
     char* tipo;    
     int disponible;
+	sem_t sem_disponible;
     int fd_interfaz;
+	t_queue* cola_procesos_bloqueados;
 }t_entrada_salida;
 
 

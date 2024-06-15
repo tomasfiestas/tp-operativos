@@ -260,8 +260,7 @@ void* inicio_plani_corto_plazo(void* arg){
 
 		//Implemento hilo para contar quantum en RR 
 		if(algoritmo_plani!=FIFO){
-		//pthread_t hilo_quantum;
-    	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
+		int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
     	//*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
     	pthread_create(&hilo_quantum, NULL, (void *)manejo_quantum, (void*)pcb); 		   	
     	pthread_detach(hilo_quantum);
@@ -640,11 +639,25 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			char* nombre_interfaz_solicitada = extraer_string_del_buffer(buffer);
 			int unidades_trabajo = extraer_int_del_buffer(buffer);
 			t_entrada_salida* interfaz = buscar_interfaz(nombre_interfaz_solicitada);
-			if(interfaz == NULL || !interfaz->disponible){
-				log_error(kernel_logger, "No se encontró la interfaz solicitada o no está disponible, mando proceso a exit");
+			if(interfaz == NULL){
+				log_error(kernel_logger, "No se encontró la interfaz solicitada, mando proceso a exit");
 				agregar_a_exit(pcb, INVALID_INTERFACE);
 				break;
 			}
+			int instruccion_valida = validar_instruccion_interfaz(interfaz,op_code);
+			if(instruccion_valida == 0){
+				log_error(kernel_logger, "Instrucción no soportada, mando proceso a exit");
+				agregar_a_exit(pcb, INVALID_INTERFACE);
+				break;
+			}
+			sacar_de_exec(pcb,IO);
+			if(sem_trywait(interfaz->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				
+			}
+			else
+			queue_push(interfaz->cola_procesos_bloqueados,pcb);
+			
 			//Acá hay que hacer la validación de si la interfaz soporta lo solicitado y si está disponible o no.
 			//Tomi hizo esta logica, me parece que lo mejor sería que la hagamos nosotros.
 
@@ -946,5 +959,70 @@ t_entrada_salida* buscar_interfaz(char* nombre) {
 		}		
 	}
 	return NULL;
+}
+
+int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_code){
+	switch(op_code){
+		case IO_GEN_SLEEP:
+			if(strcmp(t_entrada_salida->nombre, "GENERICA")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_STDIN_READ:
+			if(strcmp(t_entrada_salida->nombre, "STDIN")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_STDOUT_WRITE:
+			if(strcmp(t_entrada_salida->nombre, "STDOUT")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_FS_CREATE:
+			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_FS_DELETE:
+			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_FS_TRUNCATE:
+			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_FS_WRITE:
+			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		case IO_FS_READ:
+			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+				return 1;
+			}else{
+				return 0;
+			}
+			break;
+		default:
+			return 0;
+			break;
+	}
+	
 }
 
