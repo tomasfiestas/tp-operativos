@@ -295,7 +295,8 @@ t_registros extraer_registros_del_buffer(t_buffer* buffer){
 }
 
 t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer){
-    t_instruccion* instruccion = extraer_de_buffer(buffer);
+    t_instruccion* instruccion = malloc(sizeof(t_instruccion));
+    instruccion = extraer_de_buffer(buffer);
     t_instruccion valor_instruccion = *instruccion;
     free(instruccion);
     return valor_instruccion;
