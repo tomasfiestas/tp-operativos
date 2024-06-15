@@ -56,10 +56,14 @@ int main(int argc, char* argv[]) {
     log_info(logger, "Mensaje enviado a Kernel");
     destruir_buffer(buffer2);
 
-    sleep(500);
-    
+       
     realizar_handshake(HANDSHAKE_ES, conexion_kernel);
     realizar_handshake(HANDSHAKE_ES, conexion_memoria);
+
+    //Leer consola
+    pthread_t hilo_consola;
+    pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
+    pthread_detach(hilo_consola);
 
     pthread_t hilo_memoria;
     int* socket_cliente_memoria_ptr = malloc(sizeof(int));
@@ -69,10 +73,7 @@ int main(int argc, char* argv[]) {
     pthread_join(hilo_memoria,NULL);
 
 
-    //Leer consola
-    pthread_t hilo_consola;
-    pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
-    pthread_detach(hilo_consola);
+    
 
     
 //Agregando verificacion de interfaz...
@@ -253,6 +254,9 @@ void leer_consola()
                     break;
                 case ERROR:
                     printf("Este comando es invalido\n");
+                    break;
+                default:
+                    printf("Este comando es invalido\n");
                     break;               
 
             }           
@@ -263,4 +267,13 @@ void leer_consola()
 }
  
 
+}
+
+t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
+    
+    if(strcmp(mensaje_consola,"CREAR") == 0){
+        return CREAR;
+    }    
+    else
+        return ERROR;
 }
