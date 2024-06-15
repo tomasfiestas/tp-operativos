@@ -1,6 +1,9 @@
-#include "memoria.h"
 #include "memoria_usuario.h"
 #include <commons/bitarray.h>
+
+char* bitmap;
+t_bitarray* bitarray;
+void* memoria_total;
 
 void inicializar_memoria()
 {
@@ -37,7 +40,7 @@ void finalizar_proceso(int pid)
         t_pagina *pagina = list_iterator_next(iterator);
         if (pagina->presente)
         {
-            bitarray_clean_bit(bitarray, list_iterator_current_position(iterator));
+            bitarray_clean_bit(bitarray, list_iterator_index(iterator));
             pagina->presente = false;
         }
     }
@@ -104,14 +107,14 @@ char *leer_memoria(int pid, int direccion_fisica)
         log_error(memoria_logger, "No se encontro el proceso con PID %d", pid);
         return NULL;
     }
-    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
+    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %zu", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
     return &memoria_total[direccion_fisica];
 }
 
 int escribir_memoria(int pid, int direccion_fisica, char *bytes)
 {
     memcpy(&memoria_total[direccion_fisica], bytes, strlen(bytes));
-    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
+    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %zu", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
     return 1;
 }
 
@@ -178,22 +181,6 @@ void *reservar_memoria()
         abort();
     }
     return totalMemory;
-}
-
-t_proceso *obtener_proceso(int pid)
-{
-    t_list_iterator *iterator = list_iterator_create(procesos);
-    while (list_iterator_has_next(iterator))
-    {
-        t_proceso *proceso = list_iterator_next(iterator);
-        if (proceso->pid == pid)
-        {
-            list_iterator_destroy(iterator);
-            return proceso;
-        }
-    }
-    list_iterator_destroy(iterator);
-    return NULL;
 }
 
 int obtener_cantidad_marcos_disponibles()

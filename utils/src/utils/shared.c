@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <netdb.h>
 
 t_log* logger = NULL;
 
@@ -273,6 +274,9 @@ void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb){
     cargar_a_buffer(buffer, &pcb, sizeof(t_pcb));
 }
 
+void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion) {
+    cargar_a_buffer(buffer, instruccion, sizeof(t_instruccion));
+}
 
 t_estado extraer_estado_del_buffer(t_buffer* buffer){
     t_estado* estado = malloc(sizeof(t_estado));
@@ -288,6 +292,13 @@ t_registros extraer_registros_del_buffer(t_buffer* buffer){
     t_registros valor_registros = *registros;
     free(registros);
     return valor_registros;
+}
+
+t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer){
+    t_instruccion* instruccion = extraer_de_buffer(buffer);
+    t_instruccion valor_instruccion = *instruccion;
+    free(instruccion);
+    return valor_instruccion;
 }
 
 
