@@ -64,7 +64,7 @@ void finalizar_proceso(int pid)
 
 int quitar_memoria(t_proceso *proceso, int cantidad_paginas)
 {
-    for (int i = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i > 0 && cantidad_paginas > 0; i--)
+    for (int i = atoi(TAM_MEMORIA) / atoi(TAM_PAGINA) -1; i > 0 && cantidad_paginas > 0; i--)
     {
         t_pagina *pagina = list_get(proceso->paginas, i);
         if (pagina->presente)

@@ -307,8 +307,8 @@ void atender_crear_proceso(t_buffer* buffer){
 
     // TEST:
     // finalizar_proceso(pid);
+    // resize(pid, 128);
     // resize(pid, 32);
-    // resize(pid, 8);
 }
 
 void atender_eliminar_proceso(t_buffer* buffer){
