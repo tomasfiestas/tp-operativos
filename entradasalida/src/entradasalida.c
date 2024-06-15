@@ -26,12 +26,15 @@ int main(int argc, char* argv[]) {
 
 
     //Creo conexion como cliente hacia Memoria
-    //int conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-    //log_info(logger, "Conexion con Memoria establecida");
+
+    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    log_info(logger, "Conexion con Memoria establecida");
+
     
     
 
     //Creo conexion como cliente hacia Kernel
+
     conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(logger, "Conexion con Kernel establecida");   
     t_buffer* buffer = crear_buffer();
@@ -55,7 +58,7 @@ int main(int argc, char* argv[]) {
 
     sleep(500);
     
-    /*realizar_handshake(HANDSHAKE_ES, conexion_kernel);
+    realizar_handshake(HANDSHAKE_ES, conexion_kernel);
     realizar_handshake(HANDSHAKE_ES, conexion_memoria);
 
     pthread_t hilo_memoria;
@@ -66,6 +69,52 @@ int main(int argc, char* argv[]) {
     pthread_join(hilo_memoria,NULL);
 
 
+void leer_consola()
+{
+	char *linea;
+    
+    
+    while (1) {
+        linea = readline(">");
+        
+        if (!linea) {
+            break;
+        }
+
+        if (linea) {
+
+            add_history(linea);
+            char** argumentos = string_split(linea, " ");
+            t_mensajes_consola mensaje_consola;
+            mensaje_consola = mensaje_a_consola(argumentos[0]);                         
+
+            switch(mensaje_consola){
+                case CREAR:
+                t_buffer* buffer = crear_buffer();
+                cargar_string_a_buffer(buffer, argumentos[1]); 
+                cargar_string_a_buffer(buffer, argumentos[2]);
+                t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
+                log_info(logger, "Conexion con Kernel establecida");   
+                enviar_paquete(paquete, conexion_kernel);
+                eliminar_paquete(paquete);
+                break;
+                
+                case EXIT:
+                    exit(0);
+                    break;
+                case ERROR:
+                    printf("Este comando es invalido\n");
+                    break;               
+
+            }           
+        
+        free(linea);
+    }
+    
+}
+ 
+
+}
 
     
 //Agregando verificacion de interfaz...
@@ -73,17 +122,31 @@ int main(int argc, char* argv[]) {
     while(1){
     
     int cliente = *(int*)socket_cliente_memoria_ptr;
-
-    t_paquete* paquete = recibir_buffer(cliente);
     op_code instruccion_recibida = recibir_operacion(paquete); 
+    t_buffer* buffer = recibir_buffer(cliente);
+    
+    char* tipoInterfaz;
+    char* nombre_interfaz_paquete;
+    int tamanio;
+    int direccion;
 
         switch(instruccion_recibida){
         
         case IO_GEN_SLEEP:
+            tipoInterfaz = "GENERICA";
+            nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+
+
+            //Agregar paquete para mandar op_code error a Kernel.
+            if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+            }
 
             int tiempo_unidad_trabajo = config_get_int_value(entradasalida_config, "TIEMPO_UNIDAD_TRABAJO");
             int* cantidad_dormir = extraer_int_del_buffer(paquete);
             int tiempo_sleep = tiempo_unidad_trabajo * (*cantidad_dormir);
+
             if(tiempo_sleep > 0){
 
                     sleep(tiempo_sleep);
@@ -98,6 +161,64 @@ int main(int argc, char* argv[]) {
 
         break;
 
+        case IO_STDIN_READ:
+
+        tipoInterfaz = "STDIN";
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+        
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+    
+        direccion = extraer_uint32_del_buffer(paquete);
+        tamanio = extraer_uint32_del_buffer(paquete);
+        char* entrada_teclado = readline("Ingrese un texto: ");
+
+        if(entrada_teclado == NULL){
+            printf("Error: No se ingreso ningun texto.\n");
+            break;
+        }
+
+
+        if(strlen(entrada_teclado) > tamanio){
+            printf("Error: El texto ingresado es demasiado largo, se recortara al tamanio indicado.\n");
+        }
+
+        char* entrada_final =  malloc(tamanio + 1); // +1 para el carácter espurio al final
+        strncpy(entrada_final, entrada_teclado, tamanio);
+
+    
+
+        //Creo paquete y se lo envio al socket de memoria 
+        t_buffer* buffer2 = crear_buffer();
+        cargar_uint32_a_buffer(buffer2, direccion);
+        cargar_uint32_a_buffer(buffer2, tamanio);
+        t_paquete* paqueteIN = crear_paquete(IO_STDIN_READ,buffer2);
+        enviar_paquete(paqueteIN, conexion_memoria);
+        //eliminar_paquete(paqueteIN);
+        break;
+
+        case IO_STDOUT_WRITE:
+
+        tipoInterfaz= "STDOUT";
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+        
+        direccion = extraer_uint32_del_buffer(paquete);
+        tamanio = extraer_uint32_del_buffer(paquete);
+
+
+        t_buffer* buffer = crear_buffer();
+        cargar_uint32_a_buffer(buffer, direccion);
+        cargar_uint32_a_buffer(buffer, tamanio);
+        t_paquete* paqueteOUT = crear_paquete(SOLICITAR_LECTURA,buffer);
+        enviar_paquete(paqueteOUT, conexion_memoria);
+
         default: 
 
             printf("Instruccion no reconocida");
@@ -106,10 +227,10 @@ int main(int argc, char* argv[]) {
 
     }
 
-    destruir_buffer(paquete);
-    
+    destruir_buffer(buffer);    
     return EXIT_SUCCESS;
-}*/
+
+}
 }
 
 void atender_mensajes_memoria(void* socket_cliente_ptr){

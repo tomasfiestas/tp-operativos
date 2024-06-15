@@ -7,6 +7,24 @@
 #include <utils/logging.h>
 #include <utils/shared.h>
 
+/*
+void crear_interfaz(char* nombre, char* tipo){
+    t_paquete* paquete = crear_paquete();
+    crear_buffer();
+    cargar_string_a_buffer(paquete->buffer, nombre);
+    cargar_string_a_buffer(paquete->buffer, tipo);
+
+    log_info(logger, "Interfaz Generica creada");
+}
+*/
+
+int conexion_kernel;
+int conexion_memoria;
+
+typedef struct{
+    char* nombre;
+    char* tipo;
+} t_interfaz;
 
 
 t_log* entradasalida_logger;
@@ -22,6 +40,14 @@ char* BLOCK_SIZE;
 char* BLOCK_COUNT;
 int conexion_kernel;
 int conexion_kernel2;
+
+typedef enum{
+    GENERICA,
+    STDIN,
+    STDOUT,
+    DIALFS
+} t_tipo_interfaz;
+
 
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 

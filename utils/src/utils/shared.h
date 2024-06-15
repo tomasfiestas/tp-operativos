@@ -75,8 +75,9 @@ typedef enum {
     INICIAR_PLANIFICACION,
     MULTIPROGRAMACION,
     PROCESO_ESTADO,
-	ERROR
-	
+	  ERROR,	  
+	  CREAR
+
 } t_mensajes_consola;
 
 typedef enum
@@ -123,9 +124,8 @@ typedef enum
 	IO_FS_TRUNCATE,
 	IO_FS_WRITE,
 	IO_FS_READ,
-  CREAR_NUEVA_INTERFAZ,
-
-
+	CREAR_NUEVA_INTERFAZ,
+	SOLICITAR_LECTURA,
 	// Memoria
 	SET,
 	SUM,
@@ -137,7 +137,8 @@ typedef enum
 	COPY_STRING,
 	WAIT,
 	SIGNAL,
-	EXIT_OP_CODE,
+	EXIT_OP_CODE
+
 }op_code;
 
 typedef struct {
@@ -201,7 +202,7 @@ uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
 uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 char extraer_string_del_buffer2(t_buffer* buffer);
-t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer);
+t_instruccion* extraer_instrucciones_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
