@@ -75,8 +75,7 @@ typedef enum {
     INICIAR_PLANIFICACION,
     MULTIPROGRAMACION,
     PROCESO_ESTADO,
-	  ERROR,
-	  EXIT,
+	  ERROR,	  
 	  CREAR
 
 } t_mensajes_consola;
@@ -203,7 +202,7 @@ uint8_t extraer_uint8_del_buffer(t_buffer* buffer);
 uint32_t extraer_uint32_del_buffer(t_buffer* buffer);
 char* extraer_string_del_buffer(t_buffer* buffer);
 char extraer_string_del_buffer2(t_buffer* buffer);
-t_instrucciones* extraer_instrucciones_del_buffer(t_buffer* buffer);
+t_instruccion* extraer_instrucciones_del_buffer(t_buffer* buffer);
 void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
