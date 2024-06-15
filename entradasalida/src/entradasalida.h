@@ -20,6 +20,8 @@ char* PUERTO_MEMORIA;
 char* PATH_BASE_DIALFS;
 char* BLOCK_SIZE;
 char* BLOCK_COUNT;
+int conexion_kernel;
+int conexion_kernel2;
 
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 

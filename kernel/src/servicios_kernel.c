@@ -1,5 +1,8 @@
 #include "servicios_kernel.h"
 
+t_list *recursos_del_sistema;
+t_list *lista_recursos_bloqueados;
+
 int asignar_pid(){
     int valor_pid;
 
