@@ -23,12 +23,12 @@ int main(int argc, char* argv[]) {
     //Inicio el servidor de la cpu
     int servidor_dispatch = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH);
     int servidor_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT);
-    /*//Inicio la conexion como cliente con la memoria
+    //Inicio la conexion como cliente con la memoria
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(cpu_logger, "Conexion con memoria establecida");  
 
     realizar_handshake(HANDSHAKE_CPU,conexion_memoria);
-    log_info(cpu_logger, "Handshake con Memoria realizado");*/
+    log_info(cpu_logger, "Handshake con Memoria realizado");
 
     //Espero al cliente Kernel - Dispatch
     cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 

@@ -69,52 +69,10 @@ int main(int argc, char* argv[]) {
     pthread_join(hilo_memoria,NULL);
 
 
-void leer_consola()
-{
-	char *linea;
-    
-    
-    while (1) {
-        linea = readline(">");
-        
-        if (!linea) {
-            break;
-        }
-
-        if (linea) {
-
-            add_history(linea);
-            char** argumentos = string_split(linea, " ");
-            t_mensajes_consola mensaje_consola;
-            mensaje_consola = mensaje_a_consola(argumentos[0]);                         
-
-            switch(mensaje_consola){
-                case CREAR:
-                t_buffer* buffer = crear_buffer();
-                cargar_string_a_buffer(buffer, argumentos[1]); 
-                cargar_string_a_buffer(buffer, argumentos[2]);
-                t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
-                log_info(logger, "Conexion con Kernel establecida");   
-                enviar_paquete(paquete, conexion_kernel);
-                eliminar_paquete(paquete);
-                break;
-                
-                case EXIT:
-                    exit(0);
-                    break;
-                case ERROR:
-                    printf("Este comando es invalido\n");
-                    break;               
-
-            }           
-        
-        free(linea);
-    }
-    
-}
- 
-
-}
+    //Leer consola
+    pthread_t hilo_consola;
+    pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
+    pthread_detach(hilo_consola);
 
     
 //Agregando verificacion de interfaz...
@@ -149,7 +107,7 @@ void leer_consola()
 
             if(tiempo_sleep > 0){
 
-                    sleep(tiempo_sleep);
+                    usleep(tiempo_sleep*1000);
 
                     printf("Dormi %d ", tiempo_sleep);
 
@@ -258,4 +216,51 @@ void atender_mensajes_memoria(void* socket_cliente_ptr){
 			break;
         }
     }
+}
+
+void leer_consola()
+{
+	char *linea;
+    
+    
+    while (1) {
+        linea = readline(">");
+        
+        if (!linea) {
+            break;
+        }
+
+        if (linea) {
+
+            add_history(linea);
+            char** argumentos = string_split(linea, " ");
+            t_mensajes_consola mensaje_consola;
+            mensaje_consola = mensaje_a_consola(argumentos[0]);                         
+
+            switch(mensaje_consola){
+                case CREAR:
+                t_buffer* buffer = crear_buffer();
+                cargar_string_a_buffer(buffer, argumentos[1]); 
+                cargar_string_a_buffer(buffer, argumentos[2]);
+                t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
+                log_info(logger, "Conexion con Kernel establecida");   
+                enviar_paquete(paquete, conexion_kernel);
+                eliminar_paquete(paquete);
+                break;
+                
+                case EXIT:
+                    exit(0);
+                    break;
+                case ERROR:
+                    printf("Este comando es invalido\n");
+                    break;               
+
+            }           
+        
+        free(linea);
+    }
+    
+}
+ 
+
 }

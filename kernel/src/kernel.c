@@ -41,10 +41,10 @@ int main(int argc, char* argv[]) {
     conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     
     
-    /*//Inicio el cliente para memoria
+    //Inicio el cliente para memoria
     conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
     realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
-    log_info(kernel_logger,"Handshake con Memoria realizado");*/
+    log_info(kernel_logger,"Handshake con Memoria realizado");
     //Inicio el servidor
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
