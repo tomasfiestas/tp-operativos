@@ -651,7 +651,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				break;
 			}
 			sacar_de_exec(pcb,IO);
-			if(sem_trywait(interfaz->sem_disponible) ==0 ){
+			if(sem_trywait(&interfaz->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				
 			}

@@ -12,6 +12,9 @@
 #include<commons/collections/list.h>
 #include<assert.h>
 #include <string.h>
+#include <semaphore.h>
+#include <commons/collections/queue.h>
+
 
 typedef enum{
 	NEW,

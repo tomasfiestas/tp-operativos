@@ -103,11 +103,11 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             nueva_interfaz->nombre = nombre;
             nueva_interfaz->tipo = tipo;
             //nueva_interfaz->disponible = 1;
-            sem_init(nueva_interfaz->semaforo, 0, 1);
+            sem_init(&nueva_interfaz->sem_disponible, 0, 1);
             nueva_interfaz->fd_interfaz = cliente_entradasalida2;
             log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s",
             nueva_interfaz->nombre,nueva_interfaz->tipo);
-            nueva_interfaz->cola = queue_create();
+            nueva_interfaz->cola_procesos_bloqueados = queue_create();
             list_add(lista_interfaces, nueva_interfaz);
             log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
             break;
