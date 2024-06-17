@@ -656,16 +656,13 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_buffer* buffer_interfaz = crear_buffer();
 				cargar_int_a_buffer(buffer_interfaz, unidades_trabajo);
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
-				enviar_paquete(paquete_interfaz, interfaz->socket);
-				destruir_buffer(buffer_interfaz);				
+				enviar_paquete(paquete_interfaz, interfaz->fd_interfaz);
+				destruir_buffer(buffer_interfaz);		//Hasta acá mandamos a tomi las cosas para hacer, 
+				//habría que ver como manejar que se vaya a bloqueado y que no muera acá el proceso...		
 			}
 			else
 			queue_push(interfaz->cola_procesos_bloqueados,pcb);
 			
-			//Acá hay que hacer la validación de si la interfaz soporta lo solicitado y si está disponible o no.
-			//Tomi hizo esta logica, me parece que lo mejor sería que la hagamos nosotros.
-
-
 			break;
 		default:
 			log_error(kernel_logger, "No se reconoce el handshake");
@@ -968,56 +965,56 @@ t_entrada_salida* buscar_interfaz(char* nombre) {
 int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_code){
 	switch(op_code){
 		case IO_GEN_SLEEP:
-			if(strcmp(t_entrada_salida->nombre, "GENERICA")==0){
+			if(strcmp(t_entrada_salida->tipo, "GENERICA")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_STDIN_READ:
-			if(strcmp(t_entrada_salida->nombre, "STDIN")==0){
+			if(strcmp(t_entrada_salida->tipo, "STDIN")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_STDOUT_WRITE:
-			if(strcmp(t_entrada_salida->nombre, "STDOUT")==0){
+			if(strcmp(t_entrada_salida->tipo, "STDOUT")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_FS_CREATE:
-			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+			if(strcmp(t_entrada_salida->tipo, "DIALFS")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_FS_DELETE:
-			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+			if(strcmp(t_entrada_salida->tipo, "DIALFS")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_FS_TRUNCATE:
-			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+			if(strcmp(t_entrada_salida->tipo, "DIALFS")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_FS_WRITE:
-			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+			if(strcmp(t_entrada_salida->tipo, "DIALFS")==0){
 				return 1;
 			}else{
 				return 0;
 			}
 			break;
 		case IO_FS_READ:
-			if(strcmp(t_entrada_salida->nombre, "DIALFS")==0){
+			if(strcmp(t_entrada_salida->tipo, "DIALFS")==0){
 				return 1;
 			}else{
 				return 0;

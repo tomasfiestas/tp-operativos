@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     log_info(logger, "Conexion con Kernel establecida");   
     t_buffer* buffer = crear_buffer();
     cargar_string_a_buffer(buffer, "Nueva 1");
-    cargar_string_a_buffer(buffer, "Tipo INTEL-ULTRA");
+    cargar_string_a_buffer(buffer, "GENERICA");
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer);
     enviar_paquete(paquete, conexion_kernel);
     //sleep(5);
@@ -56,9 +56,20 @@ int main(int argc, char* argv[]) {
     log_info(logger, "Mensaje enviado a Kernel");
     destruir_buffer(buffer2);
 
+    int op_code = recibir_operacion(conexion_kernel);
+    switch (op_code)
+    {
+    case IO_GEN_SLEEP:
+        log_info(logger, "Se recibio un mensaje de tipo IO_GEN_SLEEP");
+        break;
+    
+    default:
+        break;
+    }
+
        
-    realizar_handshake(HANDSHAKE_ES, conexion_kernel);
-    realizar_handshake(HANDSHAKE_ES, conexion_memoria);
+    //realizar_handshake(HANDSHAKE_ES, conexion_kernel);
+    //realizar_handshake(HANDSHAKE_ES, conexion_memoria);
 
     //Leer consola
     pthread_t hilo_consola;
@@ -81,7 +92,7 @@ int main(int argc, char* argv[]) {
     while(1){
     
     int cliente = *(int*)socket_cliente_memoria_ptr;
-    op_code instruccion_recibida = recibir_operacion(paquete); 
+    int instruccion_recibida = recibir_operacion(paquete); 
     t_buffer* buffer = recibir_buffer(cliente);
     
     char* tipoInterfaz;
