@@ -638,7 +638,9 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			char* nombre_interfaz_solicitada = extraer_string_del_buffer(buffer);
 			int unidades_trabajo = extraer_int_del_buffer(buffer);
-			t_entrada_salida* interfaz = buscar_interfaz(nombre_interfaz_solicitada);
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz = buscar_interfaz(nombre_interfaz_solicitada);
+			sem_post(&mutex_lista_interfaces);
 			if(interfaz == NULL){
 				log_error(kernel_logger, "No se encontró la interfaz solicitada, mando proceso a exit");
 				agregar_a_exit(pcb, INVALID_INTERFACE);

@@ -15,7 +15,7 @@
 #include <semaphore.h>
 #include <commons/collections/queue.h>
 
-
+sem_t mutex_lista_interfaces;
 typedef enum{
 	NEW,
 	READY,
@@ -50,11 +50,13 @@ typedef struct{
 	int ejecuto;
 } t_pcb;
 
+
 typedef struct{
     char* nombre;
     char* tipo;    
     int disponible;
 	sem_t sem_disponible;
+	int pid_usandola; //guarda el pid del proceso que la este usando (ninguno --> =0)
     int fd_interfaz;
 	t_queue* cola_procesos_bloqueados;
 }t_entrada_salida;
@@ -125,6 +127,7 @@ typedef enum
 	IO_FS_WRITE,
 	IO_FS_READ,
 	CREAR_NUEVA_INTERFAZ,
+	OPERACION_FINALIZADA,
 	SOLICITAR_LECTURA,
 	// Memoria
 	SET,
