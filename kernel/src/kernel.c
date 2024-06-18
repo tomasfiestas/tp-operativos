@@ -105,7 +105,7 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             nueva_interfaz->nombre = nombre;
             nueva_interfaz->tipo = tipo;
             //nueva_interfaz->disponible = 1;
-           // sem_init(&nueva_interfaz->sem_disponible, 0, 1);
+            sem_init(&nueva_interfaz->sem_disponible, 0, 1);
             nueva_interfaz-> pid_usandola = 0;
             nueva_interfaz->fd_interfaz = cliente_entradasalida2;
             log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s",
@@ -118,17 +118,27 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             break;
             
             case OPERACION_FINALIZADA:
-            t_buffer *buffer = recibir_buffer(cliente_entradasalida2);
-            char* nombre = extraer_string_del_buffer(buffer);
-            t_entrada_salida * interfaz_a_liberar = buscar_interfaz(nombre);
+            log_info(kernel_logger, "Operacion finalizada");
+            t_buffer *buffer2 = recibir_buffer(cliente_entradasalida2);
+            char* nombre2 = extraer_string_del_buffer(buffer2);
+            int pid = extraer_int_del_buffer(buffer2);
+            t_entrada_salida * interfaz_a_liberar = buscar_interfaz(nombre2);
+            //Hay que poner el PCB en la cola de listos
+            t_pcb* pcb_a_liberar = buscarPcb(pid);
+            sacar_de_bloqueado(pcb_a_liberar);
+            agregar_a_ready(pcb_a_liberar);
             if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz
-                interfaz_a_liberar->pid_usandola = 0
-                sem_post(interfaz_a_liberar->sem_disponible);
+                interfaz_a_liberar->pid_usandola = 0;
+                sem_post(&interfaz_a_liberar->sem_disponible);
             }else{
-                t_pcb * proximo_proceso = queue_pop(interfaz_a_liberar->cola_procesos_bloqueados);
-                interfaz_a_liberar->pid_usandola = proximo_proceso->pid;
+                t_lista_block* proximo_proceso_bloqueado = queue_pop(interfaz_a_liberar->cola_procesos_bloqueados);
+                interfaz_a_liberar->pid_usandola = proximo_proceso_bloqueado->pcb->pid;
                 //mandar_interfaz_a_io(interfaz_a_liberar); aca hay q hacer de algo para que en la cola de bloqueados por interfaz no solo me guarde
                 // el pcb sino tambien la operacion y los parametros q queria hacer (no tengo idea, capaz lo estamos planteando mal)
+                t_buffer* buffer_a_enviar = crear_buffer();
+                cargar_string_a_buffer(buffer_a_enviar, proximo_proceso_bloqueado->parametros);
+                t_paquete* paquete_a_enviar = crear_paquete(IO_GEN_SLEEP, buffer_a_enviar);
+                enviar_paquete(paquete_a_enviar,cliente_entradasalida2);
             }
 
             break;

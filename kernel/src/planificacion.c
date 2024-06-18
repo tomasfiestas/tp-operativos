@@ -149,8 +149,8 @@ void inicializar_listas(){
 	plani_block = list_create();
 	cola_prioritaria_vrr = queue_create();
     plani_exit = list_create();
-
 	
+
 	
 	
 	//inicializo lista de colas para manejar los bloqueados por recurso 
@@ -162,11 +162,7 @@ void inicializar_listas(){
 	plani_block_recursos = lista_recursos_bloqueados;
 
 	inicializar_semaforos();
-	inicializar_hilos();
-	//inicializar_colas_bloqueo_de_recusos();
-	//crear_lista_recursos();
-	
-	
+	inicializar_hilos();	
 } 
 
 void inicializar_hilos(){
@@ -637,7 +633,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		case IO_GEN_SLEEP:
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			char* nombre_interfaz_solicitada = extraer_string_del_buffer(buffer);
-			int unidades_trabajo = extraer_int_del_buffer(buffer);
+			char* unidades_trabajo = extraer_string_del_buffer(buffer);
 			sem_wait(&mutex_lista_interfaces);
 				t_entrada_salida* interfaz = buscar_interfaz(nombre_interfaz_solicitada);
 			sem_post(&mutex_lista_interfaces);
@@ -655,15 +651,23 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			sacar_de_exec(pcb,IO);
 			if(sem_trywait(&interfaz->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
+				interfaz->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz, unidades_trabajo);
+				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada);
+				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo);
+				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
 				enviar_paquete(paquete_interfaz, interfaz->fd_interfaz);
 				destruir_buffer(buffer_interfaz);		//Hasta acá mandamos a tomi las cosas para hacer, 
 				//habría que ver como manejar que se vaya a bloqueado y que no muera acá el proceso...		
 			}
-			else
-			queue_push(interfaz->cola_procesos_bloqueados,pcb);
+			else{
+				t_lista_block* lista_bloqueados = malloc(sizeof(t_lista_block));
+				lista_bloqueados->pcb = pcb;
+				lista_bloqueados->parametros = unidades_trabajo;
+				queue_push(interfaz->cola_procesos_bloqueados,lista_bloqueados);
+			}
+			
 			
 			break;
 		default:

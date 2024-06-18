@@ -15,7 +15,7 @@
 #include <semaphore.h>
 #include <commons/collections/queue.h>
 
-sem_t mutex_lista_interfaces;
+
 typedef enum{
 	NEW,
 	READY,
@@ -60,6 +60,11 @@ typedef struct{
     int fd_interfaz;
 	t_queue* cola_procesos_bloqueados;
 }t_entrada_salida;
+
+typedef struct{
+    t_pcb* pcb;    
+    char* parametros; //cola de archivo o recurso
+}t_lista_block;
 
 
 

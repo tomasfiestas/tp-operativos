@@ -53,5 +53,6 @@ typedef enum{
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 void leer_consola();
 t_mensajes_consola mensaje_a_consola(char *mensaje_consola);
+void atender_kernel(void* socket_cliente_ptr);
 
 #endif

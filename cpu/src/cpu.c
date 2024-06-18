@@ -140,7 +140,7 @@ void atender_crear_pr(t_buffer* buffer){
     t_buffer* buffer_cpu_ki = crear_buffer();   
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
     cargar_string_a_buffer(buffer_cpu_ki, "Nueva 1");
-    cargar_int_a_buffer(buffer_cpu_ki, 50);       
+    cargar_string_a_buffer(buffer_cpu_ki, "50");       
     //char * recurso = "RA";
     //cargar_string_a_buffer(buffer_cpu_ki,recurso);
     //usleep(5000000);
