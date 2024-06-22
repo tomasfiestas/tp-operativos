@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
 
 
     
-
+    return EXIT_SUCCESS;
     
 //Agregando verificacion de interfaz...
 
@@ -187,14 +187,15 @@ void atender_kernel(void* socket_cliente_ptr){
     free(socket_cliente_ptr);
     while(1){    
     int instruccion_recibida = recibir_operacion(cliente_kernel3); 
-    t_buffer* buffer = recibir_buffer(cliente_kernel3);
-    
+    t_buffer* buffer = recibir_buffer(cliente_kernel3);    
     char* tipoInterfaz;
     char* nombre_interfaz_paquete;
     int tamanio;
     int direccion;
+    log_info(logger,"me llegó algo: ");
 
         switch(instruccion_recibida){
+            
         
         case IO_GEN_SLEEP:
             tipoInterfaz = "GENERICA";
@@ -217,7 +218,7 @@ void atender_kernel(void* socket_cliente_ptr){
 
             if(tiempo_sleep > 0){
 
-                    usleep(tiempo_sleep*1000);
+                    sleep(30);
 
                     printf("Dormi %d ", tiempo_sleep);
 
@@ -231,6 +232,7 @@ void atender_kernel(void* socket_cliente_ptr){
             cargar_int_a_buffer(respuesta, pid);
             t_paquete *paquete_respuesta = crear_paquete(OPERACION_FINALIZADA, respuesta);
             enviar_paquete(paquete_respuesta, conexion_kernel);
+            log_info(logger, "Mensaje enviado a Kernel");
             destruir_buffer(respuesta);
 
 
@@ -302,8 +304,8 @@ void atender_kernel(void* socket_cliente_ptr){
 
     }
 
-    destruir_buffer(buffer);    
-    return EXIT_SUCCESS;
+    destruir_buffer(buffer);
+    
 
 }
 

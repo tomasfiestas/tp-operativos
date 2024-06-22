@@ -476,7 +476,7 @@ void sacar_de_bloqueado(t_pcb* pcb){
 	sem_wait(&sem_block);
 		list_remove(plani_block, pcb);
 	sem_post(&sem_block);
-	
+	agregar_a_ready(pcb);	
 }
 
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
@@ -563,7 +563,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	sem_post(&puedeEntrarAExec); 
 	llego_contexto = true;	
 	//pthread_cancel(hilo_quantum); //TODO REVISAR PORQUE EN FIFO NO HAY QUANTUM
-	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  
+	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
 	t_pcb* pcb = extraer_pcb_del_buffer(buffer);	
 	if(algoritmo_plani == VRR){		
@@ -632,6 +632,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
             break;
 		case IO_GEN_SLEEP:
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
+			sacar_de_exec(pcb,IO);
+			t_pcb* pcbs = list_get(total_pcbs,0);
+			log_info(kernel_logger,"El estado del proceso 0 de la lista total es %s",estado_a_string(pcbs->estado));
+			t_pcb* pcbc = list_get(plani_block,0);
+			log_info(kernel_logger,"El estado del proceso  es %s",estado_a_string(pcbc->estado));
 			char* nombre_interfaz_solicitada = extraer_string_del_buffer(buffer);
 			char* unidades_trabajo = extraer_string_del_buffer(buffer);
 			sem_wait(&mutex_lista_interfaces);
@@ -647,8 +652,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				log_error(kernel_logger, "Instrucción no soportada, mando proceso a exit");
 				agregar_a_exit(pcb, INVALID_INTERFACE);
 				break;
-			}
-			sacar_de_exec(pcb,IO);
+			}			
 			if(sem_trywait(&interfaz->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz->pid_usandola = pcb->pid;
@@ -780,6 +784,18 @@ t_pcb *pcb;
    
         for (int i = 0; i < (list_size(total_pcbs)); i++) {
         pcb = list_get(total_pcbs,i);
+        if (pcb->pid == pid_a_buscar) {
+            return pcb;
+        }
+    }
+    return NULL;
+}
+t_pcb *buscarPcbBloqueado(int pid_a_buscar)
+{
+t_pcb *pcb;
+   
+        for (int i = 0; i < (list_size(plani_block)); i++) {
+        pcb = list_get(plani_block,i);
         if (pcb->pid == pid_a_buscar) {
             return pcb;
         }

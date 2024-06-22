@@ -124,9 +124,9 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             int pid = extraer_int_del_buffer(buffer2);
             t_entrada_salida * interfaz_a_liberar = buscar_interfaz(nombre2);
             //Hay que poner el PCB en la cola de listos
-            t_pcb* pcb_a_liberar = buscarPcb(pid);
-            sacar_de_bloqueado(pcb_a_liberar);
-            agregar_a_ready(pcb_a_liberar);
+            t_pcb* pcb_a_liberar = buscarPcbBloqueado(pid);
+            sacar_de_bloqueado(pcb_a_liberar);  
+            //agregar_a_exit(pcb_a_liberar,SUCCESS);          
             if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz
                 interfaz_a_liberar->pid_usandola = 0;
                 sem_post(&interfaz_a_liberar->sem_disponible);
@@ -136,9 +136,10 @@ void atender_entradasalida2(void* socket_cliente_ptr){
                 //mandar_interfaz_a_io(interfaz_a_liberar); aca hay q hacer de algo para que en la cola de bloqueados por interfaz no solo me guarde
                 // el pcb sino tambien la operacion y los parametros q queria hacer (no tengo idea, capaz lo estamos planteando mal)
                 t_buffer* buffer_a_enviar = crear_buffer();
+                //VER ACÄ MANDAR BIEN LAS COSAS
                 cargar_string_a_buffer(buffer_a_enviar, proximo_proceso_bloqueado->parametros);
                 t_paquete* paquete_a_enviar = crear_paquete(IO_GEN_SLEEP, buffer_a_enviar);
-                enviar_paquete(paquete_a_enviar,cliente_entradasalida2);
+                enviar_paquete(paquete_a_enviar,interfaz_a_liberar->fd_interfaz);
             }
 
             break;
