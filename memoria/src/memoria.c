@@ -96,14 +96,14 @@ int main(int argc, char *argv[])
     log_info(memoria_logger, "Servidor de memoria iniciado ");    
     
      //Espero conexion de CPU
-    cliente_cpu = esperar_cliente(servidor_memoria); 
+    /*cliente_cpu = esperar_cliente(servidor_memoria); 
     //Atiendo mensajes de CPU
     pthread_t hilo_cpu;
     int* socket_cliente_cpu_ptr = malloc(sizeof(int));
     *socket_cliente_cpu_ptr = cliente_cpu;
     pthread_create(&hilo_cpu, NULL, atender_cpu, socket_cliente_cpu_ptr);
     pthread_detach(hilo_cpu);
-    log_info(memoria_logger, "Atendiendo mensajes de CPU");   
+    log_info(memoria_logger, "Atendiendo mensajes de CPU");   */
     
     
     //Espero conexion de kernel
