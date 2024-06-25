@@ -147,14 +147,20 @@ void* atender_cpu(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);
     bool control_key = 1;
    while (control_key){
+    t_buffer* buffer;
+    int pid;
+    int direccion_fisica;
+    int cantidad_bytes;
+    t_buffer* response_buffer;
+    t_paquete* response;
     op_code op_code = recibir_operacion(cliente);    
 	switch(op_code) {
     case SOLICITUD_INST:
         log_info(memoria_logger, "Solicitud de instrucciones");
-        t_buffer *buffer = recibir_buffer(cliente);
 
-        int pid = extraer_int_del_buffer(buffer);
-
+        usleep(atoi(RETARDO_RESPUESTA));
+        buffer = recibir_buffer(cliente);
+        pid = extraer_int_del_buffer(buffer);
         destruir_buffer(buffer);
 
         t_proceso* proceso = obtener_proceso(pid);
@@ -165,10 +171,95 @@ void* atender_cpu(void* socket_cliente_ptr) {
         t_instruccion* instruccion = list_get(proceso->instrucciones, proceso->pc);
         proceso->pc++;
 
-        t_buffer* response_buffer = crear_buffer();
+        response_buffer = crear_buffer();
         cargar_instruccion_a_buffer(response_buffer, instruccion);
-        t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
+        response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
 
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+
+        break;
+    case RESIZE: // Parametros: PID, Bytes
+        // El parametro pasado (cantidad de bytes) es absoluto, no es relativo al tamaño anterior.
+        // Esta funcion se asegurara de cambiar al tamaño deseado, caso contrario enviará OUT_OF_MEMORY.
+        log_info(memoria_logger, "Solicitud de resize");
+        usleep(atoi(RETARDO_RESPUESTA));
+        buffer = recibir_buffer(cliente);
+
+        pid = extraer_int_del_buffer(buffer);
+        int bytes = extraer_int_del_buffer(buffer);
+        destruir_buffer(buffer);
+
+        int resultado = resize(pid, bytes);
+        if(resultado > 0){
+            response_buffer = crear_buffer();
+            // Paquete sin buffer, ver si funciona.
+            response = crear_paquete(RESIZE_OK, NULL);
+            enviar_paquete(response, cliente_cpu);
+            destruir_paquete(response);
+        } else {
+            response_buffer = crear_buffer();
+            // Paquete sin buffer, ver si funciona.
+            response = crear_paquete(OUT_OF_MEMORY, NULL);
+            enviar_paquete(response, cliente_cpu);
+            destruir_paquete(response);
+        }
+        break;
+    case LEER: // Parametros: PID, Direccion Fisica, Cantidad bytes
+        // ESTO LO VAMOS A USAR PARA LA OPERACIÓN MOV_IN.
+        // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+        // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+        //
+        // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES LEER
+        // EN CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+        // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a leer:
+        // * LEER 3 BYTES A PARTIR DE DIRECCION FISICA 1
+        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 2
+        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 3
+        // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+        //
+        // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
+        log_info(memoria_logger, "Solicitud de movimiento de memoria");
+        buffer = recibir_buffer(cliente);
+        usleep(atoi(RETARDO_RESPUESTA));
+        
+        pid = extraer_int_del_buffer(buffer);
+        direccion_fisica = extraer_int_del_buffer(buffer);
+        cantidad_bytes = extraer_int_del_buffer(buffer);
+
+        char* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
+
+        response_buffer = crear_buffer();
+        cargar_string_a_buffer(response_buffer, bytes_leidos);
+        response = crear_paquete(LEER_OK, response_buffer);
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+        break;
+    case ESCRIBIR: // Parametros: PID, Direccion Fisica, bytes a escribir
+        // ESTO LO VAMOS A USAR PARA LA OPERACIÓN MOV_OUT y COPY_STRING.
+        // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+        // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+        //
+        // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES ESCRIBIR
+        // A CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+        // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a escribir:
+        // * ESCRIBIR 3 BYTES A PARTIR DE DIRECCION FISICA 1
+        // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 2
+        // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 3
+        // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+        log_info(memoria_logger, "Solicitud de escritura en memoria");
+        buffer = recibir_buffer(cliente);
+        usleep(atoi(RETARDO_RESPUESTA));
+
+        pid = extraer_int_del_buffer(buffer);
+        direccion_fisica = extraer_int_del_buffer(buffer);
+        char* bytes_a_escribir = extraer_string_del_buffer(buffer);
+
+        escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+        response_buffer = crear_buffer();
+        response = crear_paquete(ESCRIBIR_OK, response_buffer);
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
         break;
     case HANDSHAKE_KERNEL:
         log_info(memoria_logger, "Se conecto el Kernel");
@@ -252,7 +343,7 @@ t_list* parse_file(const char* filePath) {
     FILE* file = fopen(filePath, "r");
     if (file == NULL) {
         log_error(memoria_logger, "No se pudo abrir el archivo de instrucciones.");
-        return;
+        return NULL;
     }
 
     char linea[256];

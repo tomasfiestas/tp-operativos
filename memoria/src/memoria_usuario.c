@@ -114,22 +114,18 @@ int resize(int pid, int bytes)
     }
 }
 
-char *leer_memoria(int pid, int direccion_fisica)
+char *leer_memoria(int pid, int direccion_fisica, int bytes)
 {
-    t_proceso *proceso = obtener_proceso(pid);
-    if (proceso == NULL)
-    {
-        log_error(memoria_logger, "No se encontro el proceso con PID %d", pid);
-        return NULL;
-    }
-    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %zu", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
-    return &memoria_total[direccion_fisica];
+    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, bytes);
+    char *data = malloc(bytes);
+    memcpy(data, &memoria_total[direccion_fisica], bytes);
+    return data;
 }
 
 int escribir_memoria(int pid, int direccion_fisica, char *bytes)
 {
     memcpy(&memoria_total[direccion_fisica], bytes, strlen(bytes));
-    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %zu", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
+    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %zu B", pid, direccion_fisica, strlen(bytes));
     return 1;
 }
 

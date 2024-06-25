@@ -15,7 +15,7 @@ extern t_bitarray* bitarray;
 extern void* memoria_total;
 
 int iniciar_tabla_paginas(t_proceso* proceso);
-char *leer_memoria(int pid, int direccion_fisica);
+char *leer_memoria(int pid, int direccion_fisica, int bytes);
 int escribir_memoria(int pid, int direccion_fisica, char *bytes);
 void inicializar_memoria();
 void inicializar_bitmap();
