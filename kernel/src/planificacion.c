@@ -522,7 +522,9 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	char* estadoNuevoString = string_new();
 
 	t_estado estadoAnterior = pcb->estado;
-	pcb->estado = estadoNuevo;
+
+	t_pcb * pcb_enLista = buscarPcb(pcb->pid);
+	pcb_enLista->estado = estadoNuevo;
 
 	string_append(&estadoAnteriorString, estado_a_string(estadoAnterior));
 	string_append(&estadoNuevoString, estado_a_string(estadoNuevo));

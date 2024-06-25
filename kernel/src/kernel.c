@@ -35,10 +35,10 @@ int main(int argc, char* argv[]) {
     tamanio_lista_recursos = string_array_size(RECURSOS); 
     
     //Inicio el cliente para cpu dispatch
-    //conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
         
     //Inicio el cliente para cpu interrupt
-    //conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
+    conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     
     
     //Inicio el cliente para memoria
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
-   //cliente_entradasalida = esperar_cliente(servidor); 
+    cliente_entradasalida = esperar_cliente(servidor); 
 
     
     //Planificacion
