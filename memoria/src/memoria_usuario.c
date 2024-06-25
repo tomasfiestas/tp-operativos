@@ -131,17 +131,27 @@ int escribir_memoria(int pid, int direccion_fisica, char *bytes)
 
 int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
 {
-    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA) && cantidad_paginas > 0; i++)
-    {
-        if (!bitarray_test_bit(bitarray, i))
-        {
-            t_pagina *pagina = list_get(proceso->paginas, i);
-            pagina->presente = true;
-            pagina->frame = i;
-            bitarray_set_bit(bitarray, i);
-            cantidad_paginas--;
+    // Por cada pagina libre
+    t_list_iterator* iterator = list_iterator_create(proceso->paginas);
+    while(list_iterator_has_next(iterator) && cantidad_paginas > 0) {
+        t_pagina* pagina = list_iterator_next(iterator);
+        if (!pagina->presente) {
+            // Buscar un marco libre
+            for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+            {
+                if (!bitarray_test_bit(bitarray, i))
+                {
+                    pagina->presente = true;
+                    pagina->frame = i;
+                    bitarray_set_bit(bitarray, i);
+                    cantidad_paginas--;
+                    break;
+                }
+            }
         }
+        
     }
+
 
     return 1;
 }
