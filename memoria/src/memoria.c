@@ -27,53 +27,6 @@ int main(int argc, char *argv[])
     // Inicio la configuracion de la memoria
     memoria_config = iniciar_config("memoria.config");
 
-    // TODO: Charlar tema de comunicacion antes de la entrega.
-    // t_list* test_instrucciones = list_create();
-    // t_instruccion test_instruccion_1 = { .operacion = RESIZE, .parametros = list_create() };
-    // char* parametro_1 = "AX";
-    // char* parametro_2 = "BX";
-    // list_add(test_instruccion_1.parametros, parametro_1);
-    // list_add(test_instruccion_1.parametros, parametro_2);
-
-    // t_instruccion test_instruccion_2 = { .operacion = IO_FS_CREATE, .parametros = list_create() };
-    // char* parametro_3 = "CX";
-    // char* parametro_4 = "DX";
-    // list_add(test_instruccion_2.parametros, parametro_3);
-    // list_add(test_instruccion_2.parametros, parametro_4);
-
-    // t_pagina* test_pagina = malloc(sizeof(t_pagina));
-    // test_pagina->frame = 0;
-    // test_pagina->presente = true;
-
-    // t_pagina* test_pagina_2 = malloc(sizeof(t_pagina));
-    // test_pagina->frame = 1;
-    // test_pagina->presente = true;
-
-    // t_proceso* test_proceso = malloc(sizeof(t_proceso));
-    // test_proceso->pid = 1;
-    // test_proceso->pc = 0;
-    // test_proceso->instrucciones = list_create();
-    // test_proceso->paginas = list_create();
-
-    // list_add(test_proceso->instrucciones, &test_instruccion_1);
-    // list_add(test_proceso->instrucciones, &test_instruccion_2);
-
-    // list_add(test_proceso->paginas, test_pagina);
-    // list_add(test_proceso->paginas, test_pagina_2);
-
-
-    // t_instruccion* instruccion = list_get(test_proceso->instrucciones, test_proceso->pc);
-    // test_proceso->pc++;
-
-    // t_buffer* response_buffer = crear_buffer();
-    // cargar_instruccion_a_buffer(response_buffer, instruccion);
-    // t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
-
-    // //TEST:
-    // t_instruccion instruccion_buffer = extraer_instruccion_del_buffer(response_buffer);
-
-
-    
 
     // Obtengo los valores de la configuracion
     PUERTO_ESCUCHA = config_get_string_value(memoria_config, "PUERTO_ESCUCHA");
