@@ -56,8 +56,7 @@ int main(int argc, char *argv[])
     *socket_cliente_cpu_ptr = cliente_cpu;
     pthread_create(&hilo_cpu, NULL, atender_cpu, socket_cliente_cpu_ptr);
     pthread_detach(hilo_cpu);
-    log_info(memoria_logger, "Atendiendo mensajes de CPU");   
-    
+    log_info(memoria_logger, "Atendiendo mensajes de CPU");    
     
     //Espero conexion de kernel
     int cliente_kernel = esperar_cliente(servidor_memoria);   
@@ -144,19 +143,18 @@ void* atender_cpu(void* socket_cliente_ptr) {
         destruir_buffer(buffer);
 
         int resultado = resize(pid, bytes);
-        if(resultado > 0){
-            response_buffer = crear_buffer();
-            // Paquete sin buffer, ver si funciona.
-            response = crear_paquete(RESIZE_OK, NULL);
-            enviar_paquete(response, cliente_cpu);
-            destruir_paquete(response);
+
+        // TODO: mejorar envio de paquetes sin buffer.
+        response_buffer = crear_buffer();
+        if(resultado >= 0){
+            response = crear_paquete(RESIZE_OK, response_buffer);
         } else {
-            response_buffer = crear_buffer();
-            // Paquete sin buffer, ver si funciona.
-            response = crear_paquete(OUT_OF_MEMORY, NULL);
-            enviar_paquete(response, cliente_cpu);
-            destruir_paquete(response);
+            response = crear_paquete(OUT_OF_MEMORY, response_buffer);
         }
+
+
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
         break;
     case LEER: // Parametros: PID, Direccion Fisica, Cantidad bytes
         // ESTO LO VAMOS A USAR PARA LA OPERACIÓN MOV_IN.
@@ -172,7 +170,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
         //
         // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
-        log_info(memoria_logger, "Solicitud de movimiento de memoria");
+        log_info(memoria_logger, "Solicitud de lectura de memoria");
         buffer = recibir_buffer(cliente);
         usleep(atoi(RETARDO_RESPUESTA));
         
@@ -209,6 +207,8 @@ void* atender_cpu(void* socket_cliente_ptr) {
         char* bytes_a_escribir = extraer_string_del_buffer(buffer);
 
         escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+
+        // TODO: mejorar envio de paquetes sin buffer.
         response_buffer = crear_buffer();
         response = crear_paquete(ESCRIBIR_OK, response_buffer);
         enviar_paquete(response, cliente_cpu);
