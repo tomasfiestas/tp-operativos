@@ -617,8 +617,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//t_buffer* buffer4 = recibir_buffer(cliente_kd);			        
 			atender_fin_proceso_success(buffer,op_code);
 			break;
+
+		// RECUSOS -----------------------------------------------------------
 		case SOLICITAR_WAIT:
-			char recurso_wait = extraer_string_del_buffer2(buffer);
+			char * recurso_wait = extraer_string_del_buffer2(buffer);
 
 			destruir_buffer(buffer);
 			wait_recurso(pcb,recurso_wait);
@@ -627,55 +629,313 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
             break;
 		case SOLICITAR_SIGNAL:
 			log_info(kernel_logger, "Llegó solicitud de signal");
-			char recurso_signal = extraer_string_del_buffer2(buffer);
+			char * recurso_signal = extraer_string_del_buffer2(buffer);
 
 			signal_recurso(pcb,recurso_signal);          
 
             break;
+		// ENTRADA SALIDA -----------------------------------------------------------
 		case IO_GEN_SLEEP:
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			sacar_de_exec(pcb,IO);
-			t_pcb* pcbs = list_get(total_pcbs,0);
-			log_info(kernel_logger,"El estado del proceso 0 de la lista total es %s",estado_a_string(pcbs->estado));
-			t_pcb* pcbc = list_get(plani_block,0);
-			log_info(kernel_logger,"El estado del proceso  es %s",estado_a_string(pcbc->estado));
-			char* nombre_interfaz_solicitada = extraer_string_del_buffer(buffer);
-			char* unidades_trabajo = extraer_string_del_buffer(buffer);
+			char* nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
+			char* unidades_trabajo1 = extraer_string_del_buffer(buffer);
+
 			sem_wait(&mutex_lista_interfaces);
-				t_entrada_salida* interfaz = buscar_interfaz(nombre_interfaz_solicitada);
-			sem_post(&mutex_lista_interfaces);
-			if(interfaz == NULL){
-				log_error(kernel_logger, "No se encontró la interfaz solicitada, mando proceso a exit");
-				agregar_a_exit(pcb, INVALID_INTERFACE);
-				break;
-			}
-			int instruccion_valida = validar_instruccion_interfaz(interfaz,op_code);
-			if(instruccion_valida == 0){
-				log_error(kernel_logger, "Instrucción no soportada, mando proceso a exit");
-				agregar_a_exit(pcb, INVALID_INTERFACE);
-				break;
-			}			
-			if(sem_trywait(&interfaz->sem_disponible) ==0 ){
+				t_entrada_salida* interfaz1 = buscar_interfaz(nombre_interfaz_solicitada1);
+			sem_post(&mutex_lista_interfaces);	
+			
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz1, op_code))
+				break;	
+					
+			if(sem_trywait(&interfaz1->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
-				interfaz->pid_usandola = pcb->pid;
+				interfaz1->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz = crear_buffer();
-				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada);
-				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo);
+				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada1);
+				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo1);
 				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
-				enviar_paquete(paquete_interfaz, interfaz->fd_interfaz);
-				destruir_buffer(buffer_interfaz);		//Hasta acá mandamos a tomi las cosas para hacer, 
-				//habría que ver como manejar que se vaya a bloqueado y que no muera acá el proceso...		
+				enviar_paquete(paquete_interfaz, interfaz1->fd_interfaz);
+				destruir_buffer(buffer_interfaz);		
 			}
 			else{
-				t_lista_block* lista_bloqueados = malloc(sizeof(t_lista_block));
-				lista_bloqueados->pcb = pcb;
-				lista_bloqueados->parametros = unidades_trabajo;
-				queue_push(interfaz->cola_procesos_bloqueados,lista_bloqueados);
+				t_lista_block* lista_bloqueados1 = malloc(sizeof(t_lista_block));
+				lista_bloqueados1->pcb = pcb;
+				lista_bloqueados1->operacion = op_code;
+				list_add(lista_bloqueados1->parametros, unidades_trabajo1);
+				queue_push(interfaz1->cola_procesos_bloqueados,lista_bloqueados1);
 			}
 			
-			
 			break;
+		case IO_STDIN_READ:
+			log_info(kernel_logger,"LLegó un IO_STDIN_READ");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada2 = extraer_string_del_buffer(buffer);
+			char* registro_direccion2 = extraer_string_del_buffer(buffer);
+			char* registro_tamanio2 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz2 = buscar_interfaz(nombre_interfaz_solicitada2);
+			sem_post(&mutex_lista_interfaces);
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz2, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz2->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz2->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz2 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);
+				cargar_string_a_buffer(buffer_interfaz2, registro_direccion2);
+				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
+				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);
+				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
+				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
+				destruir_buffer(buffer_interfaz2);			
+			}
+			else{
+				t_lista_block* lista_bloqueados2 = malloc(sizeof(t_lista_block));
+				lista_bloqueados2->pcb = pcb;
+				lista_bloqueados2->operacion = op_code;
+				list_add(lista_bloqueados2->parametros, registro_direccion2);
+				list_add(lista_bloqueados2->parametros, registro_tamanio2);
+				queue_push(interfaz2->cola_procesos_bloqueados,lista_bloqueados2);
+			}
+		break;
+		case IO_STDOUT_WRITE:
+			log_info(kernel_logger,"LLegó un IO_STDOUT_WRITE");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada3 = extraer_string_del_buffer(buffer);
+			char* registro_direccion3 = extraer_string_del_buffer(buffer);
+			char* registro_tamanio3 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz3 = buscar_interfaz(nombre_interfaz_solicitada3);
+			sem_post(&mutex_lista_interfaces);
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz3, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz3->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz3->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz3 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);
+				cargar_string_a_buffer(buffer_interfaz3, registro_direccion3);
+				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
+				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
+				t_paquete* paquete_interfaz3 = crear_paquete(IO_STDOUT_WRITE, buffer_interfaz3);
+				enviar_paquete(paquete_interfaz3, interfaz3->fd_interfaz);
+				destruir_buffer(buffer_interfaz3);			
+			}
+			else{
+				t_lista_block* lista_bloqueados3 = malloc(sizeof(t_lista_block));
+				lista_bloqueados3->pcb = pcb;
+				lista_bloqueados3->operacion = op_code;
+				list_add(lista_bloqueados3->parametros, registro_direccion3);
+				list_add(lista_bloqueados3->parametros, registro_tamanio3);
+				queue_push(interfaz3->cola_procesos_bloqueados,lista_bloqueados3);
+			}
+		break;
+		case IO_FS_CREATE :
+			log_info(kernel_logger,"LLegó un IO_FS_CREATE");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada4 = extraer_string_del_buffer(buffer);
+			char* nombre_archivo4 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz4 = buscar_interfaz(nombre_interfaz_solicitada4);
+			sem_post(&mutex_lista_interfaces);
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz4, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz4->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz4->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz4 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz4, nombre_interfaz_solicitada4);
+				cargar_string_a_buffer(buffer_interfaz4, nombre_archivo4);
+				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);
+				t_paquete* paquete_interfaz4 = crear_paquete(IO_FS_CREATE , buffer_interfaz4);
+				enviar_paquete(paquete_interfaz4, interfaz4->fd_interfaz);
+				destruir_buffer(buffer_interfaz4);			
+			}
+			else{
+				t_lista_block* lista_bloqueados4 = malloc(sizeof(t_lista_block));
+				lista_bloqueados4->pcb = pcb;
+				lista_bloqueados4->operacion = op_code;
+				list_add(lista_bloqueados4->parametros, nombre_archivo4);
+				queue_push(interfaz4->cola_procesos_bloqueados,lista_bloqueados4);
+			}
+		break;
+		case IO_FS_DELETE:
+			log_info(kernel_logger,"LLegó un IO_FS_DELETE");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada5 = extraer_string_del_buffer(buffer);
+			char* nombre_archivo5 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz5 = buscar_interfaz(nombre_interfaz_solicitada5);
+			sem_post(&mutex_lista_interfaces);
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz5, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz5->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz5->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz5 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz5, nombre_interfaz_solicitada5);
+				cargar_string_a_buffer(buffer_interfaz5, nombre_archivo5);
+				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);
+				t_paquete* paquete_interfaz5 = crear_paquete(IO_FS_DELETE , buffer_interfaz5);
+				enviar_paquete(paquete_interfaz5, interfaz5->fd_interfaz);
+				destruir_buffer(buffer_interfaz5);			
+			}
+			else{
+				t_lista_block* lista_bloqueados5 = malloc(sizeof(t_lista_block));
+				lista_bloqueados5->pcb = pcb;
+				lista_bloqueados5->operacion = op_code;
+				list_add(lista_bloqueados5->parametros, nombre_archivo5);
+				queue_push(interfaz5->cola_procesos_bloqueados,lista_bloqueados5);
+			}
+		break;
+		case IO_FS_TRUNCATE:
+			log_info(kernel_logger,"LLegó un IO_FS_TRUNCATE");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada6 = extraer_string_del_buffer(buffer);
+			char* nombre_archivo6 = extraer_string_del_buffer(buffer);
+			char* registro_tamanio6 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz6 = buscar_interfaz(nombre_interfaz_solicitada6);
+			sem_post(&mutex_lista_interfaces);
+
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz6, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz6->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz6->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz6 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz6, nombre_interfaz_solicitada6);
+				cargar_string_a_buffer(buffer_interfaz6, nombre_archivo6);
+				cargar_string_a_buffer(buffer_interfaz6, registro_tamanio6);
+				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);
+				t_paquete* paquete_interfaz6 = crear_paquete(IO_FS_TRUNCATE , buffer_interfaz6);
+				enviar_paquete(paquete_interfaz6, interfaz6->fd_interfaz);
+				destruir_buffer(buffer_interfaz6);			
+			}
+			else{
+				t_lista_block* lista_bloqueados6 = malloc(sizeof(t_lista_block));
+				lista_bloqueados6->pcb = pcb;
+				lista_bloqueados6->operacion = op_code;
+				list_add(lista_bloqueados6->parametros, nombre_archivo6);
+				list_add(lista_bloqueados6->parametros, registro_tamanio6);
+				queue_push(interfaz6->cola_procesos_bloqueados,lista_bloqueados6);
+			}
+		break;
+		case IO_FS_WRITE:
+			log_info(kernel_logger,"LLegó un IO_FS_WRITE");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada7 = extraer_string_del_buffer(buffer);
+			char* nombre_archivo7 = extraer_string_del_buffer(buffer);
+			char* registro_direccion7 = extraer_string_del_buffer(buffer);
+			char* registro_tamanio7 = extraer_string_del_buffer(buffer);
+			char* registro_puntero_archivo7 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz7 = buscar_interfaz(nombre_interfaz_solicitada7);
+			sem_post(&mutex_lista_interfaces);
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz7, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz7->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz7->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz7 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz7, nombre_interfaz_solicitada7);
+				cargar_string_a_buffer(buffer_interfaz7, nombre_archivo7);
+				cargar_string_a_buffer(buffer_interfaz7, registro_direccion7);
+				cargar_string_a_buffer(buffer_interfaz7, registro_tamanio7);
+				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);
+				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
+				t_paquete* paquete_interfaz7 = crear_paquete(IO_FS_WRITE  , buffer_interfaz7);
+				enviar_paquete(paquete_interfaz7, interfaz7->fd_interfaz);
+				destruir_buffer(buffer_interfaz7);			
+			}
+			else{
+				t_lista_block* lista_bloqueados7 = malloc(sizeof(t_lista_block));
+				lista_bloqueados7->pcb = pcb;
+				lista_bloqueados7->operacion = op_code;
+				list_add(lista_bloqueados7->parametros, nombre_archivo7);
+				list_add(lista_bloqueados7->parametros, registro_direccion7);
+				list_add(lista_bloqueados7->parametros, registro_tamanio7);
+				list_add(lista_bloqueados7->parametros, registro_puntero_archivo7);
+				queue_push(interfaz7->cola_procesos_bloqueados,lista_bloqueados7);
+			}
+		break;
+		case IO_FS_READ:
+			log_info(kernel_logger,"LLegó un IO_FS_READ");
+			sacar_de_exec(pcb,IO);
+
+			char* nombre_interfaz_solicitada8 = extraer_string_del_buffer(buffer);
+			char* nombre_archivo8 = extraer_string_del_buffer(buffer);
+			char* registro_direccion8 = extraer_string_del_buffer(buffer);
+			char* registro_tamanio8 = extraer_string_del_buffer(buffer);
+			char* registro_puntero_archivo8 = extraer_string_del_buffer(buffer);
+
+			sem_wait(&mutex_lista_interfaces);
+				t_entrada_salida* interfaz8 = buscar_interfaz(nombre_interfaz_solicitada8);
+			sem_post(&mutex_lista_interfaces);
+
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
+			if (! validar_interfaz_e_instruccion(pcb, interfaz8, op_code))
+			break;	
+
+			if(sem_trywait(&interfaz8->sem_disponible) ==0 ){
+				//MANDAR A TOMI.
+				interfaz8->pid_usandola = pcb->pid;
+				t_buffer* buffer_interfaz8 = crear_buffer();
+				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);
+				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);
+				cargar_string_a_buffer(buffer_interfaz8, registro_direccion8);
+				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);
+				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);
+				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
+				t_paquete* paquete_interfaz8 = crear_paquete(IO_FS_READ  , buffer_interfaz8);
+				enviar_paquete(paquete_interfaz8, interfaz8->fd_interfaz);
+				destruir_buffer(buffer_interfaz8);			
+			}
+			else{
+				t_lista_block* lista_bloqueados8 = malloc(sizeof(t_lista_block));
+				lista_bloqueados8->pcb = pcb;
+				lista_bloqueados8->operacion = op_code;
+				list_add(lista_bloqueados8->parametros, nombre_archivo8);
+				list_add(lista_bloqueados8->parametros, registro_direccion8);
+				list_add(lista_bloqueados8->parametros, registro_tamanio8);
+				list_add(lista_bloqueados8->parametros, registro_puntero_archivo8);
+				queue_push(interfaz8->cola_procesos_bloqueados,lista_bloqueados8);
+			}
+		break;
+
 		default:
 			log_error(kernel_logger, "No se reconoce el handshake");
 			break;
@@ -684,6 +944,22 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	log_info(kernel_logger,"llego contexto en FALSE");
 	
 
+}
+
+int validar_interfaz_e_instruccion(t_pcb * pcb, t_entrada_salida * interfaz, op_code op_code){
+	
+	if(interfaz == NULL){
+		log_error(kernel_logger, "No se encontró la interfaz solicitada, mando proceso a exit");
+		agregar_a_exit(pcb, INVALID_INTERFACE);
+		return 0;
+	}
+	int instruccion_valida = validar_instruccion_interfaz(interfaz,op_code);
+	if(instruccion_valida == 0){
+		log_error(kernel_logger, "Instrucción no soportada, mando proceso a exit");
+		agregar_a_exit(pcb, INVALID_INTERFACE);
+		return 0;
+	}
+	return 1;
 }
 
 void atender_crear_pr2(t_pcb* pcb,op_code op_code){

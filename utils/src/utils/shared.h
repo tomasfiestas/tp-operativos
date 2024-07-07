@@ -61,10 +61,7 @@ typedef struct{
 	t_queue* cola_procesos_bloqueados;
 }t_entrada_salida;
 
-typedef struct{
-    t_pcb* pcb;    
-    char* parametros; //cola de archivo o recurso
-}t_lista_block;
+
 
 
 
@@ -149,6 +146,11 @@ typedef enum
 
 }op_code;
 
+typedef struct{
+    t_pcb* pcb;    
+    char* parametros; //cola de archivo o recurso
+	op_code operacion; 
+}t_lista_block;
 typedef struct {
 	op_code operacion;
 	t_list* parametros;

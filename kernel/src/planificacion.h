@@ -76,6 +76,6 @@ void sacar_de_bloqueado(t_pcb* pcb);
 //Manejo de IO
 t_entrada_salida* buscar_interfaz(char* nombre);
 int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_code);
-
+int validar_interfaz_e_instruccion(t_pcb * pcb,t_entrada_salida* interfaz, op_code op_code);
 
 #endif 
