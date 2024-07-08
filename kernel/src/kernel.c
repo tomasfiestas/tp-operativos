@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
-    cliente_entradasalida = esperar_cliente(servidor); 
+   // cliente_entradasalida = esperar_cliente(servidor); 
 
     
     //Planificacion

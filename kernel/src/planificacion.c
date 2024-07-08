@@ -524,6 +524,7 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 	t_estado estadoAnterior = pcb->estado;
 
 	t_pcb * pcb_enLista = buscarPcb(pcb->pid);
+	log_info(kernel_logger, "hola");
 	pcb_enLista->estado = estadoNuevo;
 
 	string_append(&estadoAnteriorString, estado_a_string(estadoAnterior));
@@ -638,15 +639,15 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		case IO_GEN_SLEEP:
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			sacar_de_exec(pcb,IO);
-			char* nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
+			char * nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
 			char* unidades_trabajo1 = extraer_string_del_buffer(buffer);
+			log_info(kernel_logger, "nombre de la interfaz %s", nombre_interfaz_solicitada1);
 
 			sem_wait(&mutex_lista_interfaces);
 				t_entrada_salida* interfaz1 = buscar_interfaz(nombre_interfaz_solicitada1);
 			sem_post(&mutex_lista_interfaces);	
 			
-			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
-			if (! validar_interfaz_e_instruccion(pcb, interfaz1, op_code))
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada			if (! validar_interfaz_e_instruccion(pcb, interfaz1, op_code))
 				break;	
 					
 			if(sem_trywait(&interfaz1->sem_disponible) ==0 ){
@@ -948,6 +949,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 int validar_interfaz_e_instruccion(t_pcb * pcb, t_entrada_salida * interfaz, op_code op_code){
 	
+	//log_info(kernel_logger, "nombre de la interfaz:  %d",interfaz->nombre);
 	if(interfaz == NULL){
 		log_error(kernel_logger, "No se encontró la interfaz solicitada, mando proceso a exit");
 		agregar_a_exit(pcb, INVALID_INTERFACE);
