@@ -621,8 +621,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 		// RECUSOS -----------------------------------------------------------
 		case SOLICITAR_WAIT:
-			char * recurso_wait = extraer_string_del_buffer2(buffer);
-
+			char * recurso_wait = extraer_string_del_buffer(buffer);
+			//sacar_de_exec(pcb, op_code);   
 			destruir_buffer(buffer);
 			wait_recurso(pcb,recurso_wait);
             //free(recurso_wait);
@@ -1176,12 +1176,13 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 
 	
 	if (sem_trywait(&semaforo_recursos[posicion_recurso]) >= 0) { // si lo esta --> lo decrementa y va a ready
-		agregar_a_ready(pcb);
+		sacar_de_exec(pcb, PROCESO_DESALOJADO);   
+		//agregar_a_ready(pcb);
 	}else { // si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso y a la lista bloqueados (estado == block)
 		sem_wait(&mutex_recursos);
 			queue_push(plani_block_recursos[posicion_recurso], pcb);
 		sem_post(&mutex_recursos);
-		agregar_a_bloqueado(pcb);
+		//agregar_a_bloqueado(pcb);
 		//lo manejo
 		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
 	} 
