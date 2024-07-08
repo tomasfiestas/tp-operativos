@@ -72,6 +72,9 @@ void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar);
 char *mensaje_a_string(op_code motivo);
 void mostrar_pids_y_estados();
 void sacar_de_bloqueado(t_pcb* pcb);
+void actualizar_contextos(t_pcb* origen,t_pcb* destino);
+void liberar_recursos(t_pcb* pcb);
+void signal_recursos_finalizar_proceso(char* recurso);
 
 //Manejo de IO
 t_entrada_salida* buscar_interfaz(char* nombre);

@@ -72,7 +72,7 @@ void crear_pcb(int pid){
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
 	nuevo_pcb->quantum = quantum_64;
-
+	nuevo_pcb->recursos_asignados = list_create();
 	
 	inicializar_registros(nuevo_pcb);
 	
@@ -523,9 +523,7 @@ void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo){
 
 	t_estado estadoAnterior = pcb->estado;
 
-	t_pcb * pcb_enLista = buscarPcb(pcb->pid);
-	log_info(kernel_logger, "hola");
-	pcb_enLista->estado = estadoNuevo;
+	pcb->estado = estadoNuevo;
 
 	string_append(&estadoAnteriorString, estado_a_string(estadoAnterior));
 	string_append(&estadoNuevoString, estado_a_string(estadoNuevo));
@@ -564,11 +562,16 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     op_code op_code = recibir_operacion(cliente_kd);
 	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
 	sem_post(&puedeEntrarAExec); 
-	llego_contexto = true;	
-	//pthread_cancel(hilo_quantum); //TODO REVISAR PORQUE EN FIFO NO HAY QUANTUM
+	llego_contexto = true;
+	if(obtener_algoritmo() == RR)
+    pthread_cancel(hilo_quantum);	
 	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
-	t_pcb* pcb = extraer_pcb_del_buffer(buffer);	
+	t_pcb* pcbRecibido = extraer_pcb_del_buffer(buffer);
+
+	t_pcb* pcb = buscarPcb(pcbRecibido->pid);
+	actualizar_contextos(pcbRecibido,pcb);
+	free(pcbRecibido);	
 	if(algoritmo_plani == VRR){		
 		temporal_stop(timer);
 		log_info(kernel_logger, "Se detiene el timer : %d, Quantum restante antes de restar: %d", timer->elapsed_ms,pcb->quantum);		
@@ -1032,9 +1035,26 @@ void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
     
 	sacar_de_exec(pcb, op_code);     
     log_info(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
-	finalizarProceso(valor_pcb.pid);
+	finalizarProceso(valor_pcb.pid);//Le aviso a memoria
+	//Libero los recursos asignados al proceso
+	liberar_recursos(pcb);
     destruir_buffer(buffer);
 	free(pcb);	
+}
+
+void liberar_recursos(t_pcb* pcb) {
+		int cant_recursos = list_size(pcb->recursos_asignados);
+		for (int i = 0; i < cant_recursos; i++) {
+			t_recurso* recurso = list_get(pcb->recursos_asignados, i);
+			
+			for (int j = 0; j < recurso->cantidad; j++) {
+			signal_recursos_finalizar_proceso(recurso->nombre); 
+			log_info(kernel_logger,"Hice signal n° %d del recurso %s", j,recurso->nombre);
+			}
+		}
+			log_info(kernel_logger,"Recursos asignados al proceso ", pcb->pid);
+						
+		
 }
 
 void finalizarProceso(int pid){
@@ -1186,6 +1206,26 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		//lo manejo
 		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
 	} 
+	// Buscar el recurso en la lista de recursos asignados del PCB
+	int existerecurso=0;
+	//log_info(kernel_logger, "Tamaño de lista de recursos del proceso %d", list_size(pcb->recursos_asignados));
+	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
+		t_recurso *recurso = list_get(pcb->recursos_asignados, i);
+		if (strcmp(recurso->nombre, recurso_recibido) == 0) {
+			//Si está en la lista le incremento la cantidad de recursos asignados en +1.
+			existerecurso=1;
+			recurso->cantidad += 1;
+			break;
+		}
+	}
+		// Si no se encontró el recurso, incrementar la cantidad y lo añado a la lista de recursos asignados al pcb.
+		if (existerecurso!=1) {
+			t_recurso *nuevo_recurso = malloc(sizeof(t_recurso));
+			nuevo_recurso->nombre = recurso_recibido;
+			nuevo_recurso->cantidad += 1;
+			list_add(pcb->recursos_asignados, nuevo_recurso);
+			
+		}
     
 }
 void signal_recurso(t_pcb *pcb, char *recurso_recibido){
@@ -1216,6 +1256,32 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		sem_wait(&semaforo_recursos[posicion_recurso]);
 
 	}
+
+
+	// Buscar el recurso en la lista de recursos asignados del PCB
+	t_recurso *recurso_actual = NULL;
+	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
+		t_recurso *recurso_actual = list_get(pcb->recursos_asignados, i);
+		if (strcmp(recurso_actual->nombre, recurso_recibido) == 0) {
+			recurso_actual->cantidad -= 1;
+			if(recurso_actual->cantidad == 0){
+				list_remove_element(pcb->recursos_asignados, recurso_actual);
+			}
+			break;
+		}
+	}
+}
+
+void signal_recursos_finalizar_proceso(char* recurso){
+	int posicion_recurso = encontrar_posicion_recurso(recurso);
+	if(posicion_recurso == -1){
+		log_error(kernel_logger, "No se encontro el recurso %s", recurso);
+		
+		return;
+	}
+
+	// si existe, le subo una instancia al recurso
+	sem_post(&semaforo_recursos[posicion_recurso]);
 }
 
 
@@ -1330,3 +1396,7 @@ int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_c
 	
 }
 
+void actualizar_contextos(t_pcb* origen,t_pcb* destino){
+	destino->registros = origen->registros; 
+	destino->quantum = origen->quantum;
+}

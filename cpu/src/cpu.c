@@ -138,13 +138,16 @@ void atender_crear_pr(t_buffer* buffer){
     log_info(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
     destruir_buffer(buffer);
     t_buffer* buffer_cpu_ki = crear_buffer();   
+    pcbb->registros.AX = 5;
+    int64_t numero = (int64_t) 5;
+    pcbb->quantum = numero;
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
     //cargar_string_a_buffer(buffer_cpu_ki, "Nueva 1");
     //cargar_string_a_buffer(buffer_cpu_ki, "50");       
     //char * recurso = "RA";
     cargar_string_a_buffer(buffer_cpu_ki,"RA");
     //usleep(5000000);
-    //sleep(8);
+    //sleep(10);
     t_paquete* paquete_cpu = crear_paquete(SOLICITAR_WAIT, buffer_cpu_ki);
     //log_info(cpu_logger, "Enviamos PCB a Kernel con quantum: %d", pcbb->quantum);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);

@@ -47,8 +47,14 @@ typedef struct{
 	t_registros registros;	
 	//t_list* tabla_archivos;	
 	int64_t quantum;//USAR uint_32
+	t_list* recursos_asignados;
 	int ejecuto;
 } t_pcb;
+
+typedef struct {
+	char* nombre;
+	int cantidad;
+}t_recurso;
 
 
 typedef struct{
