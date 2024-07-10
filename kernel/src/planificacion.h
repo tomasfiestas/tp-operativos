@@ -75,6 +75,7 @@ void sacar_de_bloqueado(t_pcb* pcb);
 void actualizar_contextos(t_pcb* origen,t_pcb* destino);
 void liberar_recursos(t_pcb* pcb);
 void signal_recursos_finalizar_proceso(char* recurso);
+void remove_from_plani_block(t_pcb* pcb, int posicion);
 
 //Manejo de IO
 t_entrada_salida* buscar_interfaz(char* nombre);
