@@ -270,6 +270,12 @@ void* atender_entradasalida(void* socket_cliente_ptr){
     bool control_key = 1;
     while (control_key){
         op_code op_code = recibir_operacion(cliente_es);
+        t_buffer* buffer;
+        int pid;
+        int direccion_fisica;
+        int cantidad_bytes;
+        t_buffer* response_buffer;
+        t_paquete* response;
         switch (op_code){
             case HANDSHAKE_KERNEL:
 			log_info(memoria_logger, "Se conecto el Kernel");
@@ -283,6 +289,63 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 		case HANDSHAKE_ES:
 			log_info(memoria_logger, "Se conecto el IO");
 			break;
+        case IO_STDIN_READ:// Parametros: PID, Direccion Fisica, bytes a escribir
+            // ante este caso se escribe en memoria.
+            // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+            // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+            //
+            // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES ESCRIBIR
+            // A CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+            // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a escribir:
+            // * ESCRIBIR 3 BYTES A PARTIR DE DIRECCION FISICA 1
+            // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 2
+            // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 3
+            // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+            log_info(memoria_logger, "Solicitud de escritura en memoria");
+            buffer = recibir_buffer(cliente_es);
+            usleep(atoi(RETARDO_RESPUESTA));
+
+            pid = extraer_int_del_buffer(buffer);
+            direccion_fisica = extraer_int_del_buffer(buffer);
+            char* bytes_a_escribir = extraer_string_del_buffer(buffer);
+
+            escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+
+            // TODO: mejorar envio de paquetes sin buffer.
+            response_buffer = crear_buffer();
+            response = crear_paquete(ESCRIBIR_OK, response_buffer);
+            enviar_paquete(response, cliente_entradasalida);
+            destruir_paquete(response);
+            break;
+        case IO_STDOUT_WRITE:  // Parametros: PID, Direccion Fisica, Cantidad bytes
+        // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+        // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+        //
+        // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES LEER
+        // EN CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+        // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a leer:
+        // * LEER 3 BYTES A PARTIR DE DIRECCION FISICA 1
+        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 2
+        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 3
+        // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+        //
+        // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
+        log_info(memoria_logger, "Solicitud de lectura de memoria");
+        buffer = recibir_buffer(cliente_es);
+        usleep(atoi(RETARDO_RESPUESTA));
+        
+        pid = extraer_int_del_buffer(buffer);
+        direccion_fisica = extraer_int_del_buffer(buffer);
+        cantidad_bytes = extraer_int_del_buffer(buffer);
+
+        char* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
+
+        response_buffer = crear_buffer();
+        cargar_string_a_buffer(response_buffer, bytes_leidos);
+        response = crear_paquete(LEER_OK, response_buffer);
+        enviar_paquete(response, cliente_entradasalida);
+        destruir_paquete(response);
+        break;
 		default:
 			log_error(memoria_logger, "No se reconoce el handshake");
 			control_key = 0;
