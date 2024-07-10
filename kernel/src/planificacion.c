@@ -670,6 +670,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados1 = malloc(sizeof(t_lista_block));
 				lista_bloqueados1->pcb = pcb;
 				lista_bloqueados1->operacion = op_code;
+				lista_bloqueados1->parametros = list_create();
 				list_add(lista_bloqueados1->parametros, unidades_trabajo1);
 				queue_push(interfaz1->cola_procesos_bloqueados,lista_bloqueados1);
 			}
@@ -1048,8 +1049,48 @@ void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
 	finalizarProceso(valor_pcb.pid);//Le aviso a memoria
 	//Libero los recursos asignados al proceso
 	liberar_recursos(pcb);
+	liberar_interfaces(pcb);
     destruir_buffer(buffer);
 	free(pcb);	
+}
+
+void liberar_interfaces(t_pcb* pcb){
+
+	int cantidadInterfacesConectadas = list_size(lista_interfaces);
+	for (int i = 0; i < cantidadInterfacesConectadas; i++){
+		t_entrada_salida * interfaz = list_get(lista_interfaces, i);
+		if (interfaz->pid_usandola == pcb-> pid){
+			liberar_interfaz(interfaz);
+		}
+	}
+
+}
+
+void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
+	
+	if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz
+        interfaz_a_liberar->pid_usandola = 0;
+        sem_post(&interfaz_a_liberar->sem_disponible);
+    }else{
+        t_lista_block* proximo_proceso_bloqueado = queue_pop(interfaz_a_liberar->cola_procesos_bloqueados);
+        interfaz_a_liberar->pid_usandola = proximo_proceso_bloqueado->pcb->pid;
+
+        t_buffer* buffer_interfaz = crear_buffer();
+		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
+
+		
+		for(int i=0; i < list_size(proximo_proceso_bloqueado->parametros); i++){
+			cargar_string_a_buffer(buffer_interfaz, list_get(proximo_proceso_bloqueado->parametros, i));
+		}
+		
+		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
+		t_paquete* paquete_interfaz = crear_paquete(proximo_proceso_bloqueado->operacion, buffer_interfaz);
+		enviar_paquete(paquete_interfaz, interfaz_a_liberar->fd_interfaz);
+		destruir_buffer(buffer_interfaz);	
+	
+    }
+				
+				
 }
 
 void liberar_recursos(t_pcb* pcb) {

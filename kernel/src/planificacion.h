@@ -74,6 +74,7 @@ void mostrar_pids_y_estados();
 void sacar_de_bloqueado(t_pcb* pcb);
 void actualizar_contextos(t_pcb* origen,t_pcb* destino);
 void liberar_recursos(t_pcb* pcb);
+void liberar_interfaces(t_pcb* pcb);
 void signal_recursos_finalizar_proceso(char* recurso);
 //void remove_from_plani_block(t_pcb* pcb, int posicion);
 void sacar_de_cola_de_espera_por_recurso(t_pcb* pcb, int posicion_del_recurso);
@@ -83,5 +84,7 @@ void queue_remove_element(t_queue *queue, void *element_to_remove);
 t_entrada_salida* buscar_interfaz(char* nombre);
 int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_code);
 int validar_interfaz_e_instruccion(t_pcb * pcb,t_entrada_salida* interfaz, op_code op_code);
+void liberar_interfaces(t_pcb* pcb);
+void liberar_interfaz(t_entrada_salida * interfaz);
 
 #endif 

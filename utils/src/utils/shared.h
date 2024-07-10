@@ -154,7 +154,7 @@ typedef enum
 
 typedef struct{
     t_pcb* pcb;    
-    char* parametros; //cola de archivo o recurso
+    t_list* parametros; 
 	op_code operacion; 
 }t_lista_block;
 typedef struct {
