@@ -476,7 +476,7 @@ void sacar_de_bloqueado(t_pcb* pcb){
 	sem_wait(&sem_block);
 		list_remove(plani_block, pcb);
 	sem_post(&sem_block);
-	agregar_a_ready(pcb);	
+	//agregar_a_ready(pcb);	
 }
 
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
@@ -1057,13 +1057,15 @@ void liberar_recursos(t_pcb* pcb) {
 		for (int i = 0; i < cant_recursos; i++) {
 			t_recurso* recurso = list_get(pcb->recursos_asignados, i);
 			int posicion_recurso = encontrar_posicion_recurso(recurso->nombre);
-			for (int j = 0; j < recurso->cantidad; j++) {
-			signal_recursos_finalizar_proceso(recurso->nombre); 
-			log_info(kernel_logger,"Hice signal n° %d del recurso %s", j,recurso->nombre);			
+			sacar_de_cola_de_espera_por_recurso(pcb,posicion_recurso); 
+			for (int j = 0; j < recurso->cantidad; j++) { //libero cada instancia
+				//signal_recursos_finalizar_proceso(recurso->nombre); 
+				log_info(kernel_logger,"Hago signal n° %d del recurso %s", j,recurso->nombre);
+				signal_recurso(pcb, recurso->nombre);			
 			}
-			remove_from_plani_block(pcb,posicion_recurso);
+			
 			// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
-			if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
+			/*if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
 				sem_wait(&mutex_recursos);
 					t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
 				sem_post(&mutex_recursos);
@@ -1075,27 +1077,56 @@ void liberar_recursos(t_pcb* pcb) {
 					//agregar_a_ready(pcb_bloqueado);// TODO ESTO HAY QUE SACARLO YA QUE LO AGREGAMOS A READY MAS ARRIBA
 				} 
 				sem_wait(&semaforo_recursos[posicion_recurso]);
+				// VER DE USAR FUNCIONES ANTERIORES - LE TENGO QUE DAR EL RECURSO
+				*/
 
-	}
-		}	
+			}
 			
-			log_info(kernel_logger,"Recursos asignados al proceso ", pcb->pid);
+			
+			
 						
 		
 }
 
-void remove_from_plani_block(t_pcb* pcb, int posicion) {
-	int tamaniocola = queue_size(plani_block_recursos);
-	for (int i = 0; i < tamaniocola; i++) {
-		t_pcb* pcb_in_queue = queue_pop(plani_block_recursos[posicion]);
+void sacar_de_cola_de_espera_por_recurso(t_pcb* pcb, int posicion_del_recurso) {
+	
+	queue_remove_element(plani_block_recursos[posicion_del_recurso], pcb);
+	/*
+	int tamanioColaDeColas = queue_size(plani_block_recursos); 
+	for (int i = 0; i < tamanioColaDeColas; i++) {
+		t_pcb* pcb_in_queue = queue_pop(plani_block_recursos[posicion_del_recurso]);
 		if (pcb_in_queue->pid == pcb->pid) {
 			// Skip removing the PCB at the specified position
 			i = tamaniocola;
-			continue;
+			//continue; ??
 		}
 		queue_push(plani_block_recursos[posicion], pcb_in_queue);
 	}
+	*/
 }
+
+// no hay funcion para eliminar un elemento particular de la cola --> 
+void queue_remove_element(t_queue *queue, void *element_to_remove) {
+    t_queue *temp_queue = queue_create();
+    void *element;
+
+    // Transferir elementos, omitiendo el que se desea eliminar
+    while (!queue_is_empty(queue)) {
+        element = queue_pop(queue);
+        if (element != element_to_remove) {
+            queue_push(temp_queue, element);
+        }
+    }
+
+    // Restaurar la cola original
+    while (!queue_is_empty(temp_queue)) {
+        queue_push(queue, queue_pop(temp_queue));
+    }
+
+    // Destruir la cola temporal
+    queue_destroy(temp_queue);
+}
+
 void finalizarProceso(int pid){
 	//Le aviso a la memoria que voy a finalizar un proceso [int pid] 
     t_buffer* buffer_memoria = crear_buffer();
@@ -1236,7 +1267,8 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 	
 	if (sem_trywait(&semaforo_recursos[posicion_recurso]) >= 0) { // si lo esta --> lo decrementa y va a ready
 		sacar_de_exec(pcb, PROCESO_DESALOJADO);   
-		//agregar_a_ready(pcb);
+		// Buscar el recurso en la lista de recursos asignados del PCB
+		agregar_recurso_a_pcb(pcb, recurso_recibido); // lo pongo aca pq quiero que me lo agregue solo si se lo di
 	}else { // si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso y a la lista bloqueados (estado == block)
 		sem_wait(&mutex_recursos);
 			queue_push(plani_block_recursos[posicion_recurso], pcb);
@@ -1246,70 +1278,81 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
 		log_info(kernel_logger, "PID: %d - Bloqueado por: %s", pcb->pid, recurso_recibido);
 	} 
-	// Buscar el recurso en la lista de recursos asignados del PCB
-	int existerecurso=0;
-	//log_info(kernel_logger, "Tamaño de lista de recursos del proceso %d", list_size(pcb->recursos_asignados));
-	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
-		t_recurso *recurso = list_get(pcb->recursos_asignados, i);
-		if (strcmp(recurso->nombre, recurso_recibido) == 0) {
-			//Si está en la lista le incremento la cantidad de recursos asignados en +1.
-			existerecurso=1;
-			recurso->cantidad += 1;
-			break;
-		}
-	}
-		// Si no se encontró el recurso, incrementar la cantidad y lo añado a la lista de recursos asignados al pcb.
-		if (existerecurso!=1) {
-			t_recurso *nuevo_recurso = malloc(sizeof(t_recurso));
-			nuevo_recurso->nombre = recurso_recibido;
-			nuevo_recurso->cantidad += 1;
-			list_add(pcb->recursos_asignados, nuevo_recurso);
-			
-		}
+	
     
 }
+
+void agregar_recurso_a_pcb(t_pcb* pcb, char* recurso_recibido){
+	int existerecurso=0;
+		// veo si ya lo tengo 
+		for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
+			t_recurso *recurso = list_get(pcb->recursos_asignados, i);
+			if (strcmp(recurso->nombre, recurso_recibido) == 0) {
+				//Si está en la lista le incremento la cantidad de recursos asignados en +1.
+				existerecurso=1;
+				recurso->cantidad += 1;
+				//break; 
+			}
+		}
+		// Si no se encontró el recurso, incrementar la cantidad y lo añado a la lista de recursos asignados al pcb.
+		if (existerecurso==0) {
+			t_recurso *nuevo_recurso = malloc(sizeof(t_recurso));
+			nuevo_recurso->nombre = recurso_recibido;
+			nuevo_recurso->cantidad = 1;
+			list_add(pcb->recursos_asignados, nuevo_recurso);
+		}
+}
+
 void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 
 	// si el recurso que me pide no existe lo mando a exit
 	int posicion_recurso = encontrar_posicion_recurso(recurso_recibido);
 	if(posicion_recurso == -1){
 		log_error(kernel_logger, "No se encontro el recurso %s", recurso_recibido);
-		sacar_de_exec(pcb, INVALID_RESOURCE);
-		return;
+		if(pcb->estado != EXIT) 
+			sacar_de_exec(pcb, INVALID_RESOURCE);
+	return;
 	}
 
-	// si existe, le subo una instancia al recurso
+	// si existe, le subo una instancia al recurso y le saco el recurso de su lista
 	sem_post(&semaforo_recursos[posicion_recurso]);
+	//remove_from_plani_block(pcb,posicion_recurso);
+	// Buscar y sacar el recurso en la lista de recursos asignados del PCB
+	t_recurso *recurso = NULL;
+	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
+		t_recurso *recurso = list_get(pcb->recursos_asignados, i);
+		if (strcmp(recurso->nombre, recurso_recibido) == 0) {
+			recurso->cantidad -= 1; 
+			if(recurso->cantidad == 0){
+				list_remove_element(pcb->recursos_asignados, recurso);
+			}else
+				list_replace(pcb->recursos_asignados, i, recurso);
+			//break;
+		}
+	}
 
-	// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
+	// si hay pcbs en cola para el recurso --> saco el siguiente, le asigno el recurso, lo pongo en ready (segun alg), y bajo una instancia
 	if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
 		sem_wait(&mutex_recursos);
 			t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
 		sem_post(&mutex_recursos);
+		
+		sem_wait(&semaforo_recursos[posicion_recurso]);
+		agregar_recurso_a_pcb(pcb_bloqueado, recurso_recibido);
+		log_info(kernel_logger,"Recursos asignados al proceso ", pcb_bloqueado->pid); 
 
+		
 		sacar_de_bloqueado(pcb_bloqueado);
 		if (algoritmo_plani == VRR){
 			agregar_a_cola_prioritaria(pcb_bloqueado);
 		}else{
 			agregar_a_ready(pcb_bloqueado);
 		} 
-		sem_wait(&semaforo_recursos[posicion_recurso]);
 
 	}
 
 
-	// Buscar el recurso en la lista de recursos asignados del PCB
-	t_recurso *recurso_actual = NULL;
-	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
-		t_recurso *recurso_actual = list_get(pcb->recursos_asignados, i);
-		if (strcmp(recurso_actual->nombre, recurso_recibido) == 0) {
-			recurso_actual->cantidad -= 1;
-			if(recurso_actual->cantidad == 0){
-				list_remove_element(pcb->recursos_asignados, recurso_actual);
-			}
-			break;
-		}
-	}
+	
 }
 
 void signal_recursos_finalizar_proceso(char* recurso){
