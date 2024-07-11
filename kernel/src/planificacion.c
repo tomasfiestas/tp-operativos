@@ -563,7 +563,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
 	sem_post(&puedeEntrarAExec); 
 	llego_contexto = true;
-	if(obtener_algoritmo() == RR)
+	if(obtener_algoritmo() != FIFO )
     pthread_cancel(hilo_quantum);	
 	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
@@ -1059,9 +1059,11 @@ void liberar_interfaces(t_pcb* pcb){
 	int cantidadInterfacesConectadas = list_size(lista_interfaces);
 	for (int i = 0; i < cantidadInterfacesConectadas; i++){
 		t_entrada_salida * interfaz = list_get(lista_interfaces, i);
+		queue_remove_element(interfaz->cola_procesos_bloqueados, pcb);
 		if (interfaz->pid_usandola == pcb-> pid){
-			liberar_interfaz(interfaz);
-		}
+			//sacar_de_cola_de_espera_por_interfaz(pcb,posicion_recurso); 
+			liberar_interfaz(interfaz);			
+		}		
 	}
 
 }
@@ -1086,7 +1088,8 @@ void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
 		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
 		t_paquete* paquete_interfaz = crear_paquete(proximo_proceso_bloqueado->operacion, buffer_interfaz);
 		enviar_paquete(paquete_interfaz, interfaz_a_liberar->fd_interfaz);
-		destruir_buffer(buffer_interfaz);	
+		destruir_buffer(buffer_interfaz);
+		free(proximo_proceso_bloqueado);
 	
     }
 				
@@ -1094,11 +1097,13 @@ void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
 }
 
 void liberar_recursos(t_pcb* pcb) {
+		for(int j = 0 ; j < string_array_size(RECURSOS); j++){
+			queue_remove_element(plani_block_recursos[j], pcb);//Acá lo saco cuando el recurso no fue asignado. 
+		}
 		int cant_recursos = list_size(pcb->recursos_asignados);		
 		for (int i = 0; i < cant_recursos; i++) {
 			t_recurso* recurso = list_get(pcb->recursos_asignados, i);
-			int posicion_recurso = encontrar_posicion_recurso(recurso->nombre);
-			sacar_de_cola_de_espera_por_recurso(pcb,posicion_recurso); 
+			int posicion_recurso = encontrar_posicion_recurso(recurso->nombre);			
 			for (int j = 0; j < recurso->cantidad; j++) { //libero cada instancia
 				//signal_recursos_finalizar_proceso(recurso->nombre); 
 				log_info(kernel_logger,"Hago signal n° %d del recurso %s", j,recurso->nombre);

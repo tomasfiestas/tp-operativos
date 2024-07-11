@@ -126,14 +126,16 @@ void atender_entradasalida2(void* socket_cliente_ptr){
 
             //Hay que poner el PCB en la cola de listos
             t_pcb* pcb_a_liberar = buscarPcbBloqueado(pid);
-            sacar_de_bloqueado(pcb_a_liberar);  
-            //if (strcmp(ALGORITMO_PLANIFICACION,"VRR")){
-            //    agregar_a_cola_prioritaria(pcb_a_liberar); //REVISAR no se pq entra aca si es fifo
-            //}else
+            if(pcb_a_liberar != NULL){
+                sacar_de_bloqueado(pcb_a_liberar);  
+            if (ALGORITMO_PLANIFICACION ==VRR ){
+                agregar_a_cola_prioritaria(pcb_a_liberar); //REVISAR no se pq entra aca si es fifo
+            }else
                 agregar_a_ready(pcb_a_liberar);
             
-            //agregar_a_exit(pcb_a_liberar,SUCCESS);         
-
+            //agregar_a_exit(pcb_a_liberar,SUCCESS);  
+                               
+            }
             liberar_interfaz(interfaz_a_liberar);
 
             

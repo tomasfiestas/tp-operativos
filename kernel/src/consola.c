@@ -144,8 +144,9 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
                         sacar_pcb_de_lista(pcb_a_finalizar);
                         agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
                         liberar_recursos(pcb_a_finalizar);
+                        liberar_interfaces(pcb_a_finalizar);
                     }                               
-                    //finalizar_proceso_por_consola(buffer_finalizar_proceso);
+                    //finalizar_proceso_por_consola(buffer_finalizar_proceso);                    
 
                     break;
                 case INICIAR_PLANIFICACION:
