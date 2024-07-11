@@ -261,7 +261,7 @@ void* extraer_de_buffer(t_buffer* buffer){
     return valor_pcb;
 }*/
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer){
-    t_pcb* pcb = malloc(sizeof(t_pcb));
+    t_pcb* pcb ;
     pcb = extraer_de_buffer(buffer);
     
     return pcb;
