@@ -165,8 +165,8 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // EN CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
         // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a leer:
         // * LEER 3 BYTES A PARTIR DE DIRECCION FISICA 1
-        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 2
-        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 3
+        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
+        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
         //
         // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
@@ -195,8 +195,8 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // A CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
         // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a escribir:
         // * ESCRIBIR 3 BYTES A PARTIR DE DIRECCION FISICA 1
-        // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 2
-        // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 3
+        // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 4
+        // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 8
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
         log_info(memoria_logger, "Solicitud de escritura en memoria");
         buffer = recibir_buffer(cliente);
@@ -298,9 +298,9 @@ void* atender_entradasalida(void* socket_cliente_ptr){
             // A CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
             // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a escribir:
             // * ESCRIBIR 3 BYTES A PARTIR DE DIRECCION FISICA 1
-            // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 2
-            // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 3
-            // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+            // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 4
+            // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 8
+            // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA. LOS MARCOS PODRIAN NO SER CONTIGUOS.
             log_info(memoria_logger, "Solicitud de escritura en memoria");
             buffer = recibir_buffer(cliente_es);
             usleep(atoi(RETARDO_RESPUESTA));
@@ -325,8 +325,8 @@ void* atender_entradasalida(void* socket_cliente_ptr){
         // EN CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
         // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a leer:
         // * LEER 3 BYTES A PARTIR DE DIRECCION FISICA 1
-        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 2
-        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 3
+        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
+        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
         //
         // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
