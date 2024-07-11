@@ -35,14 +35,13 @@ typedef struct{
 	uint32_t EDX;
 	uint32_t SI;
 	uint32_t DI;
+	uint32_t PC; //preguntar
 } t_registros;
-
-
 
 
 typedef struct{
 	int pid;
-	int program_counter;
+	int program_counter; 
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
@@ -159,6 +158,8 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+
+
 
 
 int crear_conexion_cliente(char* ip, char* puerto);

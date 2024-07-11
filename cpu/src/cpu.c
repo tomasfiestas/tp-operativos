@@ -5,7 +5,7 @@ int main(int argc, char* argv[]) {
     cpu_logger = iniciar_logger("cpu.log", "LOGGER_CPU");
     
     //Inicio la configuracion de la cpu
-    cpu_config = iniciar_config("cpu.config");
+    cpu_config = iniciar_config("cpu.config");  
     //Obtengo los valores de la configuracion
     IP_MEMORIA = config_get_string_value(cpu_config, "IP_MEMORIA");
     log_info(cpu_logger, "IP_MEMORIA: %s", IP_MEMORIA);
@@ -54,6 +54,8 @@ int main(int argc, char* argv[]) {
     //Atender los mensajes de Memoria  
     return EXIT_SUCCESS;
 }
+
+
 void atender_kernel_dispatch(void* socket_cliente_ptr) {
     int cliente_kd = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
@@ -85,6 +87,7 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
 	}   } 
     log_info(cpu_logger,"Fin de hilo de dispatch");
 }
+
 void atender_kernel_interrupt(void* socket_cliente_ptr) {
     int cliente_ki = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);

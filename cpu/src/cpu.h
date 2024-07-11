@@ -3,10 +3,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <utils/hello.h>
+#include <utils/hello.h> 
 #include <utils/logging.h>
 #include <utils/shared.h>
 #include <pthread.h>
+#include <instrucciones.h>
 
 
 
@@ -22,12 +23,13 @@ int conexion_memoria;
 int cliente_kernel_dispatch;
 int cliente_kernel_interrupt;
 bool llego_interrupcion = false;
+pthread_t hilo_kernel_dispatch;
 
 void atender_kernel_dispatch(void* socket_cliente_ptr);
 void atender_kernel_interrupt(void* socket_cliente_ptr);
 void atender_crear_pr(t_buffer* buffer);
 void atender_fin_quantum(t_buffer* buffer);
-pthread_t hilo_kernel_dispatch;
+
 
 
 #endif
