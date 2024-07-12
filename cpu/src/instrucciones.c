@@ -2,7 +2,7 @@
 
 
 t_pcb* ctx_global;
-int tamanio_pagina = 32; // VER BIEN.
+int tamanio_pagina; // VER BIEN.
 int socket_memoria;
 int socket_kernel;
 int direccion_fisica;
@@ -10,6 +10,9 @@ int direccion_fisica;
 int hay_interrupcion;
 t_log* cpu_logger;
 t_config* cpu_config;
+t_list* tlb;
+
+
 
 void ciclo_de_instruccion(t_pcb* pcbb){  
    	t_instruccion instruccion_actual;	
@@ -29,7 +32,7 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             //Pedir tamaño de página a memoria. Cuando se conecta como cliente. 
             */
         }       
-        execute(instruccion_actual, &pcbb);				//Agregar interrupciones. 
+        execute(instruccion_actual, pcbb);				//Agregar interrupciones. 
         //hayinterrupcion = 0;
 	}    
 }
@@ -40,7 +43,7 @@ t_instruccion solicitar_instruccion_a_memoria(t_pcb* t_pcb)
     //Solicito instruccion
     t_buffer *buffer = crear_buffer();
     cargar_int_a_buffer(buffer, t_pcb->pid); //Cargo el pid del proceso al que pertenece la instruccion a solicitar
-    //cargar_int_a_buffer(buffer, program_counter); //Cargo el program counter de la instruccion a solicitar
+    cargar_uint32_a_buffer(buffer, t_pcb->registros.PC); //Cargo el program counter de la instruccion a solicitar
     
     t_paquete *paquete = crear_paquete(SOLICITUD_INST,buffer);
 
@@ -54,12 +57,14 @@ t_instruccion solicitar_instruccion_a_memoria(t_pcb* t_pcb)
     op_code cod_op = recibir_operacion(conexion_memoria);
     t_buffer *buffer_recibido = recibir_buffer(conexion_memoria);
     if(cod_op == SOLICITUD_INST_OK){
-        t_instruccion instruccion = extraer_instruccion_del_buffer(buffer_recibido);
-        if(instruccion.operacion != EXIT){ 
+        t_instruccion_a_enviar instruccion = extraer_instruccion_a_enviar_del_buffer(buffer_recibido);
+        t_instruccion nueva_instruccion = crear_instruccion_nuevamente(instruccion, buffer_recibido);
+        if(nueva_instruccion.operacion!= EXIT){ 
         t_pcb->registros.PC = extraer_uint32_del_buffer(buffer_recibido);
         destruir_buffer(buffer_recibido);
         }
-        return instruccion;
+        
+        return nueva_instruccion;
         
     }
     else{
@@ -72,6 +77,48 @@ t_instruccion solicitar_instruccion_a_memoria(t_pcb* t_pcb)
       
 
     
+}
+t_instruccion crear_instruccion_nuevamente(t_instruccion_a_enviar instruccion_a_enviar, t_buffer *buffer_recibido){
+    t_instruccion instruccion ;
+    instruccion.operacion = instruccion_a_enviar.operacion;
+    instruccion.parametros = list_create();
+
+    switch(instruccion.operacion){ 
+        case SET: //TIenen todas 2 parametros
+        case SUM:
+        case SUB:
+        case MOV_IN:
+        case MOV_OUT:
+        case JNZ:
+            list_add(instruccion.parametros, extraer_string_del_buffer(buffer_recibido));
+            list_add(instruccion.parametros, extraer_string_del_buffer(buffer_recibido));
+            break;
+        case RESIZE: 
+        case COPY_STRING:   //Tienen 1 parametro
+        case WAIT:
+        case SIGNAL:
+            list_add(instruccion.parametros, extraer_string_del_buffer(buffer_recibido));            
+            break;
+        case IO_GEN_SLEEP:
+        case IO_STDIN_READ:
+        case IO_STDOUT_WRITE:       //Tienen 3 parametros
+        case IO_FS_CREATE:
+        case IO_FS_DELETE:
+        case IO_FS_TRUNCATE:
+        case IO_FS_WRITE:
+        case IO_FS_READ:
+            list_add(instruccion.parametros, extraer_string_del_buffer(buffer_recibido));
+            list_add(instruccion.parametros, extraer_string_del_buffer(buffer_recibido));
+            list_add(instruccion.parametros, extraer_string_del_buffer(buffer_recibido));
+            break;
+        case EXIT:
+            break; 
+
+
+    }
+
+    return instruccion;
+
 }
 
 t_instruccion fetch(t_pcb *ctx)
@@ -169,10 +216,11 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
 
     switch (instruccion.operacion){
     
-    case SET:                                                                    //SET(Registro, Valor)
+    case SET:                                                            //SET(Registro, Valor)
         char* registro_set =  (char*) list_get(instruccion.parametros, 0);
-        int valor = *((int*) list_get(instruccion.parametros, 1));
-        log_info(cpu_logger, "PID : %d - <SET> - <%s %d>", contexto->pid, registro_set, valor);
+        char* valor_inst = list_get(instruccion.parametros, 1);
+        log_info(cpu_logger, "PID : %d - <SET> - <%s %s>", contexto->pid, registro_set, valor_inst);
+        int valor = atoi(valor_inst);
         asignar_valor_a_registro(contexto,registro_set,valor);
         break;
     
@@ -227,10 +275,217 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             destruir_paquete(paquete_exit);
             ctx_global = NULL;
             break;
+    case MOV_IN:  // MOV_IN (Registro Datos, Registro Dirección) Direccion guardo en Datos
+            const char* registro_datos_mov_in = (const char*) list_get(instruccion.parametros, 0);
+            const char* registro_direccion_mov_in = (const char*) list_get(instruccion.parametros, 1);
+            
+            int dir_logica = obtener_valor_de_registro(contexto, registro_direccion_mov_in);
+            int direccion_fisica = traducir_direccion_mmu(dir_logica, contexto);
+
+            if (direccion_fisica == -1) {
+                log_error(cpu_logger, "PID: %d - Error al traducir dirección lógica: %d", contexto->pid, dir_logica);
+                return;
+            }
+
+            char* valor_leido = leer_de_memoria(direccion_fisica, contexto->pid);
+            if (valor_leido == NULL) {
+                log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
+                return;
+            }
+
+            asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);
+            log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %s", contexto->pid, direccion_fisica, valor_leido);
+
+            free(valor_leido);
+            break;
+    /* 
+    case MOV_OUT:                                                                            //MOV_OUT (Registro Direccion, Registro Datos)
+            char* registro_direccion = (char*) list_get(instruccion->parametros, 0);
+            char* registro_datos = (char*) list_get(instruccion->parametros, 1);
+
+            int direccion_logica = obtener_valor_de_registro(contexto, registro_direccion);
+            uint32_t valor = obtener_valor_de_registro(contexto, registro_datos);
+
+            log_info(cpu_logger, "PID: %d - Ejecutando: MOV_OUT - %s %s", contexto->pid, registro_direccion, registro_datos);
+
+            int direccion_fisica = traducir_direccion_mmu(direccion_logica, contexto);
+            if (direccion_fisica == -1) {
+                log_error(cpu_logger, "Error al traducir la dirección lógica: %d", direccion_logica);
+                break;
+            }
+
+            escribir_a_memoria(direccion_fisica, contexto->pid, valor);
+            log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica, valor);
+            break;*/
+
 
     default:
         break;
     }
+}
+char* leer_de_memoria(int dir_fisica, int pid)
+{
+    t_buffer *buffer_envio = crear_buffer();
+    cargar_int_a_buffer(buffer_envio, pid);
+    cargar_int_a_buffer(buffer_envio, dir_fisica);
+
+    t_paquete *paquete = crear_paquete(LEER, buffer_envio); 
+    enviar_paquete(paquete, conexion_memoria);
+
+    
+    destruir_paquete(paquete);
+
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    if (cod_op != LEER_OK) {
+        log_error(cpu_logger, "Ocurrió un error al hacer MOV_IN");
+        return NULL;
+    }
+
+    t_buffer *buffer_respuesta = recibir_buffer(conexion_memoria);
+    if (buffer_respuesta == NULL) {
+        log_error(cpu_logger, "Error al recibir el buffer de respuesta");
+        return NULL;
+    }
+
+    uint32_t valor_leido;
+    memcpy(&valor_leido, buffer_respuesta->stream, sizeof(uint32_t));
+
+    char* valor_cadena = (char*)malloc(12 * sizeof(char));
+    snprintf(valor_cadena, 12, "%u", valor_leido);
+
+    destruir_buffer(buffer_respuesta); 
+
+    return valor_cadena;
+}/*
+
+void escribir_a_memoria(int dir_fisica, int pid, uint32_t valor) {
+    t_buffer *buffer_envio = crear_buffer();
+    cargar_int_a_buffer(buffer_envio, pid);
+    cargar_int_a_buffer(buffer_envio, dir_fisica);
+    cargar_uint32_a_buffer(buffer_envio, valor);
+
+    t_paquete *paquete = crear_paquete(ESCRIBIR, buffer_envio); 
+    enviar_paquete(paquete, conexion_memoria);
+
+    liberar_buffer(buffer_envio);
+    liberar_paquete(paquete);
+
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    if (cod_op != ESCRIBIR_OK) {
+        log_error(cpu_logger, "Ocurrió un error al hacer MOV_OUT");
+   }
+return;
+}*/
+
+//MMU
+int traducir_direccion_mmu(int dir_logica, t_pcb *ctx)
+{
+    //CONSULTAR TAMANIO PAGINA A MEMORIA.
+    //t_list* tlb;
+    int nro_pagina = numero_pagina(dir_logica);
+    int desplazamiento = dir_logica - nro_pagina * tamanio_pagina;
+
+    int resultado_tlb = consultar_tlb(tlb, nro_pagina, ctx->pid);
+	if (resultado_tlb != -1) 
+        return resultado_tlb * tamanio_pagina + desplazamiento;
+
+    
+   
+    int num_marco = solicitar_numero_de_marco(nro_pagina, ctx->pid);
+    if(num_marco == -1)
+    {
+        return -1;
+    }
+    
+    int dir_fisica = (num_marco * tamanio_pagina) + desplazamiento;
+    //ctx->program_counter++;
+
+    agregar_entry_tlb(tlb, nro_pagina, num_marco);
+    
+    return dir_fisica;
+
+}
+
+int numero_pagina(int dir_logica)
+{
+    //Solicitar TAMAÑO PAGINA.
+    return floor(dir_logica/ tamanio_pagina);
+}
+
+
+int solicitar_numero_de_marco(int num_pagina, int pid)
+{
+    t_buffer *buffer = crear_buffer();
+    cargar_int_a_buffer(buffer,pid);
+    cargar_int_a_buffer(buffer,num_pagina);
+
+    t_paquete *paquete = crear_paquete(SOLICITUD_MARCO,buffer);
+    enviar_paquete(paquete,conexion_memoria);
+    destruir_paquete(paquete);
+    int num_marco;
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    t_buffer *buffer_recibido = recibir_buffer(conexion_memoria);
+    num_marco = extraer_int_del_buffer(buffer_recibido);
+    if(num_marco <= 0)
+    {
+        log_error(cpu_logger, "Ocurrio un error al recibir el numero de marco");
+        return -1;
+    }
+
+   
+    return num_marco;
+}
+
+//TLB
+int consultar_tlb(t_list* tlb, int pagina, int pid) {
+	// Devuelve el marco correspondiente a la pagina, si es que se encuentra.
+
+	t_tlb_entry* entry = NULL;
+
+	for (int i = 0; i < list_size(tlb); i++){
+		entry = list_get(tlb, i);
+		if (entry->pagina == pagina && entry->pid == pid) {
+
+			// Si el algoritmo de remplazo es LRU remover elemento y agregarlo al final para marcarlo como el ultimo utilizado.
+			if (strcmp(ALGORITMO_TLB, "LRU") == 0) {
+				list_remove(tlb, i);
+				list_add(tlb, entry);
+			}
+			log_info(cpu_logger, "TLB: HIT PAGINA %d | MARCO %d", pagina, entry->marco);
+
+			return entry->marco;
+		}
+	}
+	log_info(cpu_logger, "TLB: MISS de PAGINA %d", pagina);
+	return -1;
+}
+
+void agregar_entry_tlb(t_pcb* cpu, int pagina, int marco) {
+	
+    t_tlb_entry* entry = malloc(sizeof(t_tlb_entry));
+	entry->pagina = pagina;
+	entry->marco = marco;
+    entry->pid = cpu->pid;
+
+	t_list* tlb;
+
+	// Checkeamos si agregar un elemento haria que nos pasemos del maximo de entradas permitidas, y en ese caso eliminamos el primero.
+    if(strcmp(ALGORITMO_TLB, "FIFO") == 0 || strcmp(ALGORITMO_TLB, "LRU") == 0){
+	if (list_size(tlb) >= CANTIDAD_ENTRADAS_TLB) {
+		t_tlb_entry* first_entry = list_remove(tlb, 0);
+        log_info(cpu_logger, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
+		free(first_entry);
+	} else {
+        log_info(cpu_logger, "TLB: entry de pagina %d agregado", pagina);
+    }
+
+	list_add(tlb, entry);
+    return;
+}
+else {
+    log_error(cpu_logger, "Algoritmo Incompatible");
+    return;
+}
 }
 
 void check_interrupt(t_pcb *ctx)

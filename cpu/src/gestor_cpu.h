@@ -21,6 +21,7 @@ extern int direccion_fisica;
 extern int conexion_memoria;
 extern t_log* cpu_logger;
 extern t_config* cpu_config;
+extern int tamanio_pagina;
 //extern t_registros regs;
 
 
@@ -38,6 +39,7 @@ extern bool llego_interrupcion ;
 extern pthread_t hilo_kernel_dispatch;
 extern int hay_interrupcion;
 extern int direccion_fisica;
+extern t_list* tlb;
 
 
 

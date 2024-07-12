@@ -40,7 +40,11 @@ int main(int argc, char* argv[]) {
 
     realizar_handshake(HANDSHAKE_CPU,conexion_memoria);
     log_info(cpu_logger, "Handshake con Memoria realizado");
-
+    op_code op_code = recibir_operacion(conexion_memoria);
+    t_buffer* buffer_tampag = recibir_buffer(conexion_memoria);    
+    tamanio_pagina= atoi(extraer_string_del_buffer(buffer_tampag));
+    destruir_buffer(buffer_tampag);
+    tlb = list_create();
     //Espero al cliente Kernel - Dispatch
     cliente_kernel_dispatch = esperar_cliente(servidor_dispatch); 
     //Atender los mensajes de Kernel - Dispatch
