@@ -162,21 +162,15 @@ int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
  *
  * Retorna -1 si la pagina no esta poblada para ningun proceso.
  */
-int obtener_numero_marco(int numero_pagina)
+int obtener_numero_marco(int pid,int numero_pagina)
 {
-    t_list_iterator *iterator = list_iterator_create(procesos);
-    while (list_iterator_has_next(iterator))
+    t_proceso *proceso = obtener_proceso(pid);
+    t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
+    if (pagina->presente)
     {
-        t_proceso *proceso = list_iterator_next(iterator);
-        t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
-        if (pagina->presente)
-        {
-            log_info(memoria_logger, "PID: %d - Pagina: %d - Marco: %d", proceso->pid, numero_pagina, pagina->frame);
-            list_iterator_destroy(iterator);
-            return pagina->frame;
-        }
-    }
-    list_iterator_destroy(iterator);
+        log_info(memoria_logger, "PID: %d - Pagina: %d - Marco: %d", proceso->pid, numero_pagina, pagina->frame);    
+        return pagina->frame;
+    }  
     return -1;
 }
 

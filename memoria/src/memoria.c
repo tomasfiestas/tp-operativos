@@ -126,6 +126,22 @@ void* atender_cpu(void* socket_cliente_ptr) {
         t_instruccion_a_enviar instruccion_a_enviar;
         instruccion_a_enviar.operacion = instruccion->operacion;
         proceso->pc=(program_counter+1);
+
+        
+
+        t_buffer* response_buffer = crear_buffer();        
+        cargar_instruccion_a_enviar_a_buffer(response_buffer, instruccion_a_enviar);
+        for (int i = 0; i < list_size(instruccion->parametros); i++) {
+            char* parametro = list_get(instruccion->parametros, i);
+            cargar_string_a_buffer(response_buffer, parametro);
+        }
+               
+        cargar_uint32_a_buffer(response_buffer, (uint32_t) proceso->pc);
+        
+        t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+        break;
     case RESIZE: // Parametros: PID, Bytes
         // El parametro pasado (cantidad de bytes) es absoluto, no es relativo al tamaño anterior.
         // Esta funcion se asegurara de cambiar al tamaño deseado, caso contrario enviará OUT_OF_MEMORY.
@@ -208,6 +224,21 @@ void* atender_cpu(void* socket_cliente_ptr) {
         response = crear_paquete(ESCRIBIR_OK, response_buffer);
         enviar_paquete(response, cliente_cpu);
         destruir_paquete(response);
+        break;
+    case SOLICITUD_MARCO:
+        log_info(memoria_logger, "Se conecto la Memoria");
+        t_buffer* buffer_solicitud_nro_marco = recibir_buffer(cliente);
+        int pid_marco = extraer_int_del_buffer(buffer_solicitud_nro_marco);
+        int pagina = extraer_int_del_buffer(buffer_solicitud_nro_marco);
+        destruir_buffer(buffer_solicitud_nro_marco);        
+        int marco = obtener_numero_marco(pid_marco,pagina);
+
+        t_buffer* buffer_respuesta_nro_marco = crear_buffer();
+        cargar_int_a_buffer(buffer_respuesta_nro_marco, marco);
+        t_paquete* paquete_respuesta_nro_marco = crear_paquete(SOLICITUD_MARCO_OK, buffer_respuesta_nro_marco);
+        enviar_paquete(paquete_respuesta_nro_marco, cliente);
+        destruir_paquete(paquete_respuesta_nro_marco);
+
         break;
     case HANDSHAKE_KERNEL:
         log_info(memoria_logger, "Se conecto el Kernel");
