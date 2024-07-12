@@ -114,38 +114,44 @@ int resize(int pid, int bytes)
     }
 }
 
-char *leer_memoria(int pid, int direccion_fisica)
+char *leer_memoria(int pid, int direccion_fisica, int bytes)
 {
-    t_proceso *proceso = obtener_proceso(pid);
-    if (proceso == NULL)
-    {
-        log_error(memoria_logger, "No se encontro el proceso con PID %d", pid);
-        return NULL;
-    }
-    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %zu", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
-    return &memoria_total[direccion_fisica];
+    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, bytes);
+    char *data = malloc(bytes);
+    memcpy(data, &memoria_total[direccion_fisica], bytes);
+    return data;
 }
 
 int escribir_memoria(int pid, int direccion_fisica, char *bytes)
 {
     memcpy(&memoria_total[direccion_fisica], bytes, strlen(bytes));
-    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %zu", pid, direccion_fisica, strlen(&memoria_total[direccion_fisica]));
+    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %zu B", pid, direccion_fisica, strlen(bytes));
     return 1;
 }
 
 int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
 {
-    for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA) && cantidad_paginas > 0; i++)
-    {
-        if (!bitarray_test_bit(bitarray, i))
-        {
-            t_pagina *pagina = list_get(proceso->paginas, i);
-            pagina->presente = true;
-            pagina->frame = i;
-            bitarray_set_bit(bitarray, i);
-            cantidad_paginas--;
+    // Por cada pagina libre
+    t_list_iterator* iterator = list_iterator_create(proceso->paginas);
+    while(list_iterator_has_next(iterator) && cantidad_paginas > 0) {
+        t_pagina* pagina = list_iterator_next(iterator);
+        if (!pagina->presente) {
+            // Buscar un marco libre
+            for (int i = 0; i < atoi(TAM_MEMORIA) / atoi(TAM_PAGINA); i++)
+            {
+                if (!bitarray_test_bit(bitarray, i))
+                {
+                    pagina->presente = true;
+                    pagina->frame = i;
+                    bitarray_set_bit(bitarray, i);
+                    cantidad_paginas--;
+                    break;
+                }
+            }
         }
+        
     }
+
 
     return 1;
 }
@@ -156,21 +162,15 @@ int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
  *
  * Retorna -1 si la pagina no esta poblada para ningun proceso.
  */
-int obtener_numero_marco(int numero_pagina)
+int obtener_numero_marco(int pid,int numero_pagina)
 {
-    t_list_iterator *iterator = list_iterator_create(procesos);
-    while (list_iterator_has_next(iterator))
+    t_proceso *proceso = obtener_proceso(pid);
+    t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
+    if (pagina->presente)
     {
-        t_proceso *proceso = list_iterator_next(iterator);
-        t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
-        if (pagina->presente)
-        {
-            log_info(memoria_logger, "PID: %d - Pagina: %d - Marco: %d", proceso->pid, numero_pagina, pagina->frame);
-            list_iterator_destroy(iterator);
-            return pagina->frame;
-        }
-    }
-    list_iterator_destroy(iterator);
+        log_info(memoria_logger, "PID: %d - Pagina: %d - Marco: %d", proceso->pid, numero_pagina, pagina->frame);    
+        return pagina->frame;
+    }  
     return -1;
 }
 

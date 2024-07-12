@@ -27,53 +27,6 @@ int main(int argc, char *argv[])
     // Inicio la configuracion de la memoria
     memoria_config = iniciar_config("memoria.config");
 
-    // TODO: Charlar tema de comunicacion antes de la entrega.
-    // t_list* test_instrucciones = list_create();
-    // t_instruccion test_instruccion_1 = { .operacion = RESIZE, .parametros = list_create() };
-    // char* parametro_1 = "AX";
-    // char* parametro_2 = "BX";
-    // list_add(test_instruccion_1.parametros, parametro_1);
-    // list_add(test_instruccion_1.parametros, parametro_2);
-
-    // t_instruccion test_instruccion_2 = { .operacion = IO_FS_CREATE, .parametros = list_create() };
-    // char* parametro_3 = "CX";
-    // char* parametro_4 = "DX";
-    // list_add(test_instruccion_2.parametros, parametro_3);
-    // list_add(test_instruccion_2.parametros, parametro_4);
-
-    // t_pagina* test_pagina = malloc(sizeof(t_pagina));
-    // test_pagina->frame = 0;
-    // test_pagina->presente = true;
-
-    // t_pagina* test_pagina_2 = malloc(sizeof(t_pagina));
-    // test_pagina->frame = 1;
-    // test_pagina->presente = true;
-
-    // t_proceso* test_proceso = malloc(sizeof(t_proceso));
-    // test_proceso->pid = 1;
-    // test_proceso->pc = 0;
-    // test_proceso->instrucciones = list_create();
-    // test_proceso->paginas = list_create();
-
-    // list_add(test_proceso->instrucciones, &test_instruccion_1);
-    // list_add(test_proceso->instrucciones, &test_instruccion_2);
-
-    // list_add(test_proceso->paginas, test_pagina);
-    // list_add(test_proceso->paginas, test_pagina_2);
-
-
-    // t_instruccion* instruccion = list_get(test_proceso->instrucciones, test_proceso->pc);
-    // test_proceso->pc++;
-
-    // t_buffer* response_buffer = crear_buffer();
-    // cargar_instruccion_a_buffer(response_buffer, instruccion);
-    // t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
-
-    // //TEST:
-    // t_instruccion instruccion_buffer = extraer_instruccion_del_buffer(response_buffer);
-
-
-    
 
     // Obtengo los valores de la configuracion
     PUERTO_ESCUCHA = config_get_string_value(memoria_config, "PUERTO_ESCUCHA");
@@ -103,8 +56,7 @@ int main(int argc, char *argv[])
     *socket_cliente_cpu_ptr = cliente_cpu;
     pthread_create(&hilo_cpu, NULL, atender_cpu, socket_cliente_cpu_ptr);
     pthread_detach(hilo_cpu);
-    log_info(memoria_logger, "Atendiendo mensajes de CPU");   
-    
+    log_info(memoria_logger, "Atendiendo mensajes de CPU");    
     
     //Espero conexion de kernel
     int cliente_kernel = esperar_cliente(servidor_memoria);   
@@ -147,6 +99,12 @@ void* atender_cpu(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);
     bool control_key = 1;
    while (control_key){
+    t_buffer* buffer;
+    int pid;
+    int direccion_fisica;
+    int cantidad_bytes;
+    t_buffer* response_buffer;
+    t_paquete* response;
     op_code op_code = recibir_operacion(cliente);    
 	switch(op_code) {
     case SOLICITUD_INST:
@@ -154,6 +112,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         t_buffer *buffer = recibir_buffer(cliente);
 
         int pid = extraer_int_del_buffer(buffer);
+        int program_counter= extraer_uint32_del_buffer(buffer);
 
         destruir_buffer(buffer);
 
@@ -162,12 +121,123 @@ void* atender_cpu(void* socket_cliente_ptr) {
             log_error(memoria_logger, "No se encontro el proceso con PID: %d", pid);
             break;
         }
-        t_instruccion* instruccion = list_get(proceso->instrucciones, proceso->pc);
-        proceso->pc++;
+        t_instruccion* instruccion = list_get(proceso->instrucciones, program_counter);
+        //t_instruccion_a_enviar instruccion_a_enviar =  parsear_instruccion(instruccion);
+        t_instruccion_a_enviar instruccion_a_enviar;
+        instruccion_a_enviar.operacion = instruccion->operacion;
+        proceso->pc=(program_counter+1);
 
-        t_buffer* response_buffer = crear_buffer();
-        cargar_instruccion_a_buffer(response_buffer, instruccion);
+        
+
+        t_buffer* response_buffer = crear_buffer();        
+        cargar_instruccion_a_enviar_a_buffer(response_buffer, instruccion_a_enviar);
+        for (int i = 0; i < list_size(instruccion->parametros); i++) {
+            char* parametro = list_get(instruccion->parametros, i);
+            cargar_string_a_buffer(response_buffer, parametro);
+        }
+               
+        cargar_uint32_a_buffer(response_buffer, (uint32_t) proceso->pc);
+        
         t_paquete* response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+        break;
+    case RESIZE: // Parametros: PID, Bytes
+        // El parametro pasado (cantidad de bytes) es absoluto, no es relativo al tamaño anterior.
+        // Esta funcion se asegurara de cambiar al tamaño deseado, caso contrario enviará OUT_OF_MEMORY.
+        log_info(memoria_logger, "Solicitud de resize");
+        usleep(atoi(RETARDO_RESPUESTA));
+        buffer = recibir_buffer(cliente);
+
+        pid = extraer_int_del_buffer(buffer);
+        int bytes = extraer_int_del_buffer(buffer);
+        destruir_buffer(buffer);
+
+        int resultado = resize(pid, bytes);
+
+        // TODO: mejorar envio de paquetes sin buffer.
+        response_buffer = crear_buffer();
+        if(resultado >= 0){
+            response = crear_paquete(RESIZE_OK, response_buffer);
+        } else {
+            response = crear_paquete(OUT_OF_MEMORY, response_buffer);
+        }
+
+
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+        break;
+    case LEER: // Parametros: PID, Direccion Fisica, Cantidad bytes
+        // ESTO LO VAMOS A USAR PARA LA OPERACIÓN MOV_IN.
+        // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+        // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+        //
+        // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES LEER
+        // EN CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+        // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a leer:
+        // * LEER 3 BYTES A PARTIR DE DIRECCION FISICA 1
+        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
+        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
+        // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+        //
+        // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
+        log_info(memoria_logger, "Solicitud de lectura de memoria");
+        buffer = recibir_buffer(cliente);
+        usleep(atoi(RETARDO_RESPUESTA));
+        
+        pid = extraer_int_del_buffer(buffer);
+        direccion_fisica = extraer_int_del_buffer(buffer);
+        cantidad_bytes = extraer_int_del_buffer(buffer);
+
+        char* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
+
+        response_buffer = crear_buffer();
+        cargar_string_a_buffer(response_buffer, bytes_leidos);
+        response = crear_paquete(LEER_OK, response_buffer);
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+        break;
+    case ESCRIBIR: // Parametros: PID, Direccion Fisica, bytes a escribir
+        // ESTO LO VAMOS A USAR PARA LA OPERACIÓN MOV_OUT y COPY_STRING.
+        // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+        // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+        //
+        // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES ESCRIBIR
+        // A CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+        // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a escribir:
+        // * ESCRIBIR 3 BYTES A PARTIR DE DIRECCION FISICA 1
+        // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 4
+        // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 8
+        // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+        log_info(memoria_logger, "Solicitud de escritura en memoria");
+        buffer = recibir_buffer(cliente);
+        usleep(atoi(RETARDO_RESPUESTA));
+
+        pid = extraer_int_del_buffer(buffer);
+        direccion_fisica = extraer_int_del_buffer(buffer);
+        char* bytes_a_escribir = extraer_string_del_buffer(buffer);
+
+        escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+
+        // TODO: mejorar envio de paquetes sin buffer.
+        response_buffer = crear_buffer();
+        response = crear_paquete(ESCRIBIR_OK, response_buffer);
+        enviar_paquete(response, cliente_cpu);
+        destruir_paquete(response);
+        break;
+    case SOLICITUD_MARCO:
+        log_info(memoria_logger, "Se conecto la Memoria");
+        t_buffer* buffer_solicitud_nro_marco = recibir_buffer(cliente);
+        int pid_marco = extraer_int_del_buffer(buffer_solicitud_nro_marco);
+        int pagina = extraer_int_del_buffer(buffer_solicitud_nro_marco);
+        destruir_buffer(buffer_solicitud_nro_marco);        
+        int marco = obtener_numero_marco(pid_marco,pagina);
+
+        t_buffer* buffer_respuesta_nro_marco = crear_buffer();
+        cargar_int_a_buffer(buffer_respuesta_nro_marco, marco);
+        t_paquete* paquete_respuesta_nro_marco = crear_paquete(SOLICITUD_MARCO_OK, buffer_respuesta_nro_marco);
+        enviar_paquete(paquete_respuesta_nro_marco, cliente);
+        destruir_paquete(paquete_respuesta_nro_marco);
 
         break;
     case HANDSHAKE_KERNEL:
@@ -175,6 +245,11 @@ void* atender_cpu(void* socket_cliente_ptr) {
         break;
     case HANDSHAKE_CPU:
         log_info(memoria_logger, "Se conecto el CPU");
+        t_buffer* buffer_rta = crear_buffer();
+        cargar_string_a_buffer(buffer_rta, TAM_PAGINA);
+        t_paquete *paquete = crear_paquete(MENSAJE, buffer_rta);
+        enviar_paquete(paquete, cliente);
+        destruir_paquete(paquete);
         break;
     case HANDSHAKE_MEMORIA:
         log_info(memoria_logger, "Se conecto la Memoria");
@@ -226,6 +301,12 @@ void* atender_entradasalida(void* socket_cliente_ptr){
     bool control_key = 1;
     while (control_key){
         op_code op_code = recibir_operacion(cliente_es);
+        t_buffer* buffer;
+        int pid;
+        int direccion_fisica;
+        int cantidad_bytes;
+        t_buffer* response_buffer;
+        t_paquete* response;
         switch (op_code){
             case HANDSHAKE_KERNEL:
 			log_info(memoria_logger, "Se conecto el Kernel");
@@ -239,6 +320,63 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 		case HANDSHAKE_ES:
 			log_info(memoria_logger, "Se conecto el IO");
 			break;
+        case IO_STDIN_READ:// Parametros: PID, Direccion Fisica, bytes a escribir
+            // ante este caso se escribe en memoria.
+            // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+            // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+            //
+            // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES ESCRIBIR
+            // A CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+            // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a escribir:
+            // * ESCRIBIR 3 BYTES A PARTIR DE DIRECCION FISICA 1
+            // * ESCRIBIR 4 BYTES A PARTIR DE DIRECCION FISICA 4
+            // * ESCRIBIR 1 BYTES A PARTIR DE DIRECCION FISICA 8
+            // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA. LOS MARCOS PODRIAN NO SER CONTIGUOS.
+            log_info(memoria_logger, "Solicitud de escritura en memoria");
+            buffer = recibir_buffer(cliente_es);
+            usleep(atoi(RETARDO_RESPUESTA));
+
+            pid = extraer_int_del_buffer(buffer);
+            direccion_fisica = extraer_int_del_buffer(buffer);
+            char* bytes_a_escribir = extraer_string_del_buffer(buffer);
+
+            escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+
+            // TODO: mejorar envio de paquetes sin buffer.
+            response_buffer = crear_buffer();
+            response = crear_paquete(ESCRIBIR_OK, response_buffer);
+            enviar_paquete(response, cliente_entradasalida);
+            destruir_paquete(response);
+            break;
+        case IO_STDOUT_WRITE:  // Parametros: PID, Direccion Fisica, Cantidad bytes
+        // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
+        // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
+        //
+        // EL CPU DEBE HACER TRADUCCIONES PARA SABER CUANTOS BYTES LEER
+        // EN CADA MARCO, Y LLAMAR A ESTA OPERACION TANTAS VECES COMO SEA NECESARIO..
+        // EJ con marcos de 4 bytes, a partir de direccion fisica 1, un total de 8 bytes a leer:
+        // * LEER 3 BYTES A PARTIR DE DIRECCION FISICA 1
+        // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
+        // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
+        // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
+        //
+        // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
+        log_info(memoria_logger, "Solicitud de lectura de memoria");
+        buffer = recibir_buffer(cliente_es);
+        usleep(atoi(RETARDO_RESPUESTA));
+        
+        pid = extraer_int_del_buffer(buffer);
+        direccion_fisica = extraer_int_del_buffer(buffer);
+        cantidad_bytes = extraer_int_del_buffer(buffer);
+
+        char* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
+
+        response_buffer = crear_buffer();
+        cargar_string_a_buffer(response_buffer, bytes_leidos);
+        response = crear_paquete(LEER_OK, response_buffer);
+        enviar_paquete(response, cliente_entradasalida);
+        destruir_paquete(response);
+        break;
 		default:
 			log_error(memoria_logger, "No se reconoce el handshake");
 			control_key = 0;
@@ -249,10 +387,11 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 }
 
 t_list* parse_file(const char* filePath) {
-    FILE* file = fopen(filePath, "r");
+ 
+   FILE* file = fopen(filePath, "r");
     if (file == NULL) {
         log_error(memoria_logger, "No se pudo abrir el archivo de instrucciones.");
-        return;
+        return NULL;
     }
 
     char linea[256];
@@ -263,7 +402,7 @@ t_list* parse_file(const char* filePath) {
         t_instruccion* instruccion = malloc(sizeof(t_instruccion));
         char* token = strtok(linea, " ");
         
-        instruccion->operacion = (op_code) token;
+        instruccion->operacion = map_instruccion_a_enum(token);
 
         instruccion->parametros = list_create();
         while ((token = strtok(NULL, " ")) != NULL) {
@@ -273,6 +412,8 @@ t_list* parse_file(const char* filePath) {
         }
 
         list_add(instrucciones, instruccion);
+        instruccion->tamanio_lista = list_size(instruccion->parametros);
+        log_info(memoria_logger, "Instruccion: %s", list_get(instruccion->parametros, 0));
         cantidad_instrucciones++;
     }
     
@@ -332,4 +473,54 @@ t_proceso *obtener_proceso(int pid)
     }
     list_iterator_destroy(iterator);
     return NULL;
+}
+
+int map_instruccion_a_enum(char* instruccion){
+    if(strcmp(instruccion, "SET") == 0){
+        return SET ;
+    } else if(strcmp(instruccion, "MOV_IN") == 0){
+        return MOV_IN ;
+    } else if(strcmp(instruccion, "MOV_OUT") == 0){
+        return MOV_OUT ;
+    } else if(strcmp(instruccion, "SUM") == 0){
+        return SUM ;
+    } else if(strcmp(instruccion, "SUB") == 0){
+        return SUB ;
+    } else if(strcmp(instruccion, "JNZ") == 0){
+        return JNZ ;
+    } else if(strcmp(instruccion, "RESIZE") == 0){
+        return RESIZE ;
+    } else if(strcmp(instruccion, "COPY_STRING") == 0){
+        return HANDSHAKE_ES;
+    } else if(strcmp(instruccion, "WAIT") == 0){
+        return WAIT ;
+    } else if(strcmp(instruccion, "SIGNAL") == 0){
+        return SIGNAL ;
+    } else if(strcmp(instruccion, "IO_GEN_SLEEP") == 0){
+        return IO_GEN_SLEEP ;
+    } else if(strcmp(instruccion, "IO_STDIN_READ") == 0){
+        return IO_STDIN_READ ;
+    } else if(strcmp(instruccion, "IO_STDOUT_WRITE") == 0){
+        return IO_STDOUT_WRITE ;
+    } else if(strcmp(instruccion, "IO_FS_CREATE ") == 0){
+        return IO_FS_CREATE  ;
+    }
+    else if(strcmp(instruccion, "IO_FS_DELETE") == 0){
+        return IO_FS_DELETE  ;
+    }
+    else if(strcmp(instruccion, "IO_FS_TRUNCATE") == 0){
+        return IO_FS_TRUNCATE ;
+    }
+    else if(strcmp(instruccion, "IO_FS_WRITE") == 0){
+        return IO_FS_WRITE ;
+    }
+    else if(strcmp(instruccion, "IO_FS_READ") == 0){
+        return IO_FS_READ ;
+    }
+    else if(strcmp(instruccion, "EXIT") == 0){
+        return EXIT  ;
+    }  
+    else {
+        return -1;
+ }  
 }
