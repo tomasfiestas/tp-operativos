@@ -270,9 +270,7 @@ void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion) {
     int buffer_size = sizeof(op_code) + sizeof(int) +  (instruccion->tamanio_lista * sizeof(char*)) + instruccion->tamanio_lista*1;
     cargar_a_buffer(buffer, instruccion, buffer_size);
 }
-void cargar_instruccion_a_enviar_a_buffer(t_buffer* buffer, t_instruccion_a_enviar instruccion) {     
-    cargar_a_buffer(buffer, &instruccion, sizeof(t_instruccion_a_enviar));
-}
+
 
 t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer) {
     t_instruccion_a_enviar* instruccion_a_enviar ;
@@ -286,13 +284,7 @@ void cargar_instruccion_a_enviar_a_buffer(t_buffer* buffer, t_instruccion_a_envi
     cargar_a_buffer(buffer, &instruccion, sizeof(t_instruccion_a_enviar));
 }
 
-t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer) {
-    t_instruccion_a_enviar* instruccion_a_enviar ;
-    instruccion_a_enviar = extraer_de_buffer(buffer);
-    t_instruccion_a_enviar valor_instruccion = *instruccion_a_enviar;
-    free(instruccion_a_enviar);
-    return valor_instruccion;    
-}
+
 
 t_estado extraer_estado_del_buffer(t_buffer* buffer){
     t_estado* estado = malloc(sizeof(t_estado));
