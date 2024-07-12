@@ -38,7 +38,7 @@ typedef enum
 	//Kernel le avisa a memoria que tiene que crear un proceso
 	CREAR_PROCESO_KM,
 
-	//Entrada Saldia
+	//Entrada Salida
 	IO_GEN_SLEEP,
 	IO_STDIN_READ,
 	IO_STDOUT_WRITE,

@@ -6,6 +6,7 @@
 #include <utils/hello.h>
 #include <utils/logging.h>
 #include <utils/shared.h>
+#include <filesystem.h>
 
 /*
 void crear_interfaz(char* nombre, char* tipo){
@@ -22,12 +23,27 @@ int conexion_kernel;
 int conexion_memoria;
 
 typedef struct{
+    char* TIPO_INTERFAZ;
+    int TIEMPO_UNIDAD_TRABAJO;
+    char* IP_KERNEL;
+    int PUERTO_KERNEL;
+    char* IP_MEMORIA;
+    int PUERTO_MEMORIA;
+    char* PATH_BASE_DIALFS;
+    int BLOCK_SIZE;
+    int BLOCK_COUNT;
+    int RETRASO_COMPACTACION;
+} t_configuracion;
+
+typedef struct{
     char* nombre;
-    char* tipo;
+    t_configuracion* tipo;
 } t_interfaz;
 
 t_log* entradasalida_logger;
 t_config* entradasalida_config;
+
+/*
 char* TIPO_INTERFAZ;
 char* TIEMPO_UNIDAD_TRABAJO;
 char* IP_KERNEL;
@@ -37,8 +53,10 @@ char* PUERTO_MEMORIA;
 char* PATH_BASE_DIALFS;
 char* BLOCK_SIZE;
 char* BLOCK_COUNT;
+*/
 
-typedef enum{
+
+typedef struct{
     GENERICA,
     STDIN,
     STDOUT,

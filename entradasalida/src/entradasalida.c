@@ -1,4 +1,5 @@
-#include "entradasalida.h"
+#include <entradasalida.h>
+
 extern t_log* logger;
 int main(int argc, char* argv[]) { 
     //Inicio el logger de entradasalida 
@@ -24,6 +25,8 @@ int main(int argc, char* argv[]) {
     BLOCK_COUNT = config_get_string_value(entradasalida_config, "BLOCK_COUNT");
     log_info(logger, "BLOCK_COUNT: %s", BLOCK_COUNT);
 
+    crear_bitmap();
+    generar_archivo_bloques();
 
     //Creo conexion como cliente hacia Memoria
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
@@ -64,10 +67,20 @@ void leer_consola()
             add_history(linea);
             char** argumentos = string_split(linea, " ");
             t_mensajes_consola mensaje_consola;
-            mensaje_consola = mensaje_a_consola(argumentos[0]);                         
+            mensaje_consola = mensaje_a_consola(argumentos[0]);    
+            //mensaje_interfaz es el mensaje con el tipo de interfaz
+            //mensaje : CREAR TIPOINTERFAZ NOMBRE
+            mensaje_interfaz = mensaje_a_consola(argumentos[1]);   
+            t_interfaz* interfaz;                  
 
             switch(mensaje_consola){
                 case CREAR:
+                switch(mensaje_interfaz){
+
+                    case GENERICA:
+                    interfaz = 
+
+                }
                 t_buffer* buffer = crear_buffer();
                 cargar_string_a_buffer(buffer, argumentos[1]); 
                 cargar_string_a_buffer(buffer, argumentos[2]);
@@ -76,6 +89,13 @@ void leer_consola()
                 enviar_paquete(paquete, conexion_kernel);
                 eliminar_paquete(paquete);
                 break;
+
+                    case DIALFS:
+                    interfaz = 
+
+                }   config_create
+
+                
                 
                 case EXIT:
                     exit(0);
@@ -171,7 +191,7 @@ void leer_consola()
         t_buffer* buffer2 = crear_buffer();
         cargar_uint32_a_buffer(buffer2, direccion);
         cargar_uint32_a_buffer(buffer2, tamanio);
-        t_paquete* paqueteIN = crear_paquete(IO_STDIN_READ,buffer2);
+        t_paquete* paqueteIN = crear_paquete(IO_STDIwhN_READ,buffer2);
         enviar_paquete(paqueteIN, conexion_memoria);
         //eliminar_paquete(paqueteIN);
         break;
@@ -196,6 +216,80 @@ void leer_consola()
         t_paquete* paqueteOUT = crear_paquete(SOLICITAR_LECTURA,buffer);
         enviar_paquete(paqueteOUT, conexion_memoria);
 
+        case IO_FS_CREATE:
+
+        FILE* archivo;
+        tipoInterfaz= "DIALFS";
+
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+
+        
+
+
+
+/*
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+        nombre_archivo = extraer_string_del_buffer(paquete);
+        
+        //ver si funciona o implementarol en lista :()
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+
+            if(archivoExiste(archivo)){
+                  archivo = fopen(nombre_archivo,"rb+");
+            } else {
+                  archivo = fopen(nombre_archivo,"wb+");
+            }
+
+        }
+*/
+        case IO_FS_DELETE:
+//ver esto
+        tipoInterfaz= "DIALFS";
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+
+        case IO_FS_TRUNCATE:
+
+        tipoInterfaz= "DIALFS";
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+
+        case IO_FS_WRITE:
+
+        tipoInterfaz= "DIALFS";
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+
+        case IO_FS_READ:
+
+        tipoInterfaz= "DIALFS";
+        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
+
+        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
+            log_info(logger,"Interfaz incorrecta");
+            break;
+        }
+
+        case EXIT:
+
+
         default: 
 
             printf("Instruccion no reconocida");
@@ -208,7 +302,8 @@ void leer_consola()
     
     return EXIT_SUCCESS;
 }
-}
+//agregar logs obligatorios.
+
 
 void atender_mensajes_memoria(void* socket_cliente_ptr){
     int cliente_kernel2 = *(int*)socket_cliente_ptr;
@@ -234,5 +329,26 @@ void atender_mensajes_memoria(void* socket_cliente_ptr){
 			control_key = 0;
 			break;
         }
+    }
+
+}
+
+void asignar_int_configuracion_generica (t_interfaz* interfaz, int argumento){
+        t_configuracion* config = config_create("./entradasalida.config");
+        interfaz->tipo->TIPO_INTERFAZ = strdup(config_get_string_value(entradasalida.config, "TIPO_INTERFAZ")); //completar
+    }
+
+void asignar_char_configuracion(t_interfaz* interfaz, char* argumento){
+        interfaz->tipo->
+}
+
+int archivoExiste(const char *nombreArchivo) {
+    FILE *archivo = fopen(nombreArchivo, "r");
+    
+    if (archivo != NULL) {
+        fclose(archivo); // Cerrar el archivo si se pudo abrir
+        return 1; // El archivo existe
+    } else {
+        return 0; // El archivo no existe
     }
 }
