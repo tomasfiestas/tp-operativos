@@ -1,16 +1,24 @@
 #include <instrucciones.h>
 
-int hay_interrupcion;
+
 t_pcb* ctx_global;
 int tamanio_pagina = 32; // VER BIEN.
+int socket_memoria;
+int socket_kernel;
+int direccion_fisica;
+
+int hay_interrupcion;
+t_log* cpu_logger;
+t_config* cpu_config;
 
 void ciclo_de_instruccion(t_pcb* pcbb){  
-   	t_instruccion *instruccion_actual;	
-    regs = pcbb->registros;
+   	t_instruccion instruccion_actual;	
+    ctx_global = pcbb;
+    //regs = pcbb->registros;
     hay_interrupcion = 0;
     direccion_fisica = 0;
 
-	while (pcbb != NULL /*&& !hayinterruption */) { //Y no haya interrupciones.
+	while (ctx_global != NULL && !hay_interrupcion ) { //Y no haya interrupciones.
 		instruccion_actual = fetch(pcbb);		
 		if (decode(instruccion_actual)){                        
             /*Implementar TLB y MMU para traducción de direcciones
@@ -27,47 +35,57 @@ void ciclo_de_instruccion(t_pcb* pcbb){
 }
 
 
-t_instruccion *solicitar_instruccion_a_memoria(int program_counter, int pid)
+t_instruccion solicitar_instruccion_a_memoria(t_pcb* t_pcb)
 {   
     //Solicito instruccion
     t_buffer *buffer = crear_buffer();
+    cargar_int_a_buffer(buffer, t_pcb->pid); //Cargo el pid del proceso al que pertenece la instruccion a solicitar
+    //cargar_int_a_buffer(buffer, program_counter); //Cargo el program counter de la instruccion a solicitar
+    
     t_paquete *paquete = crear_paquete(SOLICITUD_INST,buffer);
 
-    agregar_a_paquete(paquete, &program_counter, sizeof(int));
-    agregar_a_paquete(paquete, &pid, sizeof(int));
+    //agregar_a_paquete(paquete, &program_counter, sizeof(int));
+    //agregar_a_paquete(paquete, &pid, sizeof(int));
 
     enviar_paquete(paquete, conexion_memoria);
+    destruir_paquete(paquete);
 
-    //codigo_operacion cod_op = recibir_operacion(conexion_memoria);
-    t_buffer *buffer = crear_buffer();
+    //codigo_operacion cod_op = recibir_operacion(conexion_memoria);    
     op_code cod_op = recibir_operacion(conexion_memoria);
+    t_buffer *buffer_recibido = recibir_buffer(conexion_memoria);
     if(cod_op == SOLICITUD_INST_OK){
-        cod_op = recibir_operacion(conexion_memoria);
+        t_instruccion instruccion = extraer_instruccion_del_buffer(buffer_recibido);
+        if(instruccion.operacion != EXIT){ 
+        t_pcb->registros.PC = extraer_uint32_del_buffer(buffer_recibido);
+        destruir_buffer(buffer_recibido);
+        }
+        return instruccion;
+        
     }
     else{
        log_error(cpu_logger, "Ocurrio un error al recibir la instruccion");
+       abort();
     }
-    buffer->stream = recibir_buffer(conexion_memoria);
+    //buffer->stream = recibir_buffer(conexion_memoria);
 
-    t_instruccion *instruccion = deserializar_instruccion_solicitada(buffer);
+    //t_instruccion *instruccion = deserializar_instruccion_solicitada(buffer);
+      
+
     
-    liberar_buffer(buffer);
-
-    return instruccion;
 }
 
-t_instruccion *fetch(t_pcb *ctx)
+t_instruccion fetch(t_pcb *ctx)
 {
-    log_info(cpu_logger,"PID: %d - FETCH - Program Counter: %d.", ctx->pid, ctx->program_counter);
+    log_info(cpu_logger,"PID: %d - FETCH - Program Counter: %u.", ctx->pid, ctx->registros.PC);
 
-    t_instruccion *instruccion = solicitar_instruccion_a_memoria(ctx->program_counter, ctx -> pid);
+    t_instruccion instruccion = solicitar_instruccion_a_memoria(ctx);
     
     return instruccion;
 } //Program counter, quien lo aumenta, memoria o CPU?
 
-bool decode(t_instruccion *instruccion){ //Muestra si requiere cambio de direccion logica a fisica
+bool decode(t_instruccion instruccion){ //Muestra si requiere cambio de direccion logica a fisica
 
-    op_code operacion = instruccion->operacion;
+    op_code operacion = instruccion.operacion;
 
     return(operacion == MOV_IN || operacion == MOV_OUT || operacion == COPY_STRING   || operacion == IO_STDIN_READ   || operacion == IO_STDOUT_WRITE  || operacion == IO_FS_WRITE  || operacion == IO_FS_READ);
 } //Devuelve True si requiere cambio de dirección.
@@ -147,47 +165,68 @@ char *obtener_registro(const char *nombre, t_registros *registros)
 
 }
 
-void execute(t_instruccion *instruccion, t_pcb* contexto){ //Ejecuta instrucción 
+void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción 
 
-    switch (instruccion->operacion){
+    switch (instruccion.operacion){
     
     case SET:                                                                    //SET(Registro, Valor)
-        char* registro =  (char*) list_get(instruccion->parametros, 0);
-        int valor = *((int*) list_get(instruccion->parametros, 1));
-        log_info(cpu_logger, "PID : %d - <SET> - <%s %d>", contexto->pid, registro, valor);
-        asignar_valor_a_registro(contexto,registro,valor);
+        char* registro_set =  (char*) list_get(instruccion.parametros, 0);
+        int valor = *((int*) list_get(instruccion.parametros, 1));
+        log_info(cpu_logger, "PID : %d - <SET> - <%s %d>", contexto->pid, registro_set, valor);
+        asignar_valor_a_registro(contexto,registro_set,valor);
         break;
     
     case SUM:                                                                    //SUM(Registro Destino, Registro Origen)
-            char* registro_destino = (char*) list_get(instruccion->parametros, 0);
-            char* registro_origen = (char*) list_get(instruccion->parametros, 1);
-            int valor_origen = obtener_valor_de_registro(contexto, registro_origen);
-            int valor_destino = obtener_valor_de_registro(contexto, registro_destino);
-            log_info(cpu_logger, "PID: %d - <SUM> - <%s %s>", contexto->pid, registro_destino, registro_origen);
-            asignar_valor_a_registro(contexto, registro_destino, valor_destino + valor_origen);
+            char* registro_destino_sum = (char*) list_get(instruccion.parametros, 0);
+            char* registro_origen_sum = (char*) list_get(instruccion.parametros, 1);
+            int valor_origen_sum = obtener_valor_de_registro(contexto, registro_origen_sum);
+            int valor_destino_sum = obtener_valor_de_registro(contexto, registro_destino_sum);
+            log_info(cpu_logger, "PID: %d - <SUM> - <%s %s>", contexto->pid, registro_destino_sum, registro_origen_sum);
+            asignar_valor_a_registro(contexto, registro_destino_sum, valor_destino_sum + valor_origen_sum);
         break;
 
     case SUB:                                                                    //SUB(Registro Destino, Registro Origen)
-             char* registro_destino = (char*) list_get(instruccion->parametros, 0);
-            char* registro_origen = (char*) list_get(instruccion->parametros, 1);
-            int valor_origen = obtener_valor_de_registro(contexto, registro_origen);
-            int valor_destino = obtener_valor_de_registro(contexto, registro_destino);
-            log_info(cpu_logger, "PID: %d - <SUB> - <%s %s>", contexto->pid, registro_destino, registro_origen);
-            asignar_valor_a_registro(contexto, registro_destino, valor_destino - valor_origen);
+            char* registro_destino_sub = (char*) list_get(instruccion.parametros, 0);
+            char* registro_origen_sub = (char*) list_get(instruccion.parametros, 1);
+            int valor_origen_sub = obtener_valor_de_registro(contexto, registro_origen_sub);
+            int valor_destino_sub = obtener_valor_de_registro(contexto, registro_destino_sub);
+            log_info(cpu_logger, "PID: %d - <SUB> - <%s %s>", contexto->pid, registro_destino_sub, registro_origen_sub);
+            asignar_valor_a_registro(contexto, registro_destino_sub, valor_destino_sub - valor_origen_sub);
         break;
 
     case JNZ:                                                                     //JNZ(Registro, Instrucción)
-            char* registro = (char*) list_get(instruccion->parametros, 0);
-            int numero_instruccion = *((int*) list_get(instruccion->parametros, 1));
-            int valor_registro = obtener_valor_de_registro(contexto, registro);
-            log_info(cpu_logger, "PID: %d - <JNZ> - <%s %d>", contexto->pid, registro, numero_instruccion);
+            char* registro_jnz = (char*) list_get(instruccion.parametros, 0);
+            int numero_instruccion = *((int*) list_get(instruccion.parametros, 1));
+            int valor_registro = obtener_valor_de_registro(contexto, registro_jnz);
+            log_info(cpu_logger, "PID: %d - <JNZ> - <%s %d>", contexto->pid, registro_jnz, numero_instruccion);
             if (valor_registro != 0) {
-                contexto->program_counter = numero_instruccion;
+                contexto->registros.PC = numero_instruccion;
             }
          break;
 
-    //case IO_GEN_SLEEP                                                                     //IO_GEN_SLEEP (Interfaz, Unidades de trabajo)
-    //    break;
+    case IO_GEN_SLEEP:                                                                     //IO_GEN_SLEEP (Interfaz, Unidades de trabajo)
+            char* interfaz = (char*) list_get(instruccion.parametros, 0);
+            int unidades_trabajo = *((int*) list_get(instruccion.parametros, 1));
+            log_info(cpu_logger, "PID: %d - <IO_GEN_SLEEP> - <%s %d>", contexto->pid, interfaz, unidades_trabajo); //TODO MANDAR A KERNEL.
+            t_buffer* buffer_kernel = crear_buffer();
+            cargar_pcb_a_buffer(buffer_kernel, contexto);
+            cargar_string_a_buffer(buffer_kernel, interfaz);   // HAY QUE CASTEAR EL INT A CHAR*?
+            cargar_int_a_buffer(buffer_kernel, unidades_trabajo);
+            t_paquete* paquete = crear_paquete(IO_GEN_SLEEP, buffer_kernel);
+            enviar_paquete(paquete, cliente_kernel_dispatch);
+            destruir_paquete(paquete);
+            ctx_global = NULL;
+            break;
+    
+    case EXIT: 
+            log_info(cpu_logger, "PID: %d - <EXIT>", contexto->pid);
+            t_buffer* buffer_kernel_exit = crear_buffer();
+            cargar_pcb_a_buffer(buffer_kernel_exit, contexto);
+            t_paquete* paquete_exit = crear_paquete(EXIT, buffer_kernel_exit);
+            enviar_paquete(paquete_exit, cliente_kernel_dispatch);
+            destruir_paquete(paquete_exit);
+            ctx_global = NULL;
+            break;
 
     default:
         break;
@@ -217,7 +256,7 @@ void check_interrupt(t_pcb *ctx)
     }
     //sem_post(&mutex_ctx);
 }
-
+/* 
 //MMU
 int traducir_direccion_mmu(int dir_logica, t_pcb *ctx)
 {
@@ -339,7 +378,7 @@ void eliminar_marco_tlb(t_cpu* cpu, int marco) {
     }
 }
 
-
+*/
 
 
 /*

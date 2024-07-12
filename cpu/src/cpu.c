@@ -1,4 +1,15 @@
 #include "cpu.h"
+char* IP_MEMORIA;
+char* PUERTO_MEMORIA;
+char* PUERTO_ESCUCHA_DISPATCH;
+char* PUERTO_ESCUCHA_INTERRUPT;
+char* CANTIDAD_ENTRADAS_TLB;
+char* ALGORITMO_TLB;
+int conexion_memoria;
+int cliente_kernel_dispatch;
+int cliente_kernel_interrupt;
+bool llego_interrupcion = false;
+pthread_t hilo_kernel_dispatch;
 
 int main(int argc, char* argv[]) {
     //Inicio el logger de la cpu
@@ -68,8 +79,10 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
 		case CONTEXTO_EJECUCION:
 			log_info(cpu_logger, "Me llegó contexto ejecución");
             t_buffer* buffer = recibir_buffer(cliente_kd);
-			log_info(cpu_logger, "EJECUTAMOS procesos");                
-            atender_crear_pr(buffer);
+			t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
+            log_info(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
+            ciclo_de_instruccion(pcbb);
+            destruir_buffer(buffer);
 			break;
 		case HANDSHAKE_CPU:
 			log_info(cpu_logger, "Se conecto el CPU");
@@ -96,6 +109,7 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     op_code handshake = recibir_operacion(cliente_ki); 
     llego_interrupcion = true;
     t_buffer* buffer = recibir_buffer(cliente_ki);
+    hay_interrupcion = 1;
     //pthread_cancel(hilo_kernel_dispatch);
     //log_info(cpu_cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
 	switch(handshake) {
@@ -139,19 +153,8 @@ void atender_crear_pr(t_buffer* buffer){
       
     t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
     log_info(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
+    ciclo_de_instruccion(pcbb);
     destruir_buffer(buffer);
-    t_buffer* buffer_cpu_ki = crear_buffer();   
-    cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
-    cargar_string_a_buffer(buffer_cpu_ki, "Nueva");
-    cargar_int_a_buffer(buffer_cpu_ki, 50);       
-    //char * recurso = "RA";
-    //cargar_string_a_buffer(buffer_cpu_ki,recurso);
-    //usleep(5000000);
-    //sleep(8);
-    t_paquete* paquete_cpu = crear_paquete(IO_GEN_SLEEP, buffer_cpu_ki);
-    //log_info(cpu_logger, "Enviamos PCB a Kernel con quantum: %d", pcbb->quantum);
-    enviar_paquete(paquete_cpu, cliente_kernel_dispatch);
-    destruir_buffer(buffer_cpu_ki);
 }
 
 /*void devolver_pcb(t_pcb pcb){

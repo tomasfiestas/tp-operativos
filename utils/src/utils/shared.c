@@ -193,15 +193,7 @@ void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor){
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor){
     cargar_a_buffer(buffer, &valor, sizeof(uint8_t));
 }
-void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb){
-    cargar_int_a_buffer(buffer, pcb->pid);
-    cargar_int_a_buffer(buffer, pcb->program_counter);
-    cargar_estado_a_buffer(buffer, pcb->estado);
-    cargar_registros_a_buffer(buffer, pcb->registros);
-    cargar_int_a_buffer(buffer, pcb->quantum);
-    cargar_int_a_buffer(buffer, pcb->ejecuto);   
-    
-}
+
 void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
     cargar_a_buffer(buffer, &estado, sizeof(t_estado));
 }

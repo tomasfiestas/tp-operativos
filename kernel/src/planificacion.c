@@ -67,7 +67,6 @@ sem_t sem_volvioContexto;
 void crear_pcb(int pid){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
     nuevo_pcb->pid = pid;	
-	nuevo_pcb->program_counter = 0;	
 	//nuevo_pcb->tabla_archivos = list_create(); //Comento porque no se para que sirve
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
@@ -100,6 +99,8 @@ void inicializar_registros(t_pcb* nuevo_pcb){
 	memcpy(&(nuevo_pcb->registros.EDX), &eax, sizeof(uint32_t));
 	memcpy(&(nuevo_pcb->registros.SI), &eax, sizeof(uint32_t));
 	memcpy(&(nuevo_pcb->registros.DI), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.PC), &eax, sizeof(uint32_t));
+	log_info(kernel_logger, "Registros inicializados-valor PC: %u", nuevo_pcb->registros.PC);
 }
 
 
