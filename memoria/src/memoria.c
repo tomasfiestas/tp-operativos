@@ -109,10 +109,11 @@ void* atender_cpu(void* socket_cliente_ptr) {
 	switch(op_code) {
     case SOLICITUD_INST:
         log_info(memoria_logger, "Solicitud de instrucciones");
+        t_buffer *buffer = recibir_buffer(cliente);
 
-        usleep(atoi(RETARDO_RESPUESTA));
-        buffer = recibir_buffer(cliente);
-        pid = extraer_int_del_buffer(buffer);
+        int pid = extraer_int_del_buffer(buffer);
+        int program_counter= extraer_uint32_del_buffer(buffer);
+
         destruir_buffer(buffer);
 
         t_proceso* proceso = obtener_proceso(pid);
@@ -120,18 +121,11 @@ void* atender_cpu(void* socket_cliente_ptr) {
             log_error(memoria_logger, "No se encontro el proceso con PID: %d", pid);
             break;
         }
-        t_instruccion* instruccion = list_get(proceso->instrucciones, proceso->pc);
-        proceso->pc++;
-
-        response_buffer = crear_buffer();
-        cargar_instruccion_a_buffer(response_buffer, instruccion);
-        cargar_uint32_a_buffer(response_buffer, (uint32_t) proceso->pc);
-        response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
-
-        enviar_paquete(response, cliente_cpu);
-        destruir_paquete(response);
-
-        break;
+        t_instruccion* instruccion = list_get(proceso->instrucciones, program_counter);
+        //t_instruccion_a_enviar instruccion_a_enviar =  parsear_instruccion(instruccion);
+        t_instruccion_a_enviar instruccion_a_enviar;
+        instruccion_a_enviar.operacion = instruccion->operacion;
+        proceso->pc=(program_counter+1);
     case RESIZE: // Parametros: PID, Bytes
         // El parametro pasado (cantidad de bytes) es absoluto, no es relativo al tamaño anterior.
         // Esta funcion se asegurara de cambiar al tamaño deseado, caso contrario enviará OUT_OF_MEMORY.
@@ -220,6 +214,11 @@ void* atender_cpu(void* socket_cliente_ptr) {
         break;
     case HANDSHAKE_CPU:
         log_info(memoria_logger, "Se conecto el CPU");
+        t_buffer* buffer_rta = crear_buffer();
+        cargar_string_a_buffer(buffer_rta, TAM_PAGINA);
+        t_paquete *paquete = crear_paquete(MENSAJE, buffer_rta);
+        enviar_paquete(paquete, cliente);
+        destruir_paquete(paquete);
         break;
     case HANDSHAKE_MEMORIA:
         log_info(memoria_logger, "Se conecto la Memoria");
@@ -357,7 +356,8 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 }
 
 t_list* parse_file(const char* filePath) {
-    FILE* file = fopen(filePath, "r");
+ 
+   FILE* file = fopen(filePath, "r");
     if (file == NULL) {
         log_error(memoria_logger, "No se pudo abrir el archivo de instrucciones.");
         return NULL;
@@ -371,7 +371,7 @@ t_list* parse_file(const char* filePath) {
         t_instruccion* instruccion = malloc(sizeof(t_instruccion));
         char* token = strtok(linea, " ");
         
-        instruccion->operacion = (op_code) token;
+        instruccion->operacion = map_instruccion_a_enum(token);
 
         instruccion->parametros = list_create();
         while ((token = strtok(NULL, " ")) != NULL) {
@@ -381,6 +381,8 @@ t_list* parse_file(const char* filePath) {
         }
 
         list_add(instrucciones, instruccion);
+        instruccion->tamanio_lista = list_size(instruccion->parametros);
+        log_info(memoria_logger, "Instruccion: %s", list_get(instruccion->parametros, 0));
         cantidad_instrucciones++;
     }
     
@@ -440,4 +442,54 @@ t_proceso *obtener_proceso(int pid)
     }
     list_iterator_destroy(iterator);
     return NULL;
+}
+
+int map_instruccion_a_enum(char* instruccion){
+    if(strcmp(instruccion, "SET") == 0){
+        return SET ;
+    } else if(strcmp(instruccion, "MOV_IN") == 0){
+        return MOV_IN ;
+    } else if(strcmp(instruccion, "MOV_OUT") == 0){
+        return MOV_OUT ;
+    } else if(strcmp(instruccion, "SUM") == 0){
+        return SUM ;
+    } else if(strcmp(instruccion, "SUB") == 0){
+        return SUB ;
+    } else if(strcmp(instruccion, "JNZ") == 0){
+        return JNZ ;
+    } else if(strcmp(instruccion, "RESIZE") == 0){
+        return RESIZE ;
+    } else if(strcmp(instruccion, "COPY_STRING") == 0){
+        return HANDSHAKE_ES;
+    } else if(strcmp(instruccion, "WAIT") == 0){
+        return WAIT ;
+    } else if(strcmp(instruccion, "SIGNAL") == 0){
+        return SIGNAL ;
+    } else if(strcmp(instruccion, "IO_GEN_SLEEP") == 0){
+        return IO_GEN_SLEEP ;
+    } else if(strcmp(instruccion, "IO_STDIN_READ") == 0){
+        return IO_STDIN_READ ;
+    } else if(strcmp(instruccion, "IO_STDOUT_WRITE") == 0){
+        return IO_STDOUT_WRITE ;
+    } else if(strcmp(instruccion, "IO_FS_CREATE ") == 0){
+        return IO_FS_CREATE  ;
+    }
+    else if(strcmp(instruccion, "IO_FS_DELETE") == 0){
+        return IO_FS_DELETE  ;
+    }
+    else if(strcmp(instruccion, "IO_FS_TRUNCATE") == 0){
+        return IO_FS_TRUNCATE ;
+    }
+    else if(strcmp(instruccion, "IO_FS_WRITE") == 0){
+        return IO_FS_WRITE ;
+    }
+    else if(strcmp(instruccion, "IO_FS_READ") == 0){
+        return IO_FS_READ ;
+    }
+    else if(strcmp(instruccion, "EXIT") == 0){
+        return EXIT  ;
+    }  
+    else {
+        return -1;
+ }  
 }

@@ -149,8 +149,13 @@ typedef enum
 
 typedef struct {
 	op_code operacion;
+	int tamanio_lista;
 	t_list* parametros;
 } t_instruccion;
+
+typedef struct {
+	op_code operacion;	
+} t_instruccion_a_enviar;
 
 
 // CLIENTE
