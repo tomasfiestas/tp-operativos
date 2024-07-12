@@ -28,7 +28,7 @@ typedef struct{
 } t_interfaz;
 
 
-t_log* entradasalida_logger;
+extern t_log* logger;
 t_config* entradasalida_config;
 char* TIPO_INTERFAZ;
 char* TIEMPO_UNIDAD_TRABAJO;

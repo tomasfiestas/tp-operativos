@@ -1,5 +1,5 @@
 #include "entradasalida.h"
-extern t_log* logger;
+t_log* logger;
 int main(int argc, char* argv[]) { 
     //Inicio el logger de entradasalida 
     logger = iniciar_logger("entradasalida.log", "LOGGER_ENTRADASALIDA");  
