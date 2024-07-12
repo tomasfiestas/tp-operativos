@@ -125,6 +125,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
 
         response_buffer = crear_buffer();
         cargar_instruccion_a_buffer(response_buffer, instruccion);
+        cargar_uint32_a_buffer(response_buffer, (uint32_t) proceso->pc);
         response = crear_paquete(SOLICITUD_INST_OK, response_buffer);
 
         enviar_paquete(response, cliente_cpu);
