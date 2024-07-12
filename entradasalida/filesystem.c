@@ -6,6 +6,8 @@
 #include <commons/bitarray.h>
 #include <math.h>
 #include <sys/mman.h>
+t_fcb *fcb;
+
 
 void crear_bitmap()
 {
@@ -113,4 +115,23 @@ void bitmap_marcar_bloque_ocupado(int numero_bloque)
     }
 }
 
-void encontrar_bloque
+void encontrar_bloque();
+
+
+// Sección de FCB
+t_fcb *crear_nuevo_fcb(char *nombreArchivo)
+{
+    //t_fcb *fcb = malloc(sizeof(*fcb));   verificar
+    fcb->nombre_archivo = strdup(nombreArchivo);
+    fcb->TAMANIO_ARCHIVO = 0;
+    fcb->CANTIDAD_BLOQUES = 0;
+
+    return fcb;
+}
+
+void destruir_fcb(t_fc b *fcb)
+{
+    free(fcb->nombre_archivo);
+    free(fcb);
+    return;
+}

@@ -6,12 +6,13 @@ struct typedef {
     int TAMANIO_ARCHIVO;
 } t_filesystem;
 
-
 typedef struct fcb{
     char* nombre_archivo;
     uint32_t TAMANIO_ARCHIVO;
     uint32_t BLOQUES_INICIAL;
-} t_FCB; 
+    uint32_t CANTIDAD_BLOQUES;
+} t_fcb;
+
 
 extern char* bitmap;
 extern t_bitarray* bitarray;
