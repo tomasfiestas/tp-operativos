@@ -169,6 +169,37 @@ void asignar_valor_a_registro(t_pcb* contexto,char* registro, int valor)
     }
 }
 
+void asignar_valor_char_a_registro(t_pcb* contexto,char* registro, char* valor)
+{       
+    // Asignar el valor al registro correspondiente
+    if (strcmp(registro, "AX") == 0) {
+        contexto->registros.AX = valor;
+    } else if (strcmp(registro, "BX") == 0) {
+        contexto->registros.BX = valor;
+    } else if (strcmp(registro, "CX") == 0) {
+        contexto->registros.CX = valor;
+    } else if (strcmp(registro, "DX") == 0) {
+        contexto->registros.DX = valor;
+    } else if (strcmp(registro, "EAX") == 0) {
+        contexto->registros.EAX = valor;
+    } else if (strcmp(registro, "EBX") == 0) {
+        contexto->registros.EBX = valor;
+    } else if (strcmp(registro, "ECX") == 0) {
+        contexto->registros.ECX = valor;
+    } else if (strcmp(registro, "EDX") == 0) {
+        contexto->registros.EDX = valor;
+    } else if (strcmp(registro, "SI") == 0) {
+        contexto->registros.SI = valor;
+    } else if (strcmp(registro, "DI") == 0) {
+        contexto->registros.DI = valor;
+    } else if (strcmp(registro, "PC") == 0) {
+        contexto->registros.PC = valor;
+    } else {
+        printf("Registro desconocido: %s\n", registro);
+    }
+    log_info(cpu_logger, "PID: %d - <MOV_IN> - <%d >", contexto->pid, contexto->registros.EDX);
+}
+
 int obtener_valor_de_registro(t_pcb* contexto, char* registro) {
     if (strcmp(registro, "AX") == 0) {
         return contexto->registros.AX;
@@ -286,17 +317,48 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                 log_error(cpu_logger, "PID: %d - Error al traducir dirección lógica: %d", contexto->pid, dir_logica);
                 return;
             }
-
-            char* valor_leido = leer_de_memoria(direccion_fisica, contexto->pid);
+            int bytes_a_leer = calcular_bytes_a_leer(registro_datos_mov_in);
+            char* valor_leido = leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
             if (valor_leido == NULL) {
                 log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
                 return;
             }
-
-            asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);
+            
+            asignar_valor_char_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
             log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %s", contexto->pid, direccion_fisica, valor_leido);
 
             free(valor_leido);
+            break;
+    case RESIZE:
+            int cantidad_bytes = atoi(list_get(instruccion.parametros, 0));
+            log_info(cpu_logger, "PID: %d - <RESIZE> - %d", contexto->pid, cantidad_bytes);
+            t_buffer* buffer_kernel_resize = crear_buffer();         
+            cargar_int_a_buffer(buffer_kernel_resize, contexto->pid);   
+            cargar_int_a_buffer(buffer_kernel_resize, cantidad_bytes);
+            t_paquete* paquete_resize = crear_paquete(RESIZE, buffer_kernel_resize);
+            enviar_paquete(paquete_resize, conexion_memoria);
+            destruir_paquete(paquete_resize);
+
+            op_code cod_op_resize = recibir_operacion(conexion_memoria);
+            if (cod_op_resize == OUT_OF_MEMORY) {
+                log_error(cpu_logger, "Ocurrió un error al hacer RESIZE"); //Mando pcb a kernel
+                t_buffer* buffer_kernel_out_of_memory = crear_buffer();
+                cargar_pcb_a_buffer(buffer_kernel_out_of_memory, contexto);
+                t_paquete* paquete_out_of_memory = crear_paquete(OUT_OF_MEMORY, buffer_kernel_out_of_memory);
+                enviar_paquete(paquete_out_of_memory, cliente_kernel_dispatch);
+                destruir_paquete(paquete_out_of_memory);
+                return;
+            }
+            else{ //RESIZE_OK
+                t_buffer* buffer_rta_resize = recibir_buffer(conexion_memoria);
+                destruir_buffer(buffer_rta_resize);
+                log_info(cpu_logger, "PID: %d - Acción: RESIZE - %d", contexto->pid, cantidad_bytes);
+                }
+            
+
+
+
+            
             break;
     /* 
     case MOV_OUT:                                                                            //MOV_OUT (Registro Direccion, Registro Datos)
@@ -323,11 +385,14 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
         break;
     }
 }
-char* leer_de_memoria(int dir_fisica, int pid)
-{
+char* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
+{   
+
+    
     t_buffer *buffer_envio = crear_buffer();
     cargar_int_a_buffer(buffer_envio, pid);
     cargar_int_a_buffer(buffer_envio, dir_fisica);
+    cargar_int_a_buffer(buffer_envio, bytes_a_leer);
 
     t_paquete *paquete = crear_paquete(LEER, buffer_envio); 
     enviar_paquete(paquete, conexion_memoria);
@@ -347,16 +412,35 @@ char* leer_de_memoria(int dir_fisica, int pid)
         return NULL;
     }
 
-    uint32_t valor_leido;
-    memcpy(&valor_leido, buffer_respuesta->stream, sizeof(uint32_t));
-
-    char* valor_cadena = (char*)malloc(12 * sizeof(char));
-    snprintf(valor_cadena, 12, "%u", valor_leido);
+    char* valor_leido = extraer_string_del_buffer(buffer_respuesta); //extraigo lo leido de memoria
+    
+    
 
     destruir_buffer(buffer_respuesta); 
 
-    return valor_cadena;
-}/*
+    return valor_leido;
+}
+
+int calcular_bytes_a_leer(char* registro){
+    
+    if (strcmp(registro, "AX") == 0 ||
+        strcmp(registro, "BX") == 0 ||
+        strcmp(registro, "CX") == 0 ||
+        strcmp(registro, "DX") == 0) {
+        return 1;
+    } else if (strcmp(registro, "EAX") == 0 ||
+               strcmp(registro, "EBX") == 0 ||
+               strcmp(registro, "ECX") == 0 ||
+               strcmp(registro, "EDX") == 0 ||
+               strcmp(registro, "SI") == 0 ||
+               strcmp(registro, "DI") == 0 ||
+               strcmp(registro, "PC") == 0) {
+        return 4;
+    } else {
+        return -1;
+    }
+}
+/*
 
 void escribir_a_memoria(int dir_fisica, int pid, uint32_t valor) {
     t_buffer *buffer_envio = crear_buffer();
@@ -400,7 +484,7 @@ int traducir_direccion_mmu(int dir_logica, t_pcb *ctx)
     int dir_fisica = (num_marco * tamanio_pagina) + desplazamiento;
     //ctx->program_counter++;
 
-    agregar_entry_tlb(tlb, nro_pagina, num_marco);
+    agregar_entry_tlb(ctx, nro_pagina, num_marco);
     
     return dir_fisica;
 
@@ -426,7 +510,7 @@ int solicitar_numero_de_marco(int num_pagina, int pid)
     op_code cod_op = recibir_operacion(conexion_memoria);
     t_buffer *buffer_recibido = recibir_buffer(conexion_memoria);
     num_marco = extraer_int_del_buffer(buffer_recibido);
-    if(num_marco <= 0)
+    if(num_marco < 0)
     {
         log_error(cpu_logger, "Ocurrio un error al recibir el numero de marco");
         return -1;
@@ -467,11 +551,12 @@ void agregar_entry_tlb(t_pcb* cpu, int pagina, int marco) {
 	entry->marco = marco;
     entry->pid = cpu->pid;
 
-	t_list* tlb;
+	
 
 	// Checkeamos si agregar un elemento haria que nos pasemos del maximo de entradas permitidas, y en ese caso eliminamos el primero.
-    if(strcmp(ALGORITMO_TLB, "FIFO") == 0 || strcmp(ALGORITMO_TLB, "LRU") == 0){
-	if (list_size(tlb) >= CANTIDAD_ENTRADAS_TLB) {
+    //if(strcmp(ALGORITMO_TLB, "FIFO") == 0 || strcmp(ALGORITMO_TLB, "LRU") == 0){   //TODO: Preguntar a franco si esta bien.
+    log_info(cpu_logger, "CANT ENTRADAS %d", atoi(CANTIDAD_ENTRADAS_TLB));
+	if (list_size(tlb) >= atoi(CANTIDAD_ENTRADAS_TLB)) {
 		t_tlb_entry* first_entry = list_remove(tlb, 0);
         log_info(cpu_logger, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
 		free(first_entry);
@@ -480,13 +565,13 @@ void agregar_entry_tlb(t_pcb* cpu, int pagina, int marco) {
     }
 
 	list_add(tlb, entry);
-    return;
+    return;                                             //TODO: Preguntar a franco si esta bien.
 }
-else {
+/*else {
     log_error(cpu_logger, "Algoritmo Incompatible");
     return;
 }
-}
+}*/
 
 void check_interrupt(t_pcb *ctx)
 {

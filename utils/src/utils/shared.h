@@ -131,6 +131,8 @@ typedef enum
 	MOV_IN,
 	MOV_OUT,
 	RESIZE,
+	RESIZE_OK,
+	OUT_OF_MEMORY,
 	JNZ,
 	COPY_STRING,
 	WAIT,
@@ -139,7 +141,9 @@ typedef enum
 	SOLICITUD_MARCO,
 	SOLICITUD_MARCO_OK,
 	LEER,
-	LEER_OK
+	LEER_OK,
+	ESCRIBIR,
+	ESCRIBIR_OK
 
 }op_code;
 
