@@ -951,6 +951,13 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 
+		case EXIT:
+			log_info(kernel_logger,"LLegó un EXIT proceso %d",pcb->pid);
+			//t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
+			atender_fin_proceso(buffer,op_code,pcb);
+			break;
+		break;
+
 		default:
 			log_error(kernel_logger, "No se reconoce el handshake");
 			break;
@@ -1051,7 +1058,7 @@ void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
 	liberar_recursos(pcb);
 	liberar_interfaces(pcb);
     destruir_buffer(buffer);
-	free(pcb);	
+	//free(pcb);	
 }
 
 void liberar_interfaces(t_pcb* pcb){
@@ -1276,9 +1283,9 @@ char *mensaje_a_string(op_code motivo){
 	switch (motivo){
     case SUCCESS:    
 	    return "SUCCESS";
-    /*case INVALID_WRITE:
-        return "INVALID_INTERFACE";*/
-    case INVALID_INTERFACE:
+    case EXIT:
+        return "SUCESS";
+    /*case INVALID_INTERFACE:
         return "INVALID_INTERFACE";/*
     case INVALID_RESOURCE:
         return "INVALID_RESOURCE";
