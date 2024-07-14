@@ -463,6 +463,8 @@ void sacar_de_exec(t_pcb* pcb, op_code op_code){
 				agregar_a_exit(pcb,op_code);
 			break;
 			case INVALID_RESOURCE:
+				agregar_a_exit(pcb,op_code);
+			case OUT_OF_MEMORY:
 				agregar_a_exit(pcb,op_code);				
 			default: // FINPROCESO
 				agregar_a_exit(pcb,op_code);
@@ -664,6 +666,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 
 			break;
+		case OUT_OF_MEMORY:
+			log_info(kernel_logger, "Llegó out of memory con pid: %d ", pcb->pid);
+			//t_buffer* buffer5 = recibir_buffer(cliente_kd);			        
+			sacar_de_exec(pcb, op_code); 
+			break;
 		default:
 			log_error(kernel_logger, "No se reconoce el handshake");
 			break;
@@ -736,15 +743,13 @@ void *manejo_quantum(t_pcb * pcb){
 
 
 void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
-	//t_pcb* pcb;	
-	//pcb = extraer_de_buffer(buffer);
-    t_pcb valor_pcb = *pcb;
+	t_pcb valor_pcb = *pcb;
     
 	sacar_de_exec(pcb, op_code);     
     log_info(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
 	finalizarProceso(valor_pcb.pid);
     destruir_buffer(buffer);
-	free(pcb);	
+	//free(pcb);	
 }
 
 void finalizarProceso(int pid){
@@ -847,9 +852,9 @@ char *mensaje_a_string(op_code motivo){
     case FIN_QUANTUM:
         return "FIN_QUANTUM";
     case NUEVA_PRIORIDAD:
-        return "NUEVA_PRIORIDAD";
-    case DEADLOCK:
-        return "DEADLOCK";*/
+        return "NUEVA_PRIORIDAD";*/
+    case OUT_OF_MEMORY:
+        return "OUT_OF_MEMORY";
     case INTERRUPTED_BY_USER:
         return "INTERRUPTED_BY_USER";
     /*case ABRE_ARCHIVO_W:

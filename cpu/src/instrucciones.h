@@ -12,7 +12,6 @@
 
 
 
-
 typedef struct {
 	int pagina;
 	int marco;
@@ -27,7 +26,7 @@ int obtener_valor_de_registro(t_pcb* contexto, char* registro);
 void execute(t_instruccion instruccion, t_pcb* contexto);
 t_instruccion solicitar_instruccion_a_memoria(t_pcb* t_pcb);
 t_instruccion crear_instruccion_nuevamente(t_instruccion_a_enviar instruccion_a_enviar, t_buffer *buffer_recibido);
-char* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid);
+uint32_t leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid);
 
-void asignar_valor_char_a_registro(t_pcb* contexto,char* registro, char* valor);
+void asignar_valor_char_a_registro(t_pcb* contexto,char* registro, uint32_t valor);
 #endif // !_INSTRUCCIONES_CPU_H_

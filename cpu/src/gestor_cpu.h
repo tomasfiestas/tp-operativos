@@ -37,7 +37,6 @@ extern int cliente_kernel_dispatch;
 extern int cliente_kernel_interrupt;
 extern bool llego_interrupcion ;
 extern pthread_t hilo_kernel_dispatch;
-extern int hay_interrupcion;
 extern int direccion_fisica;
 extern t_list* tlb;
 

@@ -10,6 +10,7 @@
 #include <instrucciones.h>*/
 #include <gestor_cpu.h>
 #include <commons/config.h>
+#include <global_cpu.h>
 
 
 

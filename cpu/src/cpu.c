@@ -78,14 +78,16 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
     while (control_key && !llego_interrupcion){          
         
     op_code op_code = recibir_operacion(cliente_kd);  
-    log_info(cpu_logger,"Me llega un opcode %d",op_code);  
+    log_info(cpu_logger,"Me llega un opcode %d",op_code); 
+    t_buffer* buffer = recibir_buffer(cliente_kd);
+	t_pcb* pcb_ejecutando = extraer_pcb_del_buffer(buffer); 
 	switch(op_code) {
 		case CONTEXTO_EJECUCION:
 			log_info(cpu_logger, "Me llegó contexto ejecución");
-            t_buffer* buffer = recibir_buffer(cliente_kd);
-			t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
-            log_info(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
-            ciclo_de_instruccion(pcbb);
+            //t_buffer* buffer = recibir_buffer(cliente_kd);
+			//t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
+            log_info(cpu_logger, "Creamos PCB: %d", pcb_ejecutando->pid); 
+            ciclo_de_instruccion(pcb_ejecutando);
             destruir_buffer(buffer);
 			break;
 		case HANDSHAKE_CPU:
@@ -111,9 +113,8 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     bool control_key = 1;
     while (control_key){
     op_code handshake = recibir_operacion(cliente_ki); 
-    llego_interrupcion = true;
-    t_buffer* buffer = recibir_buffer(cliente_ki);
     hay_interrupcion = 1;
+    t_buffer* buffer = recibir_buffer(cliente_ki);    
     //pthread_cancel(hilo_kernel_dispatch);
     //log_info(cpu_cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
 	switch(handshake) {
@@ -122,18 +123,16 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
             atender_fin_quantum(buffer);
 			break;
 		case FINPROCESO:
-			log_info(cpu_logger, "me llegó finalizar proceso");            
-            t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
-            log_info(cpu_logger, "Fin de proceso: %d", pcbb->pid);   
-            destruir_buffer(buffer) ;
+			log_info(cpu_logger, "me llegó finalizar proceso");                     
+            /* 
             t_buffer* buffer_cpu_ki = crear_buffer();    
-            cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);             
+            cargar_pcb_a_buffer(buffer_cpu_ki,pcb_ejecutando);             
             pthread_cancel(hilo_kernel_dispatch);
-            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcbb->pid);   
+            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcb_ejecutando->pid);   
             t_paquete* paquete_cpu = crear_paquete(INTERRUPTED_BY_USER, buffer_cpu_ki);
             enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
-            free(pcbb);            
-            destruir_paquete(paquete_cpu);
+            free(pcb_ejecutando);            
+            destruir_paquete(paquete_cpu);*/
 
 			break;
 		case HANDSHAKE_MEMORIA:
@@ -147,7 +146,7 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 			control_key = 0;
 			break;
 	}   
-    llego_interrupcion = false;
+    //llego_interrupcion = false;
     log_info(cpu_logger,"llego interrupcion en false"); 
     } 
 
@@ -171,9 +170,9 @@ void atender_crear_pr(t_buffer* buffer){
 }*/
 
 void atender_fin_quantum(t_buffer* buffer){
-      
-    t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
-    log_info(cpu_logger, "Fin de Quantum: %d", pcbb->pid);   
+    /* 
+    t_pcb* pcbb_no_sirve = extraer_pcb_del_buffer(buffer);
+    log_info(cpu_logger, "Fin de Quantum: %d", pcbb_no_sirve->pid);   
     destruir_buffer(buffer) ;
     t_buffer* buffer_cpu_ki = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
@@ -183,6 +182,6 @@ void atender_fin_quantum(t_buffer* buffer){
     log_info(cpu_logger, "Enviamos PCB de proceso desalojado - PID %d a Kernel Interrupt con Quantum %d", pcbb->pid, pcbb->quantum);   
 	t_paquete* paquete_cpu = crear_paquete(PROCESO_DESALOJADO, buffer_cpu_ki);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
-    free(pcbb);
+    free(pcbb);*/  
     
 }

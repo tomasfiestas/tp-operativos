@@ -137,6 +137,7 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
                     t_pcb * pcb_a_finalizar = buscarPcb(pid);
                     //cargar_int_a_buffer(buffer_finalizar_proceso, pids);    
                     if(pcb_a_finalizar->estado == EXEC){   
+                        if(obtener_algoritmo() != FIFO)
                         pthread_cancel(hilo_quantum);
                         mandar_fin_proceso_a_cpu(pcb_a_finalizar);
                     }else {
