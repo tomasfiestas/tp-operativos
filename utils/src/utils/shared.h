@@ -35,6 +35,7 @@ typedef struct{
 	uint32_t EDX;
 	uint32_t SI;
 	uint32_t DI;
+	uint32_t PC; //preguntar
 } t_registros;
 
 
@@ -42,7 +43,6 @@ typedef struct{
 
 typedef struct{
 	int pid;
-	int program_counter;
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	

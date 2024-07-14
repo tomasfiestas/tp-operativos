@@ -195,7 +195,6 @@ void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor){
 }
 void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb){
     cargar_int_a_buffer(buffer, pcb->pid);
-    cargar_int_a_buffer(buffer, pcb->program_counter);
     cargar_estado_a_buffer(buffer, pcb->estado);
     cargar_registros_a_buffer(buffer, pcb->registros);
     cargar_int_a_buffer(buffer, pcb->quantum);
