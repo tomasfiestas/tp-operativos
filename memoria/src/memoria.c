@@ -177,8 +177,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         } else {
             response = crear_paquete(OUT_OF_MEMORY, response_buffer);
         }
-
-
+        cargar_int_a_buffer(response_buffer, resultado);
         enviar_paquete(response, cliente_cpu);
         destruir_paquete(response);
         break;
@@ -235,6 +234,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
 
         // TODO: mejorar envio de paquetes sin buffer.
         response_buffer = crear_buffer();
+        agregar_int_a_buffer(response_buffer, ESCRIBIR_OK);
         response = crear_paquete(ESCRIBIR_OK, response_buffer);
         enviar_paquete(response, cliente_cpu);
         destruir_paquete(response);
@@ -362,6 +362,7 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 
             // TODO: mejorar envio de paquetes sin buffer.
             response_buffer = crear_buffer();
+            agregar_int_a_buffer(response_buffer, ESCRIBIR_OK);
             response = crear_paquete(ESCRIBIR_OK, response_buffer);
             enviar_paquete(response, cliente_entradasalida);
             destruir_paquete(response);

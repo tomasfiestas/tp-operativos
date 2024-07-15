@@ -123,7 +123,7 @@ void* leer_memoria(int pid, int direccion_fisica, int size)
 int escribir_memoria(int pid, int direccion_fisica, void* bytes, int size)
 {
     memcpy(&memoria_total[direccion_fisica], bytes, size);
-    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d", pid, direccion_fisica, size);
+    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, size);
     return 1;
 }
 
