@@ -269,6 +269,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
         log_info(cpu_logger, "PID : %d - Ejecutando: <SET> - <%s %s>", contexto->pid, registro_set, valor_inst);
         int valor = atoi(valor_inst);
         asignar_valor_a_registro(contexto,registro_set,valor);
+        list_destroy_and_destroy_elements(instruccion.parametros, free);
         break;
     
     case SUM:                                                                    //SUM(Registro Destino, Registro Origen)
@@ -278,6 +279,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             int valor_destino_sum = obtener_valor_de_registro(contexto, registro_destino_sum);
             log_info(cpu_logger, "PID: %d - Ejecutando: <SUM> - <%s %s>", contexto->pid, registro_destino_sum, registro_origen_sum);
             asignar_valor_a_registro(contexto, registro_destino_sum, valor_destino_sum + valor_origen_sum);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
         break;
 
     case SUB:                                                                    //SUB(Registro Destino, Registro Origen)
@@ -287,6 +289,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             int valor_destino_sub = obtener_valor_de_registro(contexto, registro_destino_sub);
             log_info(cpu_logger, "PID: %d - Ejecutando: <SUB> - <%s %s>", contexto->pid, registro_destino_sub, registro_origen_sub);
             asignar_valor_a_registro(contexto, registro_destino_sub, valor_destino_sub - valor_origen_sub);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
         break;
 
     case JNZ:                                                                     //JNZ(Registro, Instrucción)
@@ -297,6 +300,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             if (valor_registro != 0) {
                 contexto->registros.PC = numero_instruccion;
             }
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
          break;    
     case MOV_IN:  // MOV_IN (Registro Datos, Registro Dirección) Direccion guardo en Datos
             const char* registro_datos_mov_in = (const char*) list_get(instruccion.parametros, 0);
@@ -318,6 +322,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                       
             asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
             log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
 
             //free(valor_leido);
             break;
@@ -338,6 +343,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
 
             escribir_a_memoria(direccion_fisica_mov, contexto->pid, valor_out);
             log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica_mov, valor);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             break;
 
     case RESIZE:
@@ -366,6 +372,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                 destruir_buffer(buffer_rta_resize);
                 
                 } 
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             break;
     case WAIT: 
             char* recurso_wait = list_get(instruccion.parametros, 0);
@@ -387,6 +394,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_paquete* paquete_signal = crear_paquete(SIGNAL, buffer_kernel_signal);
             enviar_paquete(paquete_signal, cliente_kernel_dispatch);
             destruir_paquete(paquete_signal);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_GEN_SLEEP:                                                                     //IO_GEN_SLEEP (Interfaz, Unidades de trabajo)
@@ -400,42 +408,54 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_paquete* paquete = crear_paquete(IO_GEN_SLEEP, buffer_kernel);
             enviar_paquete(paquete, cliente_kernel_dispatch);
             destruir_paquete(paquete);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_STDIN_READ:  //IO_STDIN_READ (Interfaz, Registro Direccion, Registro tamaño)
             char* interfaz1 = (char*) list_get(instruccion.parametros, 0);
             char* registroDireccion1 = (char*) list_get(instruccion.parametros, 1);
             char* registroTamanio1 = (char*) list_get(instruccion.parametros, 2);
+
+            int direccion_logica_stdin = obtener_valor_de_registro(contexto, registroDireccion1);   
+
+            int direccion_fisica_stdin = traducir_direccion_mmu(direccion_logica_stdin, contexto);
             log_info(cpu_logger, "PID: %d - Ejecutando: <IO_STDIN_READ> - <%s %d>", contexto->pid, interfaz1, registroDireccion1, registroTamanio1); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel1 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel1, contexto);
             cargar_string_a_buffer(buffer_kernel1, interfaz1);   
-            cargar_string_a_buffer(buffer_kernel1, registroDireccion1);
+            cargar_int_a_buffer(buffer_kernel1, direccion_fisica_stdin);
             cargar_string_a_buffer(buffer_kernel1, registroTamanio1);
             t_paquete* paquete1 = crear_paquete(IO_STDIN_READ, buffer_kernel1);
             enviar_paquete(paquete1, cliente_kernel_dispatch);
             destruir_paquete(paquete1);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_STDOUT_WRITE:  //IO_STDOUT_WRITE (Interfaz, Registro Direccion, Registro tamaño)
             char* interfaz2 = (char*) list_get(instruccion.parametros, 0);
             char* registroDireccion2 = (char*) list_get(instruccion.parametros, 1);
             char* registroTamanio2 = (char*) list_get(instruccion.parametros, 2);
-            log_info(cpu_logger, "PID: %d - <IO_STDOUT_WRITE> - <%s %d>", contexto->pid, interfaz2, registroDireccion2, registroTamanio2); //TODO MANDAR A KERNEL.
+
+            int direccion_logica_stdout = obtener_valor_de_registro(contexto, registroDireccion2);   
+
+            int direccion_fisica_stdout = traducir_direccion_mmu(direccion_logica_stdout, contexto);
+
+            log_info(cpu_logger, "PID: %d - Ejecutando: <IO_STDOUT_WRITE> - <%s %d>", contexto->pid, interfaz2, registroDireccion2, registroTamanio2); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel2 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel2, contexto);
             cargar_string_a_buffer(buffer_kernel2, interfaz2);   
-            cargar_string_a_buffer(buffer_kernel2, registroDireccion2);
+            cargar_int_a_buffer(buffer_kernel2, direccion_fisica_stdout);
             cargar_string_a_buffer(buffer_kernel2, registroTamanio2);
             t_paquete* paquete2 = crear_paquete(IO_STDOUT_WRITE, buffer_kernel2);
             enviar_paquete(paquete2, cliente_kernel_dispatch);
             destruir_paquete(paquete2);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_FS_CREATE:  //IO_FS_CREATE (Interfaz, Nombre Archivo)
             char* interfaz3 = (char*) list_get(instruccion.parametros, 0);
             char* nombreArchivo3 = (char*) list_get(instruccion.parametros, 1);
-            log_info(cpu_logger, "PID: %d - <IO_FS_CREATE> - <%s %d>", contexto->pid, interfaz3, nombreArchivo3); //TODO MANDAR A KERNEL.
+            log_info(cpu_logger, "PID: %d - Ejecutando: <IO_FS_CREATE> - <%s %d>", contexto->pid, interfaz3, nombreArchivo3); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel3 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel3, contexto);
             cargar_string_a_buffer(buffer_kernel3, interfaz3);   
@@ -443,12 +463,13 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_paquete* paquete3 = crear_paquete(IO_FS_CREATE, buffer_kernel3);
             enviar_paquete(paquete3, cliente_kernel_dispatch);
             destruir_paquete(paquete3);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_FS_DELETE:  //IO_FS_DELETE (Interfaz, Nombre Archivo)
             char* interfaz4 = (char*) list_get(instruccion.parametros, 0);
             char* nombreArchivo4 = (char*) list_get(instruccion.parametros, 1);
-            log_info(cpu_logger, "PID: %d - <IO_FS_DELETE> - <%s %d>", contexto->pid, interfaz4, nombreArchivo4); //TODO MANDAR A KERNEL.
+            log_info(cpu_logger, "PID: %d -Ejecutando: <IO_FS_DELETE> - <%s %d>", contexto->pid, interfaz4, nombreArchivo4); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel4 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel4, contexto);
             cargar_string_a_buffer(buffer_kernel4, interfaz4);   
@@ -456,13 +477,14 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_paquete* paquete4 = crear_paquete(IO_FS_DELETE, buffer_kernel4);
             enviar_paquete(paquete4, cliente_kernel_dispatch);
             destruir_paquete(paquete4);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_FS_TRUNCATE:  //IO_FS_TRUNCATE (Interfaz, Nombre Archivo, Registro Tamaño)
             char* interfaz5 = (char*) list_get(instruccion.parametros, 0);
             char* nombreArchivo5 = (char*) list_get(instruccion.parametros, 1);
             char* registroTamanio5 = (char*) list_get(instruccion.parametros, 2);
-            log_info(cpu_logger, "PID: %d - <IO_FS_TRUNCATE> - <%s %d>", contexto->pid, interfaz5, nombreArchivo5, registroTamanio5); //TODO MANDAR A KERNEL.
+            log_info(cpu_logger, "PID: %d -Ejecutando: <IO_FS_TRUNCATE> - <%s %d>", contexto->pid, interfaz5, nombreArchivo5, registroTamanio5); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel5 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel5, contexto);
             cargar_string_a_buffer(buffer_kernel5, interfaz5);   
@@ -471,6 +493,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_paquete* paquete5 = crear_paquete(IO_FS_TRUNCATE, buffer_kernel5);
             enviar_paquete(paquete5, cliente_kernel_dispatch);
             destruir_paquete(paquete5);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_FS_WRITE:  //IO_FS_WRITE (Interfaz, Nombre Archivo, Registro Direccion, Registro Tamaño, Registro Puntero Archivo)
@@ -480,17 +503,22 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             char* registroTamanio6 = (char*) list_get(instruccion.parametros, 3);
             char* registroPunteroArchivo6 = (char*) list_get(instruccion.parametros, 4);
 
-            log_info(cpu_logger, "PID: %d - <IO_FS_WRITE> - <%s %d>", contexto->pid, interfaz6, nombreArchivo6, registroDireccion6, registroTamanio6, registroPunteroArchivo6); //TODO MANDAR A KERNEL.
+            int direccion_logica_fs_write = obtener_valor_de_registro(contexto, registroDireccion2);   
+
+            int direccion_write_fs_write = traducir_direccion_mmu(direccion_logica_fs_write, contexto);
+
+            log_info(cpu_logger, "PID: %d -Ejecutando: <IO_FS_WRITE> - <%s %d>", contexto->pid, interfaz6, nombreArchivo6, registroDireccion6, registroTamanio6, registroPunteroArchivo6); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel6 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel6, contexto);
             cargar_string_a_buffer(buffer_kernel6, interfaz6);   
             cargar_string_a_buffer(buffer_kernel6, nombreArchivo6);
-            cargar_string_a_buffer(buffer_kernel6, registroDireccion6);
+            cargar_int_a_buffer(buffer_kernel6, direccion_write_fs_write);
             cargar_string_a_buffer(buffer_kernel6, registroTamanio6);
             cargar_string_a_buffer(buffer_kernel6, registroPunteroArchivo6);
             t_paquete* paquete6 = crear_paquete(IO_FS_WRITE, buffer_kernel6);
             enviar_paquete(paquete6, cliente_kernel_dispatch);
             destruir_paquete(paquete6);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
     case IO_FS_READ:  //IO_FS_READ (Interfaz, Nombre Archivo, Registro Direccion, Registro Tamaño, Registro Puntero Archivo)
@@ -500,23 +528,29 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             char* registroTamanio7 = (char*) list_get(instruccion.parametros, 3);
             char* registroPunteroArchivo7 = (char*) list_get(instruccion.parametros, 4);
 
-            log_info(cpu_logger, "PID: %d - <IO_FS_READ> - <%s %d>", contexto->pid, interfaz7, nombreArchivo7, registroDireccion7, registroTamanio7, registroPunteroArchivo7); //TODO MANDAR A KERNEL.
+            
+            int direccion_logica_fs_read = obtener_valor_de_registro(contexto, registroDireccion2);   
+
+            int direccion_write_fs_read = traducir_direccion_mmu(direccion_logica_fs_read, contexto);
+
+            log_info(cpu_logger, "PID: %d -Ejecutando: <IO_FS_READ> - <%s %d>", contexto->pid, interfaz7, nombreArchivo7, registroDireccion7, registroTamanio7, registroPunteroArchivo7); //TODO MANDAR A KERNEL.
             t_buffer* buffer_kernel7 = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel7, contexto);
             cargar_string_a_buffer(buffer_kernel7, interfaz7);   
             cargar_string_a_buffer(buffer_kernel7, nombreArchivo7);
-            cargar_string_a_buffer(buffer_kernel7, registroDireccion7);
+            cargar_int_a_buffer(buffer_kernel7, direccion_write_fs_read);
             cargar_string_a_buffer(buffer_kernel7, registroTamanio7);
             cargar_string_a_buffer(buffer_kernel7, registroPunteroArchivo7);
             t_paquete* paquete7 = crear_paquete(IO_FS_READ, buffer_kernel7);
             enviar_paquete(paquete7, cliente_kernel_dispatch);
             destruir_paquete(paquete7);
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
 
     
     case EXIT: 
-            log_info(cpu_logger, "PID: %d - <EXIT>", contexto->pid);
+            log_info(cpu_logger, "PID: %d -Ejecutando: <EXIT>", contexto->pid);
             t_buffer* buffer_kernel_exit = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel_exit, contexto);
             t_paquete* paquete_exit = crear_paquete(EXIT, buffer_kernel_exit);
@@ -632,7 +666,7 @@ int traducir_direccion_mmu(int dir_logica, t_pcb *ctx)
     {
         return -1;
     }
-    
+    log_info(cpu_logger, "PID: %d - OBTENER MARCO - Página: %d - Marco: %d",ctx->pid,nro_pagina,num_marco);
     int dir_fisica = (num_marco * tamanio_pagina) + desplazamiento;
     //ctx->program_counter++;
 
@@ -666,7 +700,7 @@ int solicitar_numero_de_marco(int num_pagina, int pid)
     {
         log_error(cpu_logger, "Ocurrio un error al recibir el numero de marco");
         return -1;
-    }
+    }    
 
    
     return num_marco;
@@ -873,89 +907,3 @@ void eliminar_marco_tlb(t_cpu* cpu, int marco) {
 */
 
 
-/*
-int execute(t_instruccion *instruccion, t_pcb *ctx)
-{   
-    int dir_fisica;
-    uint32_t *registro;
-    switch (instruccion->operacion)
-    {
-    case SET://SET(Registro,Valor)
-        
-        log_info(logger_cpu, "PID: %d - Ejecutando: SET - %s %s." , ctx->pid, instruccion->parametros[0], instruccion->parametros[1]);
-        asignar_a_registro(instruccion->parametros[0], instruccion->parametros[1], ctx->registros); 
-        return NADA;
-
-    case SUM://SUM(Registro Destino,Registro Origen)
-    
-        log_info(logger_cpu, "PID: %d - Ejecutando: SUM - %s %s." , ctx->pid, instruccion->parametros[0],instruccion->parametros[1]);
-        operar_registros(instruccion->operacion,instruccion->parametros[0], instruccion->parametros[1], ctx->registros);
-        return NADA;
-        
-    case SUB:
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: SUB - %s %s." , ctx->pid, instruccion->parametros[0],instruccion->parametros[1]);
-        operar_registros(instruccion->operacion,instruccion->parametros[0], instruccion->parametros[1], ctx->registros);
-        return NADA;
-
-    case JNZ://JNZ(Registro,Instruccion)
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: JNZ - %s %s." , ctx->pid, instruccion->parametros[0],instruccion->parametros[1]);
-        registro = obtener_registro(instruccion->parametros[0], ctx->registros);
-        if(*registro != 0 && es_numero_valido(instruccion->parametros[1]))
-        {   
-            ctx->program_counter = atoi(instruccion->parametros[1]);
-        }
-        return NADA;//CREO 
-    
-    case SIGNAL:
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: SIGNAL - %s." , ctx->pid, instruccion->parametros[0]);   
-        return SIGNAL;
-    
-    case IO_GEN_SLEEP:
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: SLEEP - %s." , ctx->pid, instruccion->parametros[0]);
-        return IO_GEN_SLEEP;
-
-    case WAIT:
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: WAIT - %s." , ctx->pid, instruccion->parametros[0]);
-        return WAIT;
-
-    case EXIT:
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: EXIT." , ctx->pid);
-        return EXIT;
-
-    case MOV_IN:// MOV_IN (Registro, Dirección Lógica)
-
-        log_info(logger_cpu, "PID: %d - Ejecutando: MOV_IN - %s %s." , ctx->pid, instruccion->parametros[0],instruccion->parametros[1]);
-        dir_fisica = traducir_direccion_mmu(atoi(instruccion->parametros[1]), ctx);
-        if(dir_fisica == -1)
-        {
-            return MOV_IN;
-        }
-        char *valor_leido = leer_de_memoria(dir_fisica,ctx->pid);
-        asignar_a_registro(instruccion->parametros[0], valor_leido, ctx->registros);
-        log_info(logger_cpu, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %s", ctx->pid, dir_fisica, valor_leido);
-        free(valor_leido);
-        return NADA;
-    
-    case MOV_OUT://MOV_OUT (Dirección Lógica, Registro)
-        log_info(logger_cpu, "PID: %d - Ejecutando: MOV_OUT - %s %s." , ctx->pid, instruccion->parametros[0],instruccion->parametros[1]);
-        dir_fisica = traducir_direccion_mmu(atoi(instruccion->parametros[0]), ctx);
-        if(dir_fisica == -1)
-        {   
-            log_info(cpu, "HUBO PAGE FAULT");
-            return MOV_OUT;
-        }
-        
-        registro =  obtener_registro(instruccion->parametros[1], ctx->registros);
-        int num_pagina = numero_pagina(atoi(instruccion->parametros[0]));
-        escribir_en_memoria(dir_fisica,ctx->pid,*registro, num_pagina);
-        log_info(logger_cpu, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d", ctx->pid, dir_fisica, *registro);
-        return NADA;
-
-}
-*/

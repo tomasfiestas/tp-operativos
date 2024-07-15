@@ -75,7 +75,7 @@ void atender_kernel_dispatch(void* socket_cliente_ptr) {
     int cliente_kd = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
     bool control_key = 1;
-    while (control_key && !llego_interrupcion){          
+    while (control_key){          
         
     op_code op_code = recibir_operacion(cliente_kd);  
     log_info(cpu_logger,"Me llega un opcode %d",op_code); 
