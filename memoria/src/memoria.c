@@ -44,11 +44,26 @@ int main(int argc, char *argv[])
     inicializar_bitmap();
     procesos = list_create();
 
+    // TEST - ignorar
+    uint8_t test_8_bit_value = 255;
+    uint32_t test_32_bit_value = 65535;
+    t_buffer* buffer = crear_buffer();
+    cargar_uint8_a_buffer(buffer, test_8_bit_value);
+    cargar_uint32_a_buffer(buffer, test_32_bit_value);
+    void* test_8_bit_del_buffer = extraer_de_buffer(buffer);
+    void* test_32_bit_del_buffer = extraer_de_buffer(buffer);
+    escribir_memoria(0, 0, test_8_bit_del_buffer, 1);
+    void* test_8_bit_leido = leer_memoria(0, 0, 1);
+    printf("Valor leido: %d\n", *(uint8_t*) test_8_bit_leido);
+    cargar_string_a_buffer(buffer, test_8_bit_leido);
+    char* test_8_bit_leido_del_buffer = extraer_string_del_buffer(buffer);
+    printf("Valor leido del buffer: %d\n", *(uint8_t*) test_8_bit_leido_del_buffer);
+
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
     log_info(memoria_logger, "Servidor de memoria iniciado ");    
     
-     //Espero conexion de CPU
+    //Espero conexion de CPU
     cliente_cpu = esperar_cliente(servidor_memoria); 
     //Atiendo mensajes de CPU
     pthread_t hilo_cpu;
@@ -103,6 +118,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
     int pid;
     int direccion_fisica;
     int cantidad_bytes;
+    int size;
     t_buffer* response_buffer;
     t_paquete* response;
     op_code op_code = recibir_operacion(cliente);    
@@ -110,6 +126,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
     case SOLICITUD_INST:
         log_info(memoria_logger, "Solicitud de instrucciones");
         t_buffer *buffer = recibir_buffer(cliente);
+        usleep(atoi(RETARDO_RESPUESTA) * 1000);
 
         int pid = extraer_int_del_buffer(buffer);
         int program_counter= extraer_uint32_del_buffer(buffer);
@@ -126,8 +143,6 @@ void* atender_cpu(void* socket_cliente_ptr) {
         t_instruccion_a_enviar instruccion_a_enviar;
         instruccion_a_enviar.operacion = instruccion->operacion;
         proceso->pc=(program_counter+1);
-
-        
 
         t_buffer* response_buffer = crear_buffer();        
         cargar_instruccion_a_enviar_a_buffer(response_buffer, instruccion_a_enviar);
@@ -146,7 +161,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // El parametro pasado (cantidad de bytes) es absoluto, no es relativo al tamaño anterior.
         // Esta funcion se asegurara de cambiar al tamaño deseado, caso contrario enviará OUT_OF_MEMORY.
         log_info(memoria_logger, "Solicitud de resize");
-        usleep(atoi(RETARDO_RESPUESTA));
+        usleep(atoi(RETARDO_RESPUESTA) * 1000);
         buffer = recibir_buffer(cliente);
 
         pid = extraer_int_del_buffer(buffer);
@@ -179,17 +194,15 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
         // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
-        //
-        // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
         log_info(memoria_logger, "Solicitud de lectura de memoria");
         buffer = recibir_buffer(cliente);
-        usleep(atoi(RETARDO_RESPUESTA));
+        usleep(atoi(RETARDO_RESPUESTA) * 1000);
         
         pid = extraer_int_del_buffer(buffer);
         direccion_fisica = extraer_int_del_buffer(buffer);
         cantidad_bytes = extraer_int_del_buffer(buffer);
 
-        char* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
+        void* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
 
         response_buffer = crear_buffer();
         cargar_string_a_buffer(response_buffer, bytes_leidos);
@@ -197,7 +210,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         enviar_paquete(response, cliente_cpu);
         destruir_paquete(response);
         break;
-    case ESCRIBIR: // Parametros: PID, Direccion Fisica, bytes a escribir
+    case ESCRIBIR: // Parametros: PID, Direccion Fisica, Tamaño, Bytes a escribir
         // ESTO LO VAMOS A USAR PARA LA OPERACIÓN MOV_OUT y COPY_STRING.
         // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
         // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
@@ -211,13 +224,14 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
         log_info(memoria_logger, "Solicitud de escritura en memoria");
         buffer = recibir_buffer(cliente);
-        usleep(atoi(RETARDO_RESPUESTA));
+        usleep(atoi(RETARDO_RESPUESTA) * 1000);
 
         pid = extraer_int_del_buffer(buffer);
         direccion_fisica = extraer_int_del_buffer(buffer);
-        char* bytes_a_escribir = extraer_string_del_buffer(buffer);
+        size = extraer_int_del_buffer(buffer);
+        void* bytes_a_escribir = extraer_de_buffer(buffer);
 
-        escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+        escribir_memoria(pid, direccion_fisica, bytes_a_escribir, size);
 
         // TODO: mejorar envio de paquetes sin buffer.
         response_buffer = crear_buffer();
@@ -227,6 +241,8 @@ void* atender_cpu(void* socket_cliente_ptr) {
         break;
     case SOLICITUD_MARCO:
         log_info(memoria_logger, "Se conecto la Memoria");
+
+        usleep(atoi(RETARDO_RESPUESTA) * 1000);
         t_buffer* buffer_solicitud_nro_marco = recibir_buffer(cliente);
         int pid_marco = extraer_int_del_buffer(buffer_solicitud_nro_marco);
         int pagina = extraer_int_del_buffer(buffer_solicitud_nro_marco);
@@ -305,6 +321,7 @@ void* atender_entradasalida(void* socket_cliente_ptr){
         int pid;
         int direccion_fisica;
         int cantidad_bytes;
+        int size;
         t_buffer* response_buffer;
         t_paquete* response;
         switch (op_code){
@@ -320,7 +337,7 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 		case HANDSHAKE_ES:
 			log_info(memoria_logger, "Se conecto el IO");
 			break;
-        case IO_STDIN_READ:// Parametros: PID, Direccion Fisica, bytes a escribir
+        case IO_STDIN_READ:// Parametros: PID, Direccion Fisica, Tamaño, Bytes a escribir
             // ante este caso se escribe en memoria.
             // NECESARIO PASAR EL PID PARA EL LOG (EXIGIDO EN LA CONSIGNA).
             // SI ES MUY DIFICIL PASARME UN PID, ESCRIBIRME! -Mati G.
@@ -334,13 +351,14 @@ void* atender_entradasalida(void* socket_cliente_ptr){
             // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA. LOS MARCOS PODRIAN NO SER CONTIGUOS.
             log_info(memoria_logger, "Solicitud de escritura en memoria");
             buffer = recibir_buffer(cliente_es);
-            usleep(atoi(RETARDO_RESPUESTA));
+            usleep(atoi(RETARDO_RESPUESTA) * 1000);
 
             pid = extraer_int_del_buffer(buffer);
             direccion_fisica = extraer_int_del_buffer(buffer);
-            char* bytes_a_escribir = extraer_string_del_buffer(buffer);
+            size = extraer_int_del_buffer(buffer);
+            void* bytes_a_escribir = extraer_de_buffer(buffer);
 
-            escribir_memoria(pid, direccion_fisica, bytes_a_escribir);
+            escribir_memoria(pid, direccion_fisica, bytes_a_escribir, size);
 
             // TODO: mejorar envio de paquetes sin buffer.
             response_buffer = crear_buffer();
@@ -359,17 +377,15 @@ void* atender_entradasalida(void* socket_cliente_ptr){
         // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
         // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
-        //
-        // CUIDADO: SE ENVIAN LOS BYTES LEIDOS SIN NULL TERMINATOR.
         log_info(memoria_logger, "Solicitud de lectura de memoria");
         buffer = recibir_buffer(cliente_es);
-        usleep(atoi(RETARDO_RESPUESTA));
+        usleep(atoi(RETARDO_RESPUESTA) * 1000);
         
         pid = extraer_int_del_buffer(buffer);
         direccion_fisica = extraer_int_del_buffer(buffer);
         cantidad_bytes = extraer_int_del_buffer(buffer);
 
-        char* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
+        void* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
 
         response_buffer = crear_buffer();
         cargar_string_a_buffer(response_buffer, bytes_leidos);

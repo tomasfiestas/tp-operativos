@@ -114,18 +114,16 @@ int resize(int pid, int bytes)
     }
 }
 
-char *leer_memoria(int pid, int direccion_fisica, int bytes)
+void* leer_memoria(int pid, int direccion_fisica, int size)
 {
-    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, bytes);
-    char *data = malloc(bytes);
-    memcpy(data, &memoria_total[direccion_fisica], bytes);
-    return data;
+    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, size);
+    return &memoria_total[direccion_fisica];
 }
 
-int escribir_memoria(int pid, int direccion_fisica, char *bytes)
+int escribir_memoria(int pid, int direccion_fisica, void* bytes, int size)
 {
-    memcpy(&memoria_total[direccion_fisica], bytes, strlen(bytes));
-    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %zu B", pid, direccion_fisica, strlen(bytes));
+    memcpy(&memoria_total[direccion_fisica], bytes, size);
+    log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d", pid, direccion_fisica, size);
     return 1;
 }
 
