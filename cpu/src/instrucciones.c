@@ -154,30 +154,31 @@ bool decode(t_instruccion instruccion){ //Muestra si requiere cambio de direccio
 
 void asignar_valor_a_registro(t_pcb* contexto,char* registro, int valor)
 {
-    uint8_t valor_8 = valor; // Assign the value directly without casting
+    uint8_t valor_8 = (uint8_t)valor; 
+    uint32_t valor_32 = (uint32_t)valor; 
     // Asignar el valor al registro correspondiente
     if (strcmp(registro, "AX") == 0) {
-        contexto->registros.AX = (uint8_t)valor;
+        contexto->registros.AX = valor_8;
     } else if (strcmp(registro, "BX") == 0) {
         contexto->registros.BX = valor_8;
     } else if (strcmp(registro, "CX") == 0) {
-        contexto->registros.CX = valor;
+        contexto->registros.CX = valor_8;
     } else if (strcmp(registro, "DX") == 0) {
-        contexto->registros.DX = valor;
+        contexto->registros.DX = valor_8;
     } else if (strcmp(registro, "EAX") == 0) {
-        contexto->registros.EAX = valor;
+        contexto->registros.EAX = valor_32;
     } else if (strcmp(registro, "EBX") == 0) {
-        contexto->registros.EBX = valor;
+        contexto->registros.EBX = valor_32;
     } else if (strcmp(registro, "ECX") == 0) {
-        contexto->registros.ECX = valor;
+        contexto->registros.ECX = valor_32;
     } else if (strcmp(registro, "EDX") == 0) {
-        contexto->registros.EDX = valor;
+        contexto->registros.EDX = valor_32;
     } else if (strcmp(registro, "SI") == 0) {
-        contexto->registros.SI = valor;
+        contexto->registros.SI = valor_32;
     } else if (strcmp(registro, "DI") == 0) {
-        contexto->registros.DI = valor;
+        contexto->registros.DI = valor_32;
     } else if (strcmp(registro, "PC") == 0) {
-        contexto->registros.PC = valor;
+        contexto->registros.PC = valor_32;
     } else {
         printf("Registro desconocido: %s\n", registro);
     }
@@ -212,8 +213,7 @@ void asignar_valor_char_a_registro(t_pcb* contexto,char* registro, uint32_t valo
         contexto->registros.PC = valor_32;
     } else {
         printf("Registro desconocido: %s\n", registro);
-    }
-    log_info(cpu_logger, "PID: %d - <MOV_IN> - <%d >", contexto->pid, contexto->registros.EDX);
+    }   
 }
 
 int obtener_valor_de_registro(t_pcb* contexto, char* registro) {
@@ -314,14 +314,28 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                 return;
             }
             int bytes_a_leer = calcular_bytes_a_leer(registro_direccion_mov_in);
-            uint32_t valor_leido = leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
+            
+            if(bytes_a_leer == 1){ 
+                uint8_t valor_leido = *(uint8_t*)leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
+                asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
+                log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
+                if (valor_leido == NULL) {
+                    log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
+                    return;
+                }  
+                asignar_valor_char_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
+                log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
+            }
+            else if(bytes_a_leer == 4){             
+            uint32_t valor_leido = *(uint32_t*)leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
+            asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
+            log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
             if (valor_leido == NULL) {
                 log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
                 return;
             }  
-                      
-            asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
-            log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
+            }         
+            
             list_destroy_and_destroy_elements(instruccion.parametros, free);
 
             //free(valor_leido);
@@ -340,9 +354,9 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                 log_error(cpu_logger, "Error al traducir la dirección lógica: %d", direccion_logica);
                 break;
             }
-
-            escribir_a_memoria(direccion_fisica_mov, contexto->pid, valor_out);
-            log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica_mov, valor);
+            int bytes_a_escribir = calcular_bytes_a_leer(registro_datos);
+            escribir_a_memoria(direccion_fisica_mov,bytes_a_escribir, contexto->pid, valor_out);
+            log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica_mov, valor_out);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             break;
 
@@ -566,7 +580,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
         break;
     }
 }
-uint32_t leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
+char* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
 {   
 
     
@@ -593,7 +607,7 @@ uint32_t leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
         return NULL;
     }
 
-    uint32_t valor_leido = extraer_uint32_del_buffer(buffer_respuesta); //extraigo lo leido de memoria
+    char* valor_leido = extraer_string_del_buffer(buffer_respuesta); //extraigo lo leido de memoria
     
     
 
@@ -623,14 +637,16 @@ int calcular_bytes_a_leer(char* registro){
 }
 
 
-void escribir_a_memoria(int dir_fisica, int pid, int valor) {
+void escribir_a_memoria(int dir_fisica, int size,int pid, int valor) {
     t_buffer *buffer_envio = crear_buffer();
-    cargar_int_a_buffer(buffer_envio, pid);
+    cargar_int_a_buffer(buffer_envio, pid);    
     cargar_int_a_buffer(buffer_envio, dir_fisica);
-    char* envio = malloc(sizeof(char)*20);
-    sprintf(envio, "%d", valor);
-    cargar_string_a_buffer(buffer_envio, envio);
-    free(envio);
+    cargar_int_a_buffer(buffer_envio, size);
+    //char* envio = malloc(sizeof(char)*20);
+    //sprintf(envio, "%d", valor);
+    //cargar_string_a_buffer(buffer_envio, envio);
+    //free(envio);
+    cargar_int_a_buffer(buffer_envio, valor);
 
     t_paquete *paquete = crear_paquete(ESCRIBIR, buffer_envio); 
     enviar_paquete(paquete, conexion_memoria);
