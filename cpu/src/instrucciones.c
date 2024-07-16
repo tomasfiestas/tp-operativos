@@ -580,7 +580,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
         break;
     }
 }
-char* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
+void* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
 {   
 
     
@@ -607,7 +607,7 @@ char* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
         return NULL;
     }
 
-    char* valor_leido = extraer_string_del_buffer(buffer_respuesta); //extraigo lo leido de memoria
+    void* valor_leido = extraer_de_buffer(buffer_respuesta); //extraigo lo leido de memoria
     
     
 
