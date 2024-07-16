@@ -9,6 +9,7 @@
 #include <math.h>
 #include <commons/config.h>
 #include <dirent.h>
+
 typedef struct fcb{
     char* nombre_archivo;
     uint32_t TAMANIO_ARCHIVO;

@@ -2,8 +2,11 @@
 t_log* logger;
 int main(int argc, char* argv[]) { 
     //Inicio el logger de entradasalida 
+
     logger = iniciar_logger("entradasalida.log", "LOGGER_ENTRADASALIDA");  
+
     //Inicio la configuracion de entradasalida
+
     entradasalida_config = iniciar_config("entradasalida.config");
     TIPO_INTERFAZ = config_get_string_value(entradasalida_config, "TIPO_INTERFAZ");
     log_info(logger, "TIPO_ INTERFAZ: %s", TIPO_INTERFAZ); 
@@ -30,8 +33,6 @@ int main(int argc, char* argv[]) {
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(logger, "Conexion con Memoria establecida");
 
-    
-    
 
     //Creo conexion como cliente hacia Kernel
 
@@ -40,8 +41,10 @@ int main(int argc, char* argv[]) {
     t_buffer* buffer = crear_buffer();
     cargar_string_a_buffer(buffer, "Nueva 1");
     cargar_string_a_buffer(buffer, "Tipo INTEL-ULTRA");
+
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer);
     enviar_paquete(paquete, conexion_kernel);
+
     //sleep(5);
     log_info(logger, "Mensaje enviado a Kernel");
     destruir_buffer(buffer);
@@ -73,16 +76,18 @@ int main(int argc, char* argv[]) {
     pthread_join(hilo_memoria,NULL);
 
 
-    
+    crear_bitmap();
+    crear_archivo_bloques();
 
     
 //Agregando verificacion de interfaz...
 
     while(1){
     
-    int cliente = *(int*)socket_cliente_memoria_ptr;
+
+    t_paquete* paquete = recibir_paquete(conexion_kernel);
     op_code instruccion_recibida = recibir_operacion(paquete); 
-    t_buffer* buffer = recibir_buffer(cliente);
+    t_buffer* buffer = recibir_buffer(conexion_kernel);
     
     char* tipoInterfaz;
     char* nombre_interfaz_paquete;
@@ -92,6 +97,7 @@ int main(int argc, char* argv[]) {
         switch(instruccion_recibida){
         
         case IO_GEN_SLEEP:
+        
             tipoInterfaz = "GENERICA";
             nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
 
