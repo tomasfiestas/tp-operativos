@@ -204,7 +204,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         void* bytes_leidos = leer_memoria(pid, direccion_fisica, cantidad_bytes);
 
         response_buffer = crear_buffer();
-        cargar_string_a_buffer(response_buffer, bytes_leidos);
+        cargar_a_buffer(response_buffer, bytes_leidos, cantidad_bytes);
         response = crear_paquete(LEER_OK, response_buffer);
         enviar_paquete(response, cliente_cpu);
         destruir_paquete(response);
