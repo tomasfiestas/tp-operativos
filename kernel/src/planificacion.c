@@ -650,7 +650,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_entrada_salida* interfaz1 = buscar_interfaz(nombre_interfaz_solicitada1);
 			sem_post(&mutex_lista_interfaces);	
 			
-			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada			if (! validar_interfaz_e_instruccion(pcb, interfaz1, op_code))
+			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada			
+			if (! validar_interfaz_e_instruccion(pcb, interfaz1, op_code))
 				break;	
 					
 			if(sem_trywait(&interfaz1->sem_disponible) ==0 ){
