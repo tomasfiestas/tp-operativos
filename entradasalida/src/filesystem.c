@@ -6,7 +6,7 @@
 #include <math.h>
 #include <sys/mman.h>
 t_fcb *fcb;
-
+t_log* log_fs;
 
 int max(int a, int b){
     return (a > b) ? a : b;
@@ -19,7 +19,7 @@ void crear_archivo_bloques()
     int fd = open("bloques.dat", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1)
     {
-        log_error(logger, "El archivo de bloques no se creo o abrió correctamente");
+        log_error(log_fs, "El archivo de bloques no se creo o abrió correctamente");
         abort();
     }
 
@@ -27,7 +27,7 @@ void crear_archivo_bloques()
     int tamanio_archivo = BLOCK_SIZE * BLOCK_COUNT;
     if (ftruncate(fd, tamanio_archivo) == -1)
     {
-        log_error(logger, "Error al truncar el archivo");
+        log_error(log_fs, "Error al truncar el archivo");
         abort();
     }
 
@@ -43,7 +43,7 @@ void crear_archivo_bitmap()
     int fd = open("bitmap.dat", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1)
     {
-        log_error(logger, "El archivo de bitmap no se creo o abrió correctamente");
+        log_error(log_fs, "El archivo de bitmap no se creo o abrió correctamente");
         abort(); //verificar
     }
 
@@ -53,14 +53,14 @@ void crear_archivo_bitmap()
     bitmap->tamanio = tamanio_archivo;
     if (ftruncate(fd, tamanio_archivo) == -1)
     {
-        log_error(logger, "Error al truncar el archivo");
+        log_error(log_fs, "Error al truncar el archivo");
         abort(); //verificar
     }
 
     bitmap->direccion = mmap(NULL, bitmap->tamanio, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if(bitmap->direccion == MAP_FAILED)
     {
-        log_error(logger, "Error al mapear el archivo");
+        log_error(log_fs, "Error al mapear el archivo");
         abort(); //verificar
     }
     
@@ -87,9 +87,9 @@ void bitmap_marcar_bloque_libre(int numero_bloque)
 {
     bitarray_clean_bit(bitmap->bitarray, numero_bloque);
     int i = msync(bitmap->direccion, bitmap->tamanio, MS_SYNC);
-    log_info(logger, "Se liberó el bloque N° %d", numero_bloque);
+    log_info(log_fs, "Se liberó el bloque N° %d", numero_bloque);
     if( i == -1){
-        log_error(logger, "Error al sincronizar los cambios");
+        log_error(log_fs, "Error al sincronizar los cambios");
     }
     return;
 }
@@ -102,10 +102,10 @@ void bitmap_marcar_bloques_libres(int bloque_inicial int bloque_final){
 
 void bitmap_marcar_bloque_ocupado(int numero_bloque){
     bitarray_set_bit(bitmap->bitarray, numero_bloque);
-    log_trace(logger, "Se marco el bloque N° %d como ocupado", numero_bloque);
+    log_trace(log_fs, "Se marco el bloque N° %d como ocupado", numero_bloque);
     int i = msync(bitmap->direccion, bitmap->tamanio, MS_SYNC);
     if( i == -1){
-        log_error(logger, "Error al sincronizar los cambios");  
+        log_error(log_fs, "Error al sincronizar los cambios");  
     }
 }
 
@@ -139,7 +139,7 @@ int bitmap_encontrar_bloques_libres_continuos(int tamanio_archivo){
         }
 
     }
-    log_error(logger, "No se encontraron bloques libres continuos");
+    log_error(log_fs, "No se encontraron bloques libres continuos");
     return -1;
 
 }
@@ -159,24 +159,24 @@ bool hay_espacio_contiguo(t_fcb* fcb, int bloques, int bloques_necesarios){
     }
     return true;
 } 
-
+}
 
 
 void crear_archivo_metadata(t_fcb *fcb){
     char* path = get_fullpath(fcb->nombre_archivo);
 
-    log_trace(logger, "El path del archivo es: %s", path);
+    log_trace(log_fs, "El path del archivo es: %s", path);
 
     int fd= open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if(fd == -1)    {
-        log_error(logger, "El archivo de metadata no se creo o abrió correctamente", fcb->nombre_archivo);
+        log_error(log_fs, "El archivo de metadata no se creo o abrió correctamente", fcb->nombre_archivo);
     }
 
     t_config* config_fcb = config_create(path);
-    config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo));
+    config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
     char* tam_arch = malloc(sizeof(uint32_t));
     sprintf(tam_arch, "%d", fcb->bloque_inicial);
-    config_set_value(config_fcb, "BLOQUE_INICIAL", bloque_inicial); //revisar tema configs
+    config_set_value(config_fcb, "BLOQUE_INICIAL", bloque_inicial); //revisar tema configs!!!!!!!
 
     config_save(config_fcb);
 
@@ -190,7 +190,7 @@ void crear_archivo_metadata(t_fcb *fcb){
 char* get_fullpath(char* nombre_archivo){
     char* fullpath = strdup(config->PATH_BASE_DIALFS);
 
-    log_trace(logger,  "El Path base es: %s", fullpath);
+    log_trace(log_fs,  "El Path base es: %s", fullpath);
 
     string_append(&fullpath, "/");
     string_append(&fullpath, nombre_archivo);
@@ -225,9 +225,9 @@ void borrar_archivo(char* nombre_archivo) {
     char* path = get_fullpath(nombre_archivo);
 
     if(remove(path) == 0){
-        log_trace(logger, "El archivo %s fue eliminado", path);
+        log_trace(log_fs, "El archivo %s fue eliminado", path);
     } else {
-        log_error(logger, "El archivo %s no pudo ser eliminado", path);
+        log_error(log_fs, "El archivo %s no pudo ser eliminado", path);
     }
 
     free(path);
@@ -268,7 +268,7 @@ char* leer_archivo(int tamanio, t_fcb *fcb, int offset){
     lseek(archivo_bloques,(fcb->bloque_inicial * config->block_size) + offset, SEEK_SET);
     ssize_t bytes_leidos = read(archivo_bloques, dato, tamanio);
     if(bytes_leidos == -1){
-        log_error(logger, "Error al leer el archivo");
+        log_error(log_fs, "Error al leer el archivo");
         free(dato);
         close(archivo_bloques);
     }
@@ -283,10 +283,10 @@ void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid){
     int nuevo_inicial = 0;
 
     if(!hay_espacio_contiguo(fcb, bloques_actuales, bloques_finales - bloques_actuales)){
-        log_info(logger, "Comienzo compatación para pid: %d", pid);
+        log_info(log_fs, "Comienzo compatación para pid: %d", pid);
         nuevo_inicial = compactar_fcb(fcb);
         usleep(config->retraso_compactacion * 1000);
-        log_info(log_conexion, "Fin compactación para pid: %d", pid);
+        log_info(log_fs, "Fin compactación para pid: %d", pid);
     }   
 
     for(int i = bloques_actuales; i < bloques_finales; i++){
@@ -393,7 +393,7 @@ char* buscar_contenido_fcb(t_fcb* fcb){
 
 int copiar_contenido_a(char* contenido, int tamanio){
     int bloque_inicial = bitmap_encontrar_bloque_libre();
-    log_trace(logger, "Se encontró el bloque N° %d", bloque_inicial);
+    log_trace(log_info, "Se encontró el bloque N° %d", bloque_inicial);
 
     escribir_en_archivo(bloque_inicial, 0, contenido, tamanio);
 

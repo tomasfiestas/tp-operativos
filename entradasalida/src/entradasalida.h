@@ -24,13 +24,23 @@ int conexion_memoria;
 
 
 typedef struct{
-    char* nombre;
-    char* tipo;
+    t_tipo_interfaz* TIPO_INTERFAZ;
+    char* TIEMPO_UNIDAD_TRABAJO;
+    char* IP_KERNEL;
+    char* PUERTO_KERNEL;
+    char* IP_MEMORIA;
+    char* PUERTO_MEMORIA;
+    char* PATH_BASE_DIALFS;
+    char* BLOCK_SIZE;
+    char* BLOCK_COUNT;
+    int* RETRASO_COMPACTACION;
 } t_interfaz;
 
 
 extern t_log* logger;
+
 t_config* entradasalida_config;
+
 char* TIPO_INTERFAZ;
 char* TIEMPO_UNIDAD_TRABAJO;
 char* IP_KERNEL;

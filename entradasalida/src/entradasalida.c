@@ -1,41 +1,50 @@
 #include "entradasalida.h"
 t_log* logger;
+
+//cambiar a logger a uno mas claro
 int main(int argc, char* argv[]) { 
     //Inicio el logger de entradasalida 
 
     logger = iniciar_logger("entradasalida.log", "LOGGER_ENTRADASALIDA");  
 
-    //Inicio la configuracion de entradasalida
+    //Inicio la configuracion de entradasalida. 
 
     entradasalida_config = iniciar_config("entradasalida.config");
+
     TIPO_INTERFAZ = config_get_string_value(entradasalida_config, "TIPO_INTERFAZ");
     log_info(logger, "TIPO_ INTERFAZ: %s", TIPO_INTERFAZ); 
+
     TIEMPO_UNIDAD_TRABAJO = config_get_string_value(entradasalida_config, "TIEMPO_UNIDAD_TRABAJO");
     log_info(logger, "TIEMPO_UNIDAD_TRABAJO: %s", TIEMPO_UNIDAD_TRABAJO);
+
     IP_KERNEL = config_get_string_value(entradasalida_config, "IP_KERNEL");
     log_info(logger, "IP_KERNEL: %s", IP_KERNEL);
+
     PUERTO_KERNEL = config_get_string_value(entradasalida_config, "PUERTO_KERNEL");
     log_info(logger, "PUERTO_KERNEL: %s", PUERTO_KERNEL);
+
     IP_MEMORIA = config_get_string_value(entradasalida_config, "IP_MEMORIA");
     log_info(logger, "IP_MEMORIA: %s", IP_MEMORIA);
+
     PUERTO_MEMORIA = config_get_string_value(entradasalida_config, "PUERTO_MEMORIA");
     log_info(logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
+
     PATH_BASE_DIALFS = config_get_string_value(entradasalida_config, "PATH_BASE_DIALFS");
     log_info(logger, "PATH_BASE_DIALFS: %s", PATH_BASE_DIALFS);
+
     BLOCK_SIZE = config_get_string_value(entradasalida_config, "BLOCK_SIZE");
     log_info(logger, "LOCK_SIZE: %s", BLOCK_SIZE);
+    
     BLOCK_COUNT = config_get_string_value(entradasalida_config, "BLOCK_COUNT");
     log_info(logger, "BLOCK_COUNT: %s", BLOCK_COUNT);
 
 
     //Creo conexion como cliente hacia Memoria
-
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(logger, "Conexion con Memoria establecida");
 
 
     //Creo conexion como cliente hacia Kernel
-
     conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(logger, "Conexion con Kernel establecida");   
     t_buffer* buffer = crear_buffer();
@@ -51,6 +60,8 @@ int main(int argc, char* argv[]) {
 
     conexion_kernel2 = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(logger, "Conexion con Kernel establecida");   
+    
+    /*
     t_buffer* buffer2 = crear_buffer();
     cargar_string_a_buffer(buffer2, "Nueva 2");
     cargar_string_a_buffer(buffer, "Tipo ATOM");
@@ -58,7 +69,7 @@ int main(int argc, char* argv[]) {
     enviar_paquete(paquete, conexion_kernel2);
     log_info(logger, "Mensaje enviado a Kernel");
     destruir_buffer(buffer2);
-
+    */
        
     realizar_handshake(HANDSHAKE_ES, conexion_kernel);
     realizar_handshake(HANDSHAKE_ES, conexion_memoria);
@@ -75,16 +86,12 @@ int main(int argc, char* argv[]) {
     log_info(logger, "Esperando mensajes de Memoria");
     pthread_join(hilo_memoria,NULL);
 
-
+// Inicializo cosas de IO
     crear_bitmap();
     crear_archivo_bloques();
 
-    
-//Agregando verificacion de interfaz...
-
     while(1){
     
-
     t_paquete* paquete = recibir_paquete(conexion_kernel);
     op_code instruccion_recibida = recibir_operacion(paquete); 
     t_buffer* buffer = recibir_buffer(conexion_kernel);
@@ -109,7 +116,7 @@ int main(int argc, char* argv[]) {
             }
 
             int tiempo_unidad_trabajo = config_get_int_value(entradasalida_config, "TIEMPO_UNIDAD_TRABAJO");
-            int* cantidad_dormir = extraer_int_del_buffer(paquete);
+            int cantidad_dormir = atoi(extraer_string_del_buffer(paquete));
             int tiempo_sleep = tiempo_unidad_trabajo * (*cantidad_dormir);
 
             if(tiempo_sleep > 0){
@@ -228,8 +235,6 @@ void atender_mensajes_memoria(void* socket_cliente_ptr){
 void leer_consola()
 {
 	char *linea;
-    
-    
     while (1) {
         linea = readline(">");
         
@@ -245,15 +250,21 @@ void leer_consola()
             mensaje_consola = mensaje_a_consola(argumentos[0]);                         
 
             switch(mensaje_consola){
+
                 case CREAR:
+
                 t_buffer* buffer = crear_buffer();
                 cargar_string_a_buffer(buffer, argumentos[1]); 
                 cargar_string_a_buffer(buffer, argumentos[2]);
+                
                 t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
+
                 log_info(logger, "Conexion con Kernel establecida");   
+                
                 enviar_paquete(paquete, conexion_kernel);
                 eliminar_paquete(paquete);
                 break;
+
                 
                 case EXIT:
                     exit(0);
@@ -282,4 +293,23 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
     }    
     else
         return ERROR;
+}
+
+int crear_conexion_interfaz(char* nombre_interfaz, t_interfaz* interfaz){ 
+
+    t_buffer* buffer = crear_buffer();
+
+    char* ip_kernel = interfaz->IP_KERNEL;
+    char* puerto_kernel = interfaz->PUERTO_KERNEL;
+    char* tipo_interfaz = interfaz->TIPO_INTERFAZ;
+
+    conexion_kernel =  crear_conexion_cliente(ip_kernel,puerto_kernel);
+    log_info(logger, "Conexion establecida con %s ", nombre_interfaz);
+
+    t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer);
+    cargar_string_a_buffer(buffer, nombre_interfaz);
+    cargar_string_a_buffer(buffer, tipo_interfaz);
+    enviar_paquete(paquete, conexion_kernel);
+    destruir_buffer(buffer);
+
 }
