@@ -138,7 +138,8 @@ typedef enum
 	WAIT,
 	SIGNAL,
 	EXIT_OP_CODE,
-	OPERACION_FINALIZADA
+	OPERACION_FINALIZADA,
+	ESCRIBIR_OK
 
 }op_code;
 
@@ -146,6 +147,11 @@ typedef struct {
 	op_code operacion;
 	t_list* parametros;
 } t_instruccion;
+
+typedef struct direccion_fisica_io {
+    int size;
+    int df;
+} t_direccion_fisica_io;
 
 
 // CLIENTE

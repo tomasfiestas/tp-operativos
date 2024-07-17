@@ -78,6 +78,9 @@ void crear_interfaz_fs(char* nombre, char* tipo, int tiempo_unidad_trabajo,int b
 t_interfaz* buscar_interfaz(char* nombre);
 void atender_peticiones_de_kernel(t_struct_atender_kernel* struct_atender_kernel);
 void atender_kernel(void* socket_cliente_ptr);
+void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir);
+t_list* crear_lista_direcciones(t_buffer* buffer);
+char* leer_de_consola(int tamanio);
 
 
 //extern t_fcb *fcb;

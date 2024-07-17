@@ -62,10 +62,7 @@ int main(int argc, char* argv[]) {
     //realizar_handshake(HANDSHAKE_ES, conexion_memoria);
     log_info(io_logger, "Handshake con Memoria realizado");
 
-    //Leer consola
-    pthread_t hilo_consola;
-    pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
-    pthread_detach(hilo_consola);
+    
 
     //Atender mensajes de Kernel
     pthread_t hilo_kernel;
@@ -227,59 +224,7 @@ void atender_mensajes_memoria(void* socket_cliente_ptr){
     }
 }
 
-void leer_consola()
-{
-	char *linea;
-    while (1) {
-        linea = readline(">");
-        
-        if (!linea) {
-            break;
-        }
 
-        if (linea) {
-
-            add_history(linea);
-            char** argumentos = string_split(linea, " ");
-            t_mensajes_consola mensaje_consola;
-            mensaje_consola = mensaje_a_consola(argumentos[0]);                         
-
-            switch(mensaje_consola){
-
-                case CREAR:
-
-                t_buffer* buffer = crear_buffer();
-                cargar_string_a_buffer(buffer, argumentos[1]); 
-                cargar_string_a_buffer(buffer, argumentos[2]);
-                
-                t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
-
-                log_info(io_logger, "Conexion con Kernel establecida");   
-                
-                enviar_paquete(paquete, conexion_kernel);
-                eliminar_paquete(paquete);
-                break;
-
-                
-                case EXIT:
-                    exit(0);
-                    break;
-                case ERROR:
-                    printf("Este comando es invalido\n");
-                    break;
-                default:
-                    printf("Este comando es invalido\n");
-                    break;               
-
-            }           
-        
-        free(linea);
-    }
-    
-}
- 
-
-}
 
 t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
     
@@ -441,6 +386,7 @@ void inicializar_interfaces(char* path){
         t_buffer* buffer_recibido = struct_atender_kernel->buffer;
         char* nombre_recibido = extraer_string_del_buffer(buffer_recibido);
         t_interfaz *interfaz = buscar_interfaz(nombre_recibido);
+        int pid = extraer_int_del_buffer(buffer_recibido);
 
                 
         switch(struct_atender_kernel->codigo_operacion){   
@@ -450,7 +396,7 @@ void inicializar_interfaces(char* path){
 
             int tiempo_unidad_trabajo = interfaz->tiempo_unidad_trabajo;
             int cantidad_dormir = atoi(extraer_string_del_buffer(buffer_recibido));
-            int pid = extraer_int_del_buffer(buffer_recibido);
+            
             destruir_buffer(buffer_recibido);
             int tiempo_sleep = tiempo_unidad_trabajo * cantidad_dormir;
 
@@ -475,64 +421,50 @@ void inicializar_interfaces(char* path){
         log_info(io_logger, "Operacion finalizada de IO_GEN_SLEEP, PID: %d", pid);
         break;
 
-        /*case IO_STDIN_READ:
+        case IO_STDIN_READ:
 
-        tipoInterfaz = "STDIN";
-        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
         
-        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
-            log_info(io_logger,"Interfaz incorrecta");
-            break;
-        }
-    
-        direccion = extraer_uint32_del_buffer(paquete);
-        tamanio = extraer_uint32_del_buffer(paquete);
-        char* entrada_teclado = readline("Ingrese un texto: ");
 
-        if(entrada_teclado == NULL){
-            printf("Error: No se ingreso ningun texto.\n");
-            break;
-        }
+        char* direccion = extraer_string_del_buffer(buffer_recibido); //Direccion
+        int tamanio = atoi(extraer_string_del_buffer(buffer_recibido));// Tamanio 
+        //int pid = extraer_int_del_buffer(buffer_recibido); //PID
 
+        t_list* lista_direcciones = crear_lista_direcciones(buffer_recibido);
 
-        if(strlen(entrada_teclado) > tamanio){
-            printf("Error: El texto ingresado es demasiado largo, se recortara al tamanio indicado.\n");
-        }
+        char* entrada_teclado = leer_de_consola(tamanio);
 
-        char* entrada_final =  malloc(tamanio + 1); // +1 para el carácter espurio al final
-        strncpy(entrada_final, entrada_teclado, tamanio);
+                
+        enviar_para_escribir(lista_direcciones ,entrada_teclado ,pid);
+
+        
+
+        
+        
+
+        
 
     
 
-        //Creo paquete y se lo envio al socket de memoria 
-        t_buffer* buffer2 = crear_buffer();
-        cargar_uint32_a_buffer(buffer2, direccion);
-        cargar_uint32_a_buffer(buffer2, tamanio);
-        t_paquete* paqueteIN = crear_paquete(IO_STDIN_READ,buffer2);
-        enviar_paquete(paqueteIN, conexion_memoria);
-        //eliminar_paquete(paqueteIN);
+        
         break;
-
-        case IO_STDOUT_WRITE:
-
-        tipoInterfaz= "STDOUT";
-        nombre_interfaz_paquete = extraer_string_del_buffer(paquete);
-
-        if(strcmp(tipoInterfaz, nombre_interfaz_paquete)){
-            log_info(io_logger,"Interfaz incorrecta");
-            break;
-        }
         
-        direccion = extraer_uint32_del_buffer(paquete);
-        tamanio = extraer_uint32_del_buffer(paquete);
+        case IO_STDOUT_WRITE:
+    
+        int direccion_write = extraer_int_del_buffer(buffer_recibido);
+        int tamanio_write = atoi(extraer_string_del_buffer(buffer_recibido));
+        
 
+        t_list* direcciones_recibidas = list_create();
+        
 
-        t_buffer* buffer = crear_buffer();
-        cargar_uint32_a_buffer(buffer, direccion);
-        cargar_uint32_a_buffer(buffer, tamanio);
-        t_paquete* paqueteOUT = crear_paquete(SOLICITAR_LECTURA,buffer);
+        t_buffer* buffer_a_memoria = crear_buffer();
+        cargar_int_a_buffer(buffer_a_memoria, pid);
+        cargar_int_a_buffer(buffer_a_memoria, direccion);
+        cargar_int_a_buffer(buffer_a_memoria, tamanio);
+        t_paquete* paqueteOUT = crear_paquete(SOLICITAR_LECTURA,buffer_a_memoria);
         enviar_paquete(paqueteOUT, conexion_memoria);
-        */
+        destruir_paquete(paqueteOUT);
+
         default: 
 
             printf("Instruccion no reconocida");
@@ -554,3 +486,76 @@ void inicializar_interfaces(char* path){
 	}
 	return NULL;
 }
+
+
+void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int pid_read){
+    
+    int tamanio_a_sacar = 0;
+    
+    for(int j = 0; j < list_size(lista_direcciones_escribir); j++ ){
+        t_direccion_fisica_io *t_df = list_get(lista_direcciones_escribir, j);
+        char* string_a_mandar = string_substring(string, tamanio_a_sacar, t_df->size);
+
+        log_trace(io_logger, "direccion a mandar: %i", t_df->df);
+        log_trace(io_logger, "string que se manda: %s", string_a_mandar);
+
+        enviar_solicitud_escritura(pid_read, t_df->df,t_df->size, string_a_mandar);
+        op_code op_code = recibir_operacion(conexion_memoria);
+        t_buffer* buffer_respuesta = recibir_buffer(conexion_memoria);
+        int algo = extraer_int_del_buffer(buffer_respuesta);
+        if(op_code == ESCRIBIR_OK){
+            log_error(io_logger, "No se escribió correctamente en memoria");
+        }
+        tamanio_a_sacar += t_df->size;
+        destruir_buffer(buffer_respuesta);
+
+    }
+}
+
+void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir){
+
+   t_buffer* buffer_escritura = crear_buffer();
+    cargar_int_a_buffer(buffer_escritura, pid);    //PID
+    cargar_int_a_buffer(buffer_escritura, direccion_fisica); //Direccion fisica
+    cargar_int_a_buffer(buffer_escritura, tamanio); //Tamanio
+    cargar_string_a_buffer(buffer_escritura, valor_a_escribir); //Valor a escribir
+
+
+    t_paquete* paquete_escritura = crear_paquete(IO_STDIN_READ, buffer_escritura);
+    enviar_paquete(paquete_escritura, conexion_kernel);
+    destruir_paquete(paquete_escritura);
+
+    
+}
+
+t_list* crear_lista_direcciones(t_buffer* buffer){
+    t_list *lista_direcciones_fs_read = list_create();  //TODO VER DE IMPLEMENTAR ESTO
+    int cantidad_direcciones = extraer_int_del_buffer(buffer);    
+    for(int i = 0; i < cantidad_direcciones; i++){
+        t_direccion_fisica_io* direccion = malloc(sizeof(t_direccion_fisica_io));
+        direccion->df = extraer_int_del_buffer(buffer);
+        direccion->size = extraer_int_del_buffer(buffer);
+        list_add(lista_direcciones_fs_read, direccion);
+    }
+    return lista_direcciones_fs_read;
+}
+
+
+
+
+char* leer_de_consola(int tamanio){
+
+    char* string_a_leer;
+    
+    string_a_leer = readline("> ");
+
+    if(string_length(string_a_leer) > tamanio){
+        log_trace(io_logger, "La cadena ocupa %i y deberia ocupar %i, se recortara", string_length(string_a_leer), tamanio);
+    }
+    char* string_recortado = string_substring_until(string_a_leer, tamanio);
+    log_trace(io_logger, "La cadena ingresada es: %s ", string_recortado);
+    free(string_a_leer);
+    return string_recortado;
+}
+
+
