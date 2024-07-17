@@ -5,10 +5,6 @@ int main(int argc, char* argv[]) {
     logger = iniciar_logger("entradasalida.log", "LOGGER_ENTRADASALIDA");  
     //Inicio la configuracion de entradasalida
     entradasalida_config = iniciar_config("entradasalida.config");
-    TIPO_INTERFAZ = config_get_string_value(entradasalida_config, "TIPO_INTERFAZ");
-    log_info(logger, "TIPO_ INTERFAZ: %s", TIPO_INTERFAZ); 
-    TIEMPO_UNIDAD_TRABAJO = config_get_string_value(entradasalida_config, "TIEMPO_UNIDAD_TRABAJO");
-    log_info(logger, "TIEMPO_UNIDAD_TRABAJO: %s", TIEMPO_UNIDAD_TRABAJO);
     IP_KERNEL = config_get_string_value(entradasalida_config, "IP_KERNEL");
     log_info(logger, "IP_KERNEL: %s", IP_KERNEL);
     PUERTO_KERNEL = config_get_string_value(entradasalida_config, "PUERTO_KERNEL");
@@ -19,10 +15,13 @@ int main(int argc, char* argv[]) {
     log_info(logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
     PATH_BASE_DIALFS = config_get_string_value(entradasalida_config, "PATH_BASE_DIALFS");
     log_info(logger, "PATH_BASE_DIALFS: %s", PATH_BASE_DIALFS);
-    BLOCK_SIZE = config_get_string_value(entradasalida_config, "BLOCK_SIZE");
+    /*BLOCK_SIZE = config_get_string_value(entradasalida_config, "BLOCK_SIZE");
     log_info(logger, "LOCK_SIZE: %s", BLOCK_SIZE);
     BLOCK_COUNT = config_get_string_value(entradasalida_config, "BLOCK_COUNT");
-    log_info(logger, "BLOCK_COUNT: %s", BLOCK_COUNT);
+    log_info(logger, "BLOCK_COUNT: %s", BLOCK_COUNT);*/
+
+    inicializar_interfaces(argv[1]);
+      
 
 
     //Creo conexion como cliente hacia Memoria
@@ -192,6 +191,7 @@ int main(int argc, char* argv[]) {
 }
 }
 
+
 void atender_mensajes_memoria(void* socket_cliente_ptr){
     int cliente_kernel2 = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
@@ -277,3 +277,48 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
     else
         return ERROR;
 }
+
+void inicializar_interfaces(char* path){
+ t_config* entradasalida_config2 = iniciar_config(path);
+    int cantidad_interfaces = config_get_int_value(entradasalida_config2, "CANTIDAD_INTERFACES");
+    for(int i = 0;i < cantidad_interfaces; i++){
+        // Concatenate the value of 'i' to 'nombre_interfaz'
+        
+        char nombre_interfaz[16] = "NOMBRE_INTERFAZ";
+        
+        char buffer_nombre[5];
+        sprintf(buffer_nombre, "%d", i);
+        strcat(nombre_interfaz, buffer_nombre);
+        char* nombre_interfaz2 = config_get_string_value(entradasalida_config2,nombre_interfaz);
+        
+        
+        log_info(logger, "NOMBRE_INTERFAZ: %s", nombre_interfaz2);
+        char tipo_interfaz[14] = "TIPO_INTERFAZ";
+        char buffer_tipo[5];
+        sprintf(buffer_tipo, "%d", i);
+        strcat(tipo_interfaz, buffer_tipo);
+        char* TIPO_INTERFAZ = config_get_string_value(entradasalida_config2, tipo_interfaz);
+        log_info(logger, "TIPO_INTERFAZ: %s", TIPO_INTERFAZ);
+
+        char tiempo[30] = "TIEMPO_UNIDAD_TRABAJO";
+        
+        char buffer_tiempo[5];
+        sprintf(buffer_tiempo, "%d", i);
+        strcat(tiempo, buffer_tiempo);
+        int tiempo_obtenido = config_get_int_value(entradasalida_config2,tiempo);
+        log_info(logger, "TIEMPO_UNIDAD_TRABAJO: %d", tiempo_obtenido);
+
+        if(strcmp(TIPO_INTERFAZ, "DIALFS") == 0){            
+            int block_size = config_get_int_value(entradasalida_config2, "BLOCK_SIZEFS");
+            log_info(logger, "BLOCK_SIZE: %d", block_size);
+            int block_count = config_get_int_value(entradasalida_config2, "BLOCK_COUNTFS");
+            log_info(logger, "BLOCK_COUNT: %d", block_count);
+            int retraso = config_get_int_value(entradasalida_config2, "RETRASO_COMPACTACION");
+            log_info(logger, "RETRASO: %d", retraso);
+        }
+        
+
+
+
+    }
+ }

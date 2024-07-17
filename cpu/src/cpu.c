@@ -15,9 +15,12 @@ int main(int argc, char* argv[]) {
     log_info(cpu_logger, "PUERTO_ESCUCHA_DISPATCH: %s", PUERTO_ESCUCHA_DISPATCH);
     PUERTO_ESCUCHA_INTERRUPT = config_get_string_value(cpu_config, "PUERTO_ESCUCHA_INTERRUPT");
     log_info(cpu_logger, "PUERTO_ESCUCHA_INTERRUPT: %s", PUERTO_ESCUCHA_INTERRUPT);
-    CANTIDAD_ENTRADAS_TLB = config_get_int_value(cpu_config, "CANTIDAD_ENTRADAS_TLB");
+
+    t_config* cpu_config_pruebas = iniciar_config(argv[1]);
+
+    CANTIDAD_ENTRADAS_TLB = config_get_int_value(cpu_config_pruebas, "CANTIDAD_ENTRADAS_TLB");
     log_info(cpu_logger, "CANTIDAD_ENTRADAS_TLB: %d", CANTIDAD_ENTRADAS_TLB);
-    ALGORITMO_TLB = config_get_string_value(cpu_config, "ALGORITMO_TLB");
+    ALGORITMO_TLB = config_get_string_value(cpu_config_pruebas, "ALGORITMO_TLB");
     log_info(cpu_logger, "ALGORITMO_TLB: %s", ALGORITMO_TLB);
     log_info(cpu_logger, "________________________________");
     //Inicio el servidor de la cpu
