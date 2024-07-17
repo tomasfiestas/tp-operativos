@@ -1,4 +1,4 @@
-#include <filesystem.h>
+/*#include <filesystem.h>
 #include <entradasalida.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -405,7 +405,7 @@ int copiar_contenido_a(char* contenido, int tamanio){
 
     return bloque_inicial;
 
-}
+}*/
 
 
 

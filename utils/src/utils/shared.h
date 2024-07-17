@@ -137,7 +137,8 @@ typedef enum
 	COPY_STRING,
 	WAIT,
 	SIGNAL,
-	EXIT_OP_CODE
+	EXIT_OP_CODE,
+	OPERACION_FINALIZADA
 
 }op_code;
 

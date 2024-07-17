@@ -23,21 +23,37 @@ int conexion_kernel;
 int conexion_memoria;
 
 
+typedef enum{
+    GENERICA,
+    STDIN,
+    STDOUT,
+    DIALFS
+} t_tipo_interfaz;
+
 typedef struct{
-    t_tipo_interfaz* TIPO_INTERFAZ;
-    char* TIEMPO_UNIDAD_TRABAJO;
-    char* IP_KERNEL;
-    char* PUERTO_KERNEL;
-    char* IP_MEMORIA;
-    char* PUERTO_MEMORIA;
-    char* PATH_BASE_DIALFS;
-    char* BLOCK_SIZE;
-    char* BLOCK_COUNT;
-    int* RETRASO_COMPACTACION;
+    char* nombre;
+    t_tipo_interfaz tipo;
+    int tiempo_unidad_trabajo;
 } t_interfaz;
 
+typedef struct{
+    char* nombre;
+    t_tipo_interfaz tipo;
+    int tiempo_unidad_trabajo;
+    int block_size;
+    int block_count;
+    int retraso_compactacion
+} t_dial_fs;
 
-extern t_log* logger;
+typedef struct{
+    op_code codigo_operacion;
+    t_buffer* buffer;
+} t_struct_atender_kernel;
+
+
+
+
+extern t_log* io_logger;
 
 t_config* entradasalida_config;
 
@@ -53,19 +69,17 @@ char* BLOCK_COUNT;
 int conexion_kernel;
 int conexion_kernel2;
 
-typedef enum{
-    GENERICA,
-    STDIN,
-    STDOUT,
-    DIALFS
-} t_tipo_interfaz;
-
 
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 void leer_consola();
 t_mensajes_consola mensaje_a_consola(char *mensaje_consola);
+void crear_interfaz(char* nombre, char* tipo,int unidades_trabajo);
+void crear_interfaz_fs(char* nombre, char* tipo, int tiempo_unidad_trabajo,int block_size, int block_count, int retraso_compactacion);
+t_interfaz* buscar_interfaz(char* nombre);
+void atender_peticiones_de_kernel(t_struct_atender_kernel* struct_atender_kernel);
+void atender_kernel(void* socket_cliente_ptr);
 
 
-extern t_fcb *fcb;
+//extern t_fcb *fcb;
 
 #endif

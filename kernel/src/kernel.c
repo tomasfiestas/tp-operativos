@@ -3,6 +3,8 @@
 
 int main(int argc, char* argv[]) { 
 
+
+    
     //Inicio el logger del kernel
     kernel_logger = iniciar_logger("kernel.log", "LOGGER_KERNEL");  
 
@@ -35,23 +37,23 @@ int main(int argc, char* argv[]) {
     tamanio_lista_recursos = string_array_size(RECURSOS); 
     
     //Inicio el cliente para cpu dispatch
-    conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    //conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
         
     //Inicio el cliente para cpu interrupt
-    conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
+    //conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     
     
     //Inicio el cliente para memoria
-    conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
-    realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
-    log_info(kernel_logger,"Handshake con Memoria realizado");
+    //conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
+    //realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
+    //log_info(kernel_logger,"Handshake con Memoria realizado");
     //Inicio el servidor
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
    //cliente_entradasalida = esperar_cliente(servidor); 
 
-    
+    /* 
     //Planificacion
     //Inicio los hilos de planificacion
     inicializar_listas();  
@@ -83,7 +85,7 @@ int main(int argc, char* argv[]) {
     
     
 
-
+    
 
     return EXIT_SUCCESS;
 }
@@ -92,6 +94,13 @@ void atender_entradasalida2(void* socket_cliente_ptr){
     int cliente_entradasalida2 = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
     bool control_key = 1;
+    t_buffer* buffer_response = crear_buffer();
+            cargar_string_a_buffer(buffer_response, "SLP1"); //NOMBRE
+            cargar_string_a_buffer(buffer_response, "5"); //UNIDADES
+            cargar_int_a_buffer(buffer_response, 1);//PID
+            t_paquete* paquete = crear_paquete(IO_GEN_SLEEP, buffer_response);
+            enviar_paquete(paquete, cliente_entradasalida2);
+            destruir_paquete(paquete);
     while (control_key){
         op_code op_code = recibir_operacion(cliente_entradasalida2);        
         switch (op_code){
@@ -110,6 +119,11 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             nueva_interfaz->cola_procesos_bloqueados = queue_create();
             list_add(lista_interfaces, nueva_interfaz);
             log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
+
+
+
+            
+
             break;
         default:
 			log_error(kernel_logger, "Se desconectó la interfaz: %d", op_code);
