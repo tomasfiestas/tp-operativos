@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
     int servidor_dispatch = iniciar_servidor(PUERTO_ESCUCHA_DISPATCH);
     int servidor_interrupt = iniciar_servidor(PUERTO_ESCUCHA_INTERRUPT);
     //Inicio la conexion como cliente con la memoria
-    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-    log_info(cpu_logger, "Conexion con memoria establecida");  
+    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA); 
+    log_info(cpu_logger, "Conexión con Memoria establecida");   
 
     realizar_handshake(HANDSHAKE_CPU,conexion_memoria);
     log_info(cpu_logger, "Handshake con Memoria realizado");
