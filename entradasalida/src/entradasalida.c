@@ -437,33 +437,79 @@ void inicializar_interfaces(char* path){
         enviar_para_escribir(lista_direcciones ,entrada_teclado ,pid);
 
         
+        cargar_string_a_buffer(buffer_response, nombre_recibido);
+        cargar_int_a_buffer(buffer_response, pid);
+        t_paquete* paquete_response = crear_paquete(OPERACION_FINALIZADA, buffer_response);
+        enviar_paquete(paquete_response, conexion_kernel);
+        destruir_paquete(paquete_response);
+        log_info(io_logger, "Operacion finalizada de IO_STDIN, PID: %d", pid);
 
-        
-        
-
-        
-
-    
-
-        
         break;
         
         case IO_STDOUT_WRITE:
+
+        t_list* direcciones_a_leer = crear_lista_direcciones(buffer_recibido);
+        int* tamanio_a_leer = extraer_int_del_buffer(buffer_recibido);
+
+        char* dato_a_leer = leer_de_memoria(direcciones_a_leer, pid, conexion_memoria, tamanio_a_leer);
+        printf("Dato leido: %s", dato_a_leer); //Es necesario el tamanio?
+
+        list_destroy(direcciones_a_leer);
+        free(dato_a_leer);
+
+
+        cargar_string_a_buffer(buffer_response, nombre_recibido);
+        cargar_int_a_buffer(buffer_response, pid);
+        t_paquete* paquete_response = crear_paquete(OPERACION_FINALIZADA, buffer_response);
+        enviar_paquete(paquete_response, conexion_kernel);
+        destruir_paquete(paquete_response);
+        log_info(io_logger, "Operacion finalizada de IO_STDOUT_WRITE, PID: %d", pid);
+        break;
+
+        case IO_FS_CREATE:
+
+        char* nombre_archivo = buffer_read_string(buffer_recibido);
+        t_fcb* fcb = crear_fcb(nombre_archivo);
+        bitmap_marcar_bloque_ocupado(fcb->bloque_inicial);
+        crear_archivo_metadata(fcb);
+
+        free(nombre_archivo);
+        free(fcb);
     
-        int direccion_write = extraer_int_del_buffer(buffer_recibido);
-        int tamanio_write = atoi(extraer_string_del_buffer(buffer_recibido));
-        
+        cargar_string_a_buffer(buffer_response, nombre_recibido);
+        cargar_int_a_buffer(buffer_response, pid);
+        t_paquete* paquete_response = crear_paquete(OPERACION_FINALIZADA, buffer_response);
+        enviar_paquete(paquete_response, conexion_kernel);
+        destruir_paquete(paquete_response);
+        log_info(io_logger, "Operacion finalizada de IO_FS_CREATE, PID: %d", pid);
+        break;
 
-        t_list* direcciones_recibidas = list_create();
-        
+        case IO_FS_DELETE:
 
-        t_buffer* buffer_a_memoria = crear_buffer();
-        cargar_int_a_buffer(buffer_a_memoria, pid);
-        cargar_int_a_buffer(buffer_a_memoria, direccion);
-        cargar_int_a_buffer(buffer_a_memoria, tamanio);
-        t_paquete* paqueteOUT = crear_paquete(SOLICITAR_LECTURA,buffer_a_memoria);
-        enviar_paquete(paqueteOUT, conexion_memoria);
-        destruir_paquete(paqueteOUT);
+        char* nombre_archivo = buffer_read_string(buffer_recibido);
+        marcar_bloques_libres(nombre_archivo);
+        eliminar_archivo_metadata(nombre_archivo);
+
+        free(nombre_archivo);
+
+        cargar_string_a_buffer(buffer_response, nombre_recibido);
+        cargar_int_a_buffer(buffer_response, pid);
+        t_paquete* paquete_response = crear_paquete(OPERACION_FINALIZADA, buffer_response);
+        enviar_paquete(paquete_response, conexion_kernel);
+        destruir_paquete(paquete_response);
+        log_info(io_logger, "Operacion finalizada de IO_FS_DELETE, PID: %d", pid);
+        
+        break;
+
+        case IO_FS_WRITE:
+
+        t_list* lista_direcciones_a_escribir = list_create();
+        char* nombre_archivo = buffer_read_string(buffer_recibido);
+        int tamanio_lectura = 
+
+
+        break;
+
 
         default: 
 
@@ -528,6 +574,18 @@ void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char*
     
 }
 
+void enviar_solicitud_lectura(int pid, int direccion_fisica, int tamanio, int socket_memoria){
+    t_buffer* buffer_lectura = crear_buffer();
+    cargar_int_a_buffer(buffer_lectura, pid);
+    cargar_int_a_buffer(buffer_lectura, direccion_fisica);
+    cargar_int_a_buffer(buffer_lectura, tamanio);
+
+    t_paquete* paquete_lectura = crear_paquete(IO_STDOUT_WRITE, buffer_lectura); 
+    enviar_paquete(paquete_lectura, conexion_kernel);
+    destruir_paquete(paquete_lectura);
+
+}
+
 t_list* crear_lista_direcciones(t_buffer* buffer){
     t_list *lista_direcciones_fs_read = list_create();  //TODO VER DE IMPLEMENTAR ESTO
     int cantidad_direcciones = extraer_int_del_buffer(buffer);    
@@ -539,7 +597,40 @@ t_list* crear_lista_direcciones(t_buffer* buffer){
     }
     return lista_direcciones_fs_read;
 }
+/*
+char* leer_en_memoria(t_list* lista_direcciones, int pid, int socket_memoria, int tamanio_leer){
+    char* dato_a_leer = mallocs(sizeof(tamanio_leer));
+    int cantidad_direcciones = list_size(lista_direcciones);
 
+
+
+    for(int i = 0; i < cantidad_direcciones, i++){
+        t_direccion_fisica_io* direccion = list_get(lista_direcciones, i);
+        enviar_solicitud_lectura(pid, direccion->df, direccion->size, socket_memoria);
+        t_buffer* buffer_respuesta = recibir_buffer(socket_memoria);
+        char* dato = extraer_string_del_buffer(buffer_respuesta);
+        strncpy(dato_a_leer + direccion->df, dato, direccion->size);
+        destruir_buffer(buffer_respuesta);
+    }
+
+*/
+
+char* leer_en_memoria(t_list* lista_direcciones, int pid, int socket_memoria, int tamanio_leer){
+    char *dato = malloc(sizeof(tamanio_leer));
+    int tamanio_dato_solicitado = 0;
+    
+    for (int i = 0; i < list_size(lista_direcciones); k++) {
+        t_direccion_fisica_io *t_df_leer = list_get(lista_direcciones,i);
+        enviar_solicitud_lectura(pid, t_df_leer->df, t_df_leer->size, socket_memoria);
+        char* dato_recibido = mostrar_dato_solicitado(t_df_leer->size, socket_memoria);
+        tamanio_dato_solicitado = concatenar_cadenas_sin_null(tamanio_dato_solicitado, dato, dato_recibido, t_df_leer->size);        
+        tamanio_dato_solicitado += t_df_leer->size;
+        free(dato_recibido);
+        free(t_df_leer);
+    }
+
+    return dato;
+}
 
 
 

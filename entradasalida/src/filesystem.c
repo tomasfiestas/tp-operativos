@@ -173,11 +173,14 @@ void crear_archivo_metadata(t_fcb *fcb){
     }
 
     t_config* config_fcb = config_create(path);
-    config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
-    char* tam_arch = malloc(sizeof(uint32_t));
-    sprintf(tam_arch, "%d", fcb->bloque_inicial);
-    config_set_value(config_fcb, "BLOQUE_INICIAL", bloque_inicial); //revisar tema configs!!!!!!!
+    char* tam_arch = malloc(sizeof(uint32_t))
+    sprintf(tam_arch, "%d", fcb->size);
+    sprintf(bloque_inicial, "%d", fcb->bloque_inicial);
 
+
+    config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
+    config_set_value(config_fcb, "TAMANIO_ARCHIVO", tam_arch);
+    config_set_value(config_fcb, "BLOQUE_INICIAL", bloque_inicial); //CORREGIR
     config_save(config_fcb);
 
     free(tam_arch);
@@ -405,9 +408,9 @@ int copiar_contenido_a(char* contenido, int tamanio){
 
     return bloque_inicial;
 
-}*/
+}
 
-
+*/
 
 
 
