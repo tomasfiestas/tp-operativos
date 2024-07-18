@@ -393,13 +393,13 @@ void cargar_direccion_a_buffer(t_buffer* buffer,t_direccion_fisica_io* direccion
 }
 
 t_direccion_fisica_io* extraer_direccion_de_buffer(t_buffer* buffer){
-        t_direccion_fisica_io direccion_fisica = malloc(sizeof(t_direccion_fisica_io));
+        t_direccion_fisica_io* direccion_fisica = malloc(sizeof(t_direccion_fisica_io));
         direccion_fisica->df = extraer_int_del_buffer(buffer);
         direccion_fisica->size = extraer_int_del_buffer(buffer);
         return direccion_fisica;
 }
 
-t_list extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
+t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
     int cantidad_direcciones = extraer_int_del_buffer(buffer);
     t_list* lista_direcciones = list_create();
 
