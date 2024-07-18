@@ -681,7 +681,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			
 
 			char* nombre_interfaz_solicitada2 = extraer_string_del_buffer(buffer);
-			char* registro_direccion2 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_stdin = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio2 = extraer_string_del_buffer(buffer);
 
 			sem_wait(&mutex_lista_interfaces);
@@ -700,7 +700,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_buffer* buffer_interfaz2 = crear_buffer();
 				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);
-				cargar_string_a_buffer(buffer_interfaz2, registro_direccion2);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz2, lista_dir_stdin); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
 				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
 				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
@@ -710,7 +710,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados2 = malloc(sizeof(t_lista_block));
 				lista_bloqueados2->pcb = pcb;
 				lista_bloqueados2->operacion = op_code;
-				list_add(lista_bloqueados2->parametros, registro_direccion2);
+				list_add(lista_bloqueados2->parametros, lista_dir_stdin);
 				list_add(lista_bloqueados2->parametros, registro_tamanio2);
 				queue_push(interfaz2->cola_procesos_bloqueados,lista_bloqueados2);
 			}
@@ -720,7 +720,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			sacar_de_exec(pcb,IO);
 
 			char* nombre_interfaz_solicitada3 = extraer_string_del_buffer(buffer);
-			char* registro_direccion3 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_stdout = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio3 = extraer_string_del_buffer(buffer);
 
 			sem_wait(&mutex_lista_interfaces);
@@ -738,7 +738,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_buffer* buffer_interfaz3 = crear_buffer();
 				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);
-				cargar_string_a_buffer(buffer_interfaz3, registro_direccion3);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz3, lista_dir_stdout); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
 				t_paquete* paquete_interfaz3 = crear_paquete(IO_STDOUT_WRITE, buffer_interfaz3);
 				enviar_paquete(paquete_interfaz3, interfaz3->fd_interfaz);
@@ -748,7 +748,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados3 = malloc(sizeof(t_lista_block));
 				lista_bloqueados3->pcb = pcb;
 				lista_bloqueados3->operacion = op_code;
-				list_add(lista_bloqueados3->parametros, registro_direccion3);
+				list_add(lista_bloqueados3->parametros, lista_dir_stdout);
 				list_add(lista_bloqueados3->parametros, registro_tamanio3);
 				queue_push(interfaz3->cola_procesos_bloqueados,lista_bloqueados3);
 			}
@@ -868,7 +868,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 			char* nombre_interfaz_solicitada7 = extraer_string_del_buffer(buffer);
 			char* nombre_archivo7 = extraer_string_del_buffer(buffer);
-			char* registro_direccion7 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_fswrite = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio7 = extraer_string_del_buffer(buffer);
 			char* registro_puntero_archivo7 = extraer_string_del_buffer(buffer);
 			
@@ -888,7 +888,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz7, nombre_interfaz_solicitada7);
 				cargar_string_a_buffer(buffer_interfaz7, nombre_archivo7);
-				cargar_string_a_buffer(buffer_interfaz7, registro_direccion7);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz7, lista_dir_fswrite); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz7, registro_tamanio7);
 				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);
 				t_paquete* paquete_interfaz7 = crear_paquete(IO_FS_WRITE  , buffer_interfaz7);
@@ -900,7 +900,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados7->pcb = pcb;
 				lista_bloqueados7->operacion = op_code;
 				list_add(lista_bloqueados7->parametros, nombre_archivo7);
-				list_add(lista_bloqueados7->parametros, registro_direccion7);
+				list_add(lista_bloqueados7->parametros, lista_dir_fswrite);
 				list_add(lista_bloqueados7->parametros, registro_tamanio7);
 				list_add(lista_bloqueados7->parametros, registro_puntero_archivo7);
 				queue_push(interfaz7->cola_procesos_bloqueados,lista_bloqueados7);
@@ -912,7 +912,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 			char* nombre_interfaz_solicitada8 = extraer_string_del_buffer(buffer);
 			char* nombre_archivo8 = extraer_string_del_buffer(buffer);
-			char* registro_direccion8 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_fsread = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio8 = extraer_string_del_buffer(buffer);
 			char* registro_puntero_archivo8 = extraer_string_del_buffer(buffer);
 
@@ -932,7 +932,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);
-				cargar_string_a_buffer(buffer_interfaz8, registro_direccion8);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz8, lista_dir_fsread); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);
 				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);
 				t_paquete* paquete_interfaz8 = crear_paquete(IO_FS_READ  , buffer_interfaz8);
@@ -944,7 +944,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados8->pcb = pcb;
 				lista_bloqueados8->operacion = op_code;
 				list_add(lista_bloqueados8->parametros, nombre_archivo8);
-				list_add(lista_bloqueados8->parametros, registro_direccion8);
+				list_add(lista_bloqueados8->parametros, lista_dir_fsread);
 				list_add(lista_bloqueados8->parametros, registro_tamanio8);
 				list_add(lista_bloqueados8->parametros, registro_puntero_archivo8);
 				queue_push(interfaz8->cola_procesos_bloqueados,lista_bloqueados8);
