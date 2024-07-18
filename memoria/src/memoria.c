@@ -239,8 +239,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         enviar_paquete(response, cliente_cpu);
         destruir_paquete(response);
         break;
-    case SOLICITUD_MARCO:
-        log_info(memoria_logger, "Se conecto la Memoria");
+    case SOLICITUD_MARCO:        
 
         usleep(atoi(RETARDO_RESPUESTA) * 1000);
         t_buffer* buffer_solicitud_nro_marco = recibir_buffer(cliente);
@@ -508,7 +507,7 @@ int map_instruccion_a_enum(char* instruccion){
     } else if(strcmp(instruccion, "RESIZE") == 0){
         return RESIZE ;
     } else if(strcmp(instruccion, "COPY_STRING") == 0){
-        return HANDSHAKE_ES;
+        return COPY_STRING;
     } else if(strcmp(instruccion, "WAIT") == 0){
         return WAIT ;
     } else if(strcmp(instruccion, "SIGNAL") == 0){
