@@ -43,6 +43,16 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             free(pcbb);            
             destruir_paquete(paquete_cpu);    
             ctx_global = NULL;
+
+            log_info(cpu_logger, "Valores de los registros del PCB:");
+
+            log_info(cpu_logger, "Registro AX: %d | BX:%d | CX: %d", pcbb->registros.AX,pcbb->registros.BX,pcbb->registros.CX);
+            log_info(cpu_logger, "Registro DX: %d | EAX:%d | EBX: %d", pcbb->registros.DX,pcbb->registros.EAX,pcbb->registros.EBX);
+            log_info(cpu_logger, "Registro ECX: %d | EDX:%d | SI: %d", pcbb->registros.ECX,pcbb->registros.EDX,pcbb->registros.SI);
+            log_info(cpu_logger, "Registro DI: %d", pcbb->registros.DI);
+            
+
+        
         //hayinterrupcion = 0;
 	}    
 }
@@ -216,29 +226,29 @@ void asignar_valor_char_a_registro(t_pcb* contexto,char* registro, uint32_t valo
     }   
 }
 
-int obtener_valor_de_registro(t_pcb* contexto, char* registro) {
+void* obtener_puntero_al_registro(t_pcb* contexto, char* registro) {
     if (strcmp(registro, "AX") == 0) {
-        return contexto->registros.AX;
+        return &(contexto->registros.AX);
     } else if (strcmp(registro, "BX") == 0) {
-        return contexto->registros.BX;
+        return &(contexto->registros.BX);
     } else if (strcmp(registro, "CX") == 0) {
-        return contexto->registros.CX;
+        return &(contexto->registros.CX);
     } else if (strcmp(registro, "DX") == 0) {
-        return contexto->registros.DX;
+        return &(contexto->registros.DX);
     } else if (strcmp(registro, "EAX") == 0) {
-        return contexto->registros.EAX;
+        return &(contexto->registros.EAX);
     } else if (strcmp(registro, "EBX") == 0) {
-        return contexto->registros.EBX;
+        return &(contexto->registros.EBX);
     } else if (strcmp(registro, "ECX") == 0) {
-        return contexto->registros.ECX;
+        return &(contexto->registros.ECX);
     } else if (strcmp(registro, "EDX") == 0) {
-        return contexto->registros.EDX;
+        return &(contexto->registros.EDX);
     } else if (strcmp(registro, "SI") == 0) {
-        return contexto->registros.SI;
+        return &(contexto->registros.SI);
     } else if (strcmp(registro, "DI") == 0) {
-        return contexto->registros.DI;
+        return &(contexto->registros.DI);
     } else if (strcmp(registro, "PC") == 0) {
-        return contexto->registros.PC;
+        return &(contexto->registros.PC);
     } else {
         printf("Registro desconocido: %s\n", registro);
         return -1; // Error: registro desconocido
@@ -275,8 +285,8 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
     case SUM:                                                                    //SUM(Registro Destino, Registro Origen)
             char* registro_destino_sum = (char*) list_get(instruccion.parametros, 0);
             char* registro_origen_sum = (char*) list_get(instruccion.parametros, 1);
-            int valor_origen_sum = obtener_valor_de_registro(contexto, registro_origen_sum);
-            int valor_destino_sum = obtener_valor_de_registro(contexto, registro_destino_sum);
+            int valor_origen_sum = *(int*)obtener_puntero_al_registro(contexto, registro_origen_sum);
+            int valor_destino_sum = *(int*)obtener_puntero_al_registro(contexto, registro_destino_sum);
             log_info(cpu_logger, "PID: %d - Ejecutando: <SUM> - <%s %s>", contexto->pid, registro_destino_sum, registro_origen_sum);
             asignar_valor_a_registro(contexto, registro_destino_sum, valor_destino_sum + valor_origen_sum);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
@@ -285,8 +295,8 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
     case SUB:                                                                    //SUB(Registro Destino, Registro Origen)
             char* registro_destino_sub = (char*) list_get(instruccion.parametros, 0);
             char* registro_origen_sub = (char*) list_get(instruccion.parametros, 1);
-            int valor_origen_sub = obtener_valor_de_registro(contexto, registro_origen_sub);
-            int valor_destino_sub = obtener_valor_de_registro(contexto, registro_destino_sub);
+            int valor_origen_sub = *(int*)obtener_puntero_al_registro(contexto, registro_origen_sub);
+            int valor_destino_sub = *(int*)obtener_puntero_al_registro(contexto, registro_destino_sub);
             log_info(cpu_logger, "PID: %d - Ejecutando: <SUB> - <%s %s>", contexto->pid, registro_destino_sub, registro_origen_sub);
             asignar_valor_a_registro(contexto, registro_destino_sub, valor_destino_sub - valor_origen_sub);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
@@ -295,7 +305,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
     case JNZ:                                                                     //JNZ(Registro, Instrucción)
             char* registro_jnz = (char*) list_get(instruccion.parametros, 0);
             int numero_instruccion = *((int*) list_get(instruccion.parametros, 1));
-            int valor_registro = obtener_valor_de_registro(contexto, registro_jnz);
+            int valor_registro = *(int*)obtener_puntero_al_registro(contexto, registro_jnz);
             log_info(cpu_logger, "PID: %d - Ejecutando: <JNZ> - <%s %d>", contexto->pid, registro_jnz, numero_instruccion);
             if (valor_registro != 0) {
                 contexto->registros.PC = numero_instruccion;
@@ -306,14 +316,15 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             const char* registro_datos_mov_in = (const char*) list_get(instruccion.parametros, 0);
             const char* registro_direccion_mov_in = (const char*) list_get(instruccion.parametros, 1);
             
-            int dir_logica = obtener_valor_de_registro(contexto, registro_direccion_mov_in);
-            int direccion_fisica = traducir_direccion_mmu(dir_logica, contexto);
+            int dir_logica = *(int*)obtener_puntero_al_registro(contexto, registro_direccion_mov_in);
+            int bytes_a_leer = calcular_bytes_a_leer(registro_direccion_mov_in);
+            t_list* direccion_fisica = traducir_direccion_mmu(dir_logica, contexto,bytes_a_leer);
 
             if (direccion_fisica == -1) {
                 log_error(cpu_logger, "PID: %d - Error al traducir dirección lógica: %d", contexto->pid, dir_logica);
                 return;
             }
-            int bytes_a_leer = calcular_bytes_a_leer(registro_direccion_mov_in);
+            
             
             if(bytes_a_leer == 1){ 
                 uint8_t valor_leido = *(uint8_t*)leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
@@ -323,7 +334,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                     log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
                     return;
                 }  
-                asignar_valor_char_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
+                asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
                 log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
             }
             else if(bytes_a_leer == 4){             
@@ -344,19 +355,20 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             char* registro_direccion = (char*) list_get(instruccion.parametros, 0);
             char* registro_datos = (char*) list_get(instruccion.parametros, 1);
 
-            int direccion_logica = obtener_valor_de_registro(contexto, registro_direccion);
-            int valor_out = obtener_valor_de_registro(contexto, registro_datos);
+            int bytes_a_escribir = calcular_bytes_a_leer(registro_datos);
 
+            int direccion_logica = *(int*) obtener_puntero_al_registro(contexto, registro_direccion);
+            void* valor_out = obtener_puntero_al_registro(contexto, registro_datos);
+            
             log_info(cpu_logger, "PID: %d - Ejecutando: MOV_OUT - %s %s", contexto->pid, registro_direccion, registro_datos);
-
-            int direccion_fisica_mov = traducir_direccion_mmu(direccion_logica, contexto);
-            if (direccion_fisica_mov == -1) {
+            t_list* lista_df = traducir_direccion_mmu(direccion_logica,contexto, bytes_a_escribir);    
+            if (list_size(lista_df) == 0) {
                 log_error(cpu_logger, "Error al traducir la dirección lógica: %d", direccion_logica);
                 break;
             }
-            int bytes_a_escribir = calcular_bytes_a_leer(registro_datos);
-            escribir_a_memoria(direccion_fisica_mov,bytes_a_escribir, contexto->pid, valor_out);
-            log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica_mov, valor_out);
+            
+            escribir_a_memoria(lista_df,bytes_a_escribir, contexto, valor_out);
+            
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             break;
 
@@ -425,12 +437,12 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
-    case IO_STDIN_READ:  //IO_STDIN_READ (Interfaz, Registro Direccion, Registro tamaño)
+    /*case IO_STDIN_READ:  //IO_STDIN_READ (Interfaz, Registro Direccion, Registro tamaño)
             char* interfaz1 = (char*) list_get(instruccion.parametros, 0);
             char* registroDireccion1 = (char*) list_get(instruccion.parametros, 1);
             char* registroTamanio1 = (char*) list_get(instruccion.parametros, 2);
 
-            int direccion_logica_stdin = obtener_valor_de_registro(contexto, registroDireccion1);   
+            int direccion_logica_stdin = obtener_puntero_al_registro(contexto, registroDireccion1);   
 
             int direccion_fisica_stdin = traducir_direccion_mmu(direccion_logica_stdin, contexto);
             log_info(cpu_logger, "PID: %d - Ejecutando: <IO_STDIN_READ> - <%s %d>", contexto->pid, interfaz1, registroDireccion1, registroTamanio1); //TODO MANDAR A KERNEL.
@@ -444,13 +456,13 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             destruir_paquete(paquete1);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
-            break;
-    case IO_STDOUT_WRITE:  //IO_STDOUT_WRITE (Interfaz, Registro Direccion, Registro tamaño)
+            break;*/
+    /*case IO_STDOUT_WRITE:  //IO_STDOUT_WRITE (Interfaz, Registro Direccion, Registro tamaño)
             char* interfaz2 = (char*) list_get(instruccion.parametros, 0);
             char* registroDireccion2 = (char*) list_get(instruccion.parametros, 1);
             char* registroTamanio2 = (char*) list_get(instruccion.parametros, 2);
 
-            int direccion_logica_stdout = obtener_valor_de_registro(contexto, registroDireccion2);   
+            int direccion_logica_stdout = obtener_puntero_al_registro(contexto, registroDireccion2);   
 
             int direccion_fisica_stdout = traducir_direccion_mmu(direccion_logica_stdout, contexto);
 
@@ -465,7 +477,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             destruir_paquete(paquete2);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
-            break;
+            break;*/
     case IO_FS_CREATE:  //IO_FS_CREATE (Interfaz, Nombre Archivo)
             char* interfaz3 = (char*) list_get(instruccion.parametros, 0);
             char* nombreArchivo3 = (char*) list_get(instruccion.parametros, 1);
@@ -510,14 +522,14 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
             break;
-    case IO_FS_WRITE:  //IO_FS_WRITE (Interfaz, Nombre Archivo, Registro Direccion, Registro Tamaño, Registro Puntero Archivo)
+    /*case IO_FS_WRITE:  //IO_FS_WRITE (Interfaz, Nombre Archivo, Registro Direccion, Registro Tamaño, Registro Puntero Archivo)
             char* interfaz6 = (char*) list_get(instruccion.parametros, 0);
             char* nombreArchivo6 = (char*) list_get(instruccion.parametros, 1);
             char* registroDireccion6 = (char*) list_get(instruccion.parametros, 2);
             char* registroTamanio6 = (char*) list_get(instruccion.parametros, 3);
             char* registroPunteroArchivo6 = (char*) list_get(instruccion.parametros, 4);
 
-            int direccion_logica_fs_write = obtener_valor_de_registro(contexto, registroDireccion2);   
+            int direccion_logica_fs_write = obtener_puntero_al_registro(contexto, registroDireccion2);   
 
             int direccion_write_fs_write = traducir_direccion_mmu(direccion_logica_fs_write, contexto);
 
@@ -534,8 +546,8 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             destruir_paquete(paquete6);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
-            break;
-    case IO_FS_READ:  //IO_FS_READ (Interfaz, Nombre Archivo, Registro Direccion, Registro Tamaño, Registro Puntero Archivo)
+            break;*/
+    /*case IO_FS_READ:  //IO_FS_READ (Interfaz, Nombre Archivo, Registro Direccion, Registro Tamaño, Registro Puntero Archivo)
             char* interfaz7 = (char*) list_get(instruccion.parametros, 0);
             char* nombreArchivo7 = (char*) list_get(instruccion.parametros, 1);
             char* registroDireccion7 = (char*) list_get(instruccion.parametros, 2);
@@ -543,7 +555,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             char* registroPunteroArchivo7 = (char*) list_get(instruccion.parametros, 4);
 
             
-            int direccion_logica_fs_read = obtener_valor_de_registro(contexto, registroDireccion2);   
+            int direccion_logica_fs_read = obtener_puntero_al_registro(contexto, registroDireccion2);   
 
             int direccion_write_fs_read = traducir_direccion_mmu(direccion_logica_fs_read, contexto);
 
@@ -560,8 +572,24 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             destruir_paquete(paquete7);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             ctx_global = NULL;
-            break;
+            break;*/
+    case COPY_STRING:
+            uint32_t direccion_logica_destino = contexto->registros.DI;
+            uint32_t direccion_logica_origen = contexto->registros.SI;
+            int size = atoi((char*) list_get(instruccion.parametros, 0));
 
+            t_list*  lista_direccion_fisica_origen = traducir_direccion_mmu(direccion_logica_origen, contexto,size);  
+
+            void* valor_leido_de_memoria = leer_de_memoria(lista_direccion_fisica_origen, size, contexto->pid);
+                    
+            
+            t_list* lista_direccion_fisica_destino_copy = traducir_direccion_mmu(direccion_logica_destino, contexto,size);
+            
+            escribir_a_memoria(lista_direccion_fisica_destino_copy, size, contexto, valor_leido_de_memoria);            
+            log_info(cpu_logger, "PID: %d -Ejecutando: <COPY_STRING> - <%d %d>", contexto->pid, direccion_logica_destino, direccion_logica_origen);            
+            list_destroy_and_destroy_elements(instruccion.parametros, free);
+            list_destroy_and_destroy_elements(lista_direccion_fisica_origen,free);
+            break;
     
     case EXIT: 
             log_info(cpu_logger, "PID: %d -Ejecutando: <EXIT>", contexto->pid);
@@ -580,14 +608,18 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
         break;
     }
 }
-void* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
+void* leer_de_memoria(t_list* lista_df,int bytes_a_leer, int pid)
 {   
+    void* contenido_leido = malloc(bytes_a_leer);
+    int bytes_leidos = 0;
 
-    
+    for(int i=0;i < list_size(lista_df); i++) { 
+    t_direccion_fisica_io* dir_fisica = list_get(lista_df,i);
+
     t_buffer *buffer_envio = crear_buffer();
-    cargar_int_a_buffer(buffer_envio, pid);
-    cargar_int_a_buffer(buffer_envio, dir_fisica);
-    cargar_int_a_buffer(buffer_envio, bytes_a_leer);
+    cargar_int_a_buffer(buffer_envio, pid);     //PID
+    cargar_int_a_buffer(buffer_envio, dir_fisica->df);  //DIR_FISICA
+    cargar_int_a_buffer(buffer_envio, dir_fisica->size);    //TAMANIO A LEER
 
     t_paquete *paquete = crear_paquete(LEER, buffer_envio); 
     enviar_paquete(paquete, conexion_memoria);
@@ -608,13 +640,55 @@ void* leer_de_memoria(int dir_fisica,int bytes_a_leer, int pid)
     }
 
     void* valor_leido = extraer_de_buffer(buffer_respuesta); //extraigo lo leido de memoria
-    
-    
+    destruir_buffer(buffer_respuesta);
+    memcpy(contenido_leido + bytes_leidos,valor_leido,dir_fisica->size);
 
-    destruir_buffer(buffer_respuesta); 
-
-    return valor_leido;
+    bytes_leidos += dir_fisica->size;
+    }
+    return contenido_leido;
 }
+
+/*void* leer_de_memoria(t_list* lista_df,int bytes_a_leer, int pid)
+{   
+    char* contenido_leido = string_new();
+    int tamanio = 0;
+
+    for(int i=0;i < list_size(lista_df); i++) { 
+    t_direccion_fisica_io* dir_fisica = list_get(lista_df,i);
+
+    t_buffer *buffer_envio = crear_buffer();
+    cargar_int_a_buffer(buffer_envio, pid);     //PID
+    cargar_int_a_buffer(buffer_envio, dir_fisica->df);  //DIR_FISICA
+    cargar_int_a_buffer(buffer_envio, dir_fisica->size);    //TAMANIO A LEER
+
+    t_paquete *paquete = crear_paquete(LEER, buffer_envio); 
+    enviar_paquete(paquete, conexion_memoria);
+
+    
+    destruir_paquete(paquete);
+
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    if (cod_op != LEER_OK) {
+        log_error(cpu_logger, "Ocurrió un error al hacer MOV_IN");
+        return NULL;
+    }
+
+    t_buffer *buffer_respuesta = recibir_buffer(conexion_memoria);
+    if (buffer_respuesta == NULL) {
+        log_error(cpu_logger, "Error al recibir el buffer de respuesta");
+        return NULL;
+    }
+
+    char* valor_leido = (char*)extraer_de_buffer(buffer_respuesta); //extraigo lo leido de memoria
+    destruir_buffer(buffer_respuesta); 
+    memcpy(contenido_leido,valor_leido,dir_fisica->size);
+
+    
+    }
+    return contenido_leido;
+}*/
+
+
 
 int calcular_bytes_a_leer(char* registro){
     
@@ -637,7 +711,94 @@ int calcular_bytes_a_leer(char* registro){
 }
 
 
-void escribir_a_memoria(int dir_fisica, int size,int pid, int valor) {
+/*void escribir_a_memoria(t_list* lista_paginas, int size,t_pcb* pcb, int valor) {
+    int desplazamiento = 0;
+    char* valor_a_enviar;
+    sprintf(valor_a_enviar,"%d",valor);
+    for(int i = 0;i < list_size(lista_paginas); i++){ 
+
+    t_direccion_fisica_io* direccion_fisica = list_get(lista_paginas,i);
+
+    void * valor_por_direccion = malloc(direccion_fisica->size);
+    memcpy(valor_por_direccion, valor_a_enviar + desplazamiento, direccion_fisica->size);
+
+    t_buffer *buffer_envio = crear_buffer();
+    cargar_int_a_buffer(buffer_envio, pcb->pid);    
+    cargar_int_a_buffer(buffer_envio, direccion_fisica->df);
+    cargar_int_a_buffer(buffer_envio, size);
+    //char* envio = malloc(sizeof(char)*20);
+    //sprintf(envio, "%d", valor);
+    //cargar_string_a_buffer(buffer_envio, envio);
+    //free(envio);
+    cargar_a_buffer(buffer_envio,valor_por_direccion,direccion_fisica->size);
+
+    t_paquete *paquete = crear_paquete(ESCRIBIR, buffer_envio); 
+    enviar_paquete(paquete, conexion_memoria);
+
+    destruir_paquete(paquete); 
+
+    log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s", pcb->pid, direccion_fisica->df, valor_por_direccion);
+
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    t_buffer *buffer_respuesta = recibir_buffer(conexion_memoria);
+    int basura = extraer_int_del_buffer(buffer_respuesta);
+    destruir_buffer(buffer_respuesta);
+    if (cod_op != ESCRIBIR_OK) {
+        log_error(cpu_logger, "Ocurrió un error al hacer MOV_OUT");
+   }
+   desplazamiento += direccion_fisica->size;
+   free(valor_por_direccion);
+   }
+return;
+}*/
+
+void escribir_a_memoria(t_list* lista_paginas, int size,t_pcb* pcb, void* valor) {
+    
+    int bytes_grabados = 0;
+    int tamano_a_escribir;
+
+    for(int i = 0;i < list_size(lista_paginas); i++){ 
+
+    t_direccion_fisica_io* direccion_fisica = list_get(lista_paginas,i);
+
+    if( size < direccion_fisica->size){
+        tamano_a_escribir = size;
+    } else {
+        tamano_a_escribir = direccion_fisica->size;
+    }
+
+    t_buffer *buffer_envio = crear_buffer();
+    cargar_int_a_buffer(buffer_envio, pcb->pid);    
+    cargar_int_a_buffer(buffer_envio, direccion_fisica->df);
+    cargar_int_a_buffer(buffer_envio, tamano_a_escribir); 
+    cargar_a_buffer(buffer_envio, valor + bytes_grabados, tamano_a_escribir);
+
+    t_paquete *paquete = crear_paquete(ESCRIBIR, buffer_envio); 
+    enviar_paquete(paquete, conexion_memoria);
+
+    destruir_paquete(paquete); 
+
+    char* valor_parcial_escrito_para_imprimir = malloc(tamano_a_escribir + 1);
+    memcpy(valor_parcial_escrito_para_imprimir, valor + bytes_grabados, tamano_a_escribir);
+    valor_parcial_escrito_para_imprimir[tamano_a_escribir] = '\0';
+    log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s", pcb->pid, direccion_fisica->df, valor_parcial_escrito_para_imprimir);
+    free(valor_parcial_escrito_para_imprimir);
+
+    bytes_grabados += tamano_a_escribir;
+    size -= tamano_a_escribir;
+
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    t_buffer *buffer_respuesta = recibir_buffer(conexion_memoria);
+    extraer_int_del_buffer(buffer_respuesta);
+    destruir_buffer(buffer_respuesta);
+    if (cod_op != ESCRIBIR_OK) {
+        log_error(cpu_logger, "Ocurrió un error al hacer MOV_OUT");
+   }   
+   }
+return;
+}
+
+void escribir_a_memoria_string(int dir_fisica, int size,int pid, char* valor) {
     t_buffer *buffer_envio = crear_buffer();
     cargar_int_a_buffer(buffer_envio, pid);    
     cargar_int_a_buffer(buffer_envio, dir_fisica);
@@ -646,7 +807,7 @@ void escribir_a_memoria(int dir_fisica, int size,int pid, int valor) {
     //sprintf(envio, "%d", valor);
     //cargar_string_a_buffer(buffer_envio, envio);
     //free(envio);
-    cargar_int_a_buffer(buffer_envio, valor);
+    cargar_string_a_buffer(buffer_envio, valor);
 
     t_paquete *paquete = crear_paquete(ESCRIBIR, buffer_envio); 
     enviar_paquete(paquete, conexion_memoria);
@@ -664,31 +825,55 @@ return;
 }
 
 //MMU
-int traducir_direccion_mmu(int dir_logica, t_pcb *ctx)
-{
-    //CONSULTAR TAMANIO PAGINA A MEMORIA.
-    //t_list* tlb;
-    int nro_pagina = numero_pagina(dir_logica);
-    int desplazamiento = dir_logica - nro_pagina * tamanio_pagina;
-
-    int resultado_tlb = consultar_tlb(tlb, nro_pagina, ctx->pid);
-	if (resultado_tlb != -1) 
-        return resultado_tlb * tamanio_pagina + desplazamiento;
-
+t_list* traducir_direccion_mmu(int dir_logica, t_pcb *ctx,int tamanio_solicitad)
+{   int tamanio = 0;
     
-   
-    int num_marco = solicitar_numero_de_marco(nro_pagina, ctx->pid);
-    if(num_marco == -1)
+      
+    t_list* lista_df = list_create();
+    int direccion_fisica;
+
+    while(tamanio_solicitad > 0){ 
+
+    int desplazamiento = dir_logica % tamanio_pagina;
+    int disponible = tamanio_pagina - desplazamiento;  
+    int nro_pagina = numero_pagina(dir_logica);
+    
+    
+    if ( disponible < tamanio_solicitad){
+            tamanio = disponible;
+        }else{
+            tamanio = tamanio_solicitad;
+    }
+    int nro_marco;
+    nro_marco= consultar_tlb(tlb, nro_pagina, ctx->pid);
+	if (nro_marco != -1){        
+        direccion_fisica = (nro_marco * tamanio_pagina) + desplazamiento;     
+        
+    }
+    else 
+    {   
+    nro_marco = solicitar_numero_de_marco(nro_pagina, ctx->pid);
+    direccion_fisica = nro_marco * tamanio_pagina + desplazamiento; 
+    if(nro_marco == -1)
     {
         return -1;
-    }
-    log_info(cpu_logger, "PID: %d - OBTENER MARCO - Página: %d - Marco: %d",ctx->pid,nro_pagina,num_marco);
-    int dir_fisica = (num_marco * tamanio_pagina) + desplazamiento;
-    //ctx->program_counter++;
+    } 
 
-    agregar_entry_tlb(ctx, nro_pagina, num_marco);
-    
-    return dir_fisica;
+    log_info(cpu_logger, "PID: %d - OBTENER MARCO - Página: %d - Marco: %d",ctx->pid,nro_pagina,nro_marco);    
+    agregar_entry_tlb(ctx, nro_pagina, nro_marco);
+    }
+    t_direccion_fisica_io * dir_fisica;
+    dir_fisica = malloc(sizeof(t_direccion_fisica_io));
+
+    dir_fisica->df = direccion_fisica;
+    dir_fisica->size = tamanio;
+
+    list_add(lista_df, dir_fisica);
+    dir_logica += tamanio;
+    tamanio_solicitad -= tamanio;    
+
+    }
+    return lista_df;
 
 }
 

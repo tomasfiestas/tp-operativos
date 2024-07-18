@@ -24,6 +24,11 @@ typedef enum{
 	EXIT
 } t_estado;
 
+typedef struct direccion_fisica_io {
+    int size;
+    int df;
+} t_direccion_fisica_io;
+
 typedef struct{
 	uint8_t AX;
 	uint8_t BX;

@@ -22,10 +22,30 @@ void crear_interfaz(char* nombre, char* tipo){
 int conexion_kernel;
 int conexion_memoria;
 
+
+
+
+typedef enum{
+    GENERICA,
+    STDIN,
+    STDOUT,
+    DIALFS
+} t_tipo_interfaz;
+
 typedef struct{
     char* nombre;
-    char* tipo;
+    t_tipo_interfaz tipo;
+    int tiempo_unidad_trabajo;
 } t_interfaz;
+
+typedef struct{
+    char* nombre;
+    t_tipo_interfaz tipo;
+    int tiempo_unidad_trabajo;
+    int block_size;
+    int block_count;
+    int retraso_compactacion
+} t_dial_fs;
 
 
 t_log* entradasalida_logger;
@@ -42,16 +62,13 @@ char* BLOCK_COUNT;
 int conexion_kernel;
 int conexion_kernel2;
 
-typedef enum{
-    GENERICA,
-    STDIN,
-    STDOUT,
-    DIALFS
-} t_tipo_interfaz;
+
 
 
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 void leer_consola();
 t_mensajes_consola mensaje_a_consola(char *mensaje_consola);
+ void crear_interfaz(char* nombre, char* tipo,int unidades_trabajo);
+void crear_interfaz_fs(char* nombre, char* tipo, int tiempo_unidad_trabajo,int block_size, int block_count, int retraso_compactacion);
 
 #endif

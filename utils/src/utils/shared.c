@@ -282,6 +282,8 @@ t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer)
     return valor_instruccion;    
 }
 
+
+
 t_estado extraer_estado_del_buffer(t_buffer* buffer){
     t_estado* estado = malloc(sizeof(t_estado));
     estado = extraer_de_buffer(buffer);
