@@ -376,3 +376,36 @@ void* serializar_paquete(t_paquete* paquete){
 
 	return coso;
 }
+
+void cargar_lista_direcciones_a_buffer(t_buffer* buffer,t_list* lista_direcciones){
+    int cantidad_direcciones_a_cargar = list_size(lista_direcciones);
+    cargar_int_a_buffer(buffer,cantidad_direcciones_a_cargar);
+
+    for(int i = 0;i < cantidad_direcciones_a_cargar; i++){
+        t_direccion_fisica_io* direc_fisica = list_get(lista_direcciones,i);
+        cargar_direccion_a_buffer(buffer,direc_fisica);
+    }
+}
+
+void cargar_direccion_a_buffer(t_buffer* buffer,t_direccion_fisica_io* direccion){
+    cargar_int_a_buffer(buffer,direccion->df);
+    cargar_int_a_buffer(buffer,direccion->size);
+}
+
+t_direccion_fisica_io* extraer_direccion_de_buffer(t_buffer* buffer){
+        t_direccion_fisica_io direccion_fisica = malloc(sizeof(t_direccion_fisica_io));
+        direccion_fisica->df = extraer_int_del_buffer(buffer);
+        direccion_fisica->size = extraer_int_del_buffer(buffer);
+        return direccion_fisica;
+}
+
+t_list extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
+    int cantidad_direcciones = extraer_int_del_buffer(buffer);
+    t_list* lista_direcciones = list_create();
+
+    for(int i=0;i < cantidad_direcciones; i++){
+        t_direccion_fisica_io* direccion_fisica = extraer_direccion_de_buffer(buffer);
+        list_add(lista_direcciones,direccion_fisica);
+    }
+    return lista_direcciones;
+}

@@ -659,9 +659,9 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz1->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada1);
 				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo1);
-				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
 				enviar_paquete(paquete_interfaz, interfaz1->fd_interfaz);
 				destruir_buffer(buffer_interfaz);		
@@ -698,10 +698,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz2->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz2 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);
 				cargar_string_a_buffer(buffer_interfaz2, registro_direccion2);
 				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
-				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);
 				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
 				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
 				destruir_buffer(buffer_interfaz2);			
@@ -736,10 +736,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz3->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz3 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);
 				cargar_string_a_buffer(buffer_interfaz3, registro_direccion3);
 				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
-				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
 				t_paquete* paquete_interfaz3 = crear_paquete(IO_STDOUT_WRITE, buffer_interfaz3);
 				enviar_paquete(paquete_interfaz3, interfaz3->fd_interfaz);
 				destruir_buffer(buffer_interfaz3);			
@@ -773,9 +773,9 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz4->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz4 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz4, nombre_interfaz_solicitada4);
 				cargar_string_a_buffer(buffer_interfaz4, nombre_archivo4);
-				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);
 				t_paquete* paquete_interfaz4 = crear_paquete(IO_FS_CREATE , buffer_interfaz4);
 				enviar_paquete(paquete_interfaz4, interfaz4->fd_interfaz);
 				destruir_buffer(buffer_interfaz4);			
@@ -808,9 +808,9 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz5->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz5 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz5, nombre_interfaz_solicitada5);
 				cargar_string_a_buffer(buffer_interfaz5, nombre_archivo5);
-				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);
 				t_paquete* paquete_interfaz5 = crear_paquete(IO_FS_DELETE , buffer_interfaz5);
 				enviar_paquete(paquete_interfaz5, interfaz5->fd_interfaz);
 				destruir_buffer(buffer_interfaz5);			
@@ -845,10 +845,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz6->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz6 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz6, nombre_interfaz_solicitada6);
 				cargar_string_a_buffer(buffer_interfaz6, nombre_archivo6);
 				cargar_string_a_buffer(buffer_interfaz6, registro_tamanio6);
-				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);
 				t_paquete* paquete_interfaz6 = crear_paquete(IO_FS_TRUNCATE , buffer_interfaz6);
 				enviar_paquete(paquete_interfaz6, interfaz6->fd_interfaz);
 				destruir_buffer(buffer_interfaz6);			
@@ -885,12 +885,12 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz7->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz7 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz7, nombre_interfaz_solicitada7);
 				cargar_string_a_buffer(buffer_interfaz7, nombre_archivo7);
 				cargar_string_a_buffer(buffer_interfaz7, registro_direccion7);
 				cargar_string_a_buffer(buffer_interfaz7, registro_tamanio7);
 				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);
-				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
 				t_paquete* paquete_interfaz7 = crear_paquete(IO_FS_WRITE  , buffer_interfaz7);
 				enviar_paquete(paquete_interfaz7, interfaz7->fd_interfaz);
 				destruir_buffer(buffer_interfaz7);			
@@ -929,12 +929,12 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				//MANDAR A TOMI.
 				interfaz8->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz8 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);
 				cargar_string_a_buffer(buffer_interfaz8, registro_direccion8);
 				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);
 				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);
-				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
 				t_paquete* paquete_interfaz8 = crear_paquete(IO_FS_READ  , buffer_interfaz8);
 				enviar_paquete(paquete_interfaz8, interfaz8->fd_interfaz);
 				destruir_buffer(buffer_interfaz8);			
