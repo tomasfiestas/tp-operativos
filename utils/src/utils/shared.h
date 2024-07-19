@@ -155,6 +155,7 @@ typedef enum
 typedef struct{
     t_pcb* pcb;    
     t_list* parametros; 
+	t_list* direcciones;
 	op_code operacion; 
 }t_lista_block;
 typedef struct {
