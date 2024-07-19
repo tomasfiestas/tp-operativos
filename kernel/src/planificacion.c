@@ -66,8 +66,7 @@ sem_t sem_volvioContexto;
 
 void crear_pcb(int pid){
 	t_pcb* nuevo_pcb = malloc(sizeof(t_pcb));
-    nuevo_pcb->pid = pid;	
-	nuevo_pcb->program_counter = 0;	
+    nuevo_pcb->pid = pid;		
 	//nuevo_pcb->tabla_archivos = list_create(); //Comento porque no se para que sirve
 	nuevo_pcb->estado = NEW;
 	nuevo_pcb->ejecuto = 0;
@@ -100,6 +99,7 @@ void inicializar_registros(t_pcb* nuevo_pcb){
 	memcpy(&(nuevo_pcb->registros.EDX), &eax, sizeof(uint32_t));
 	memcpy(&(nuevo_pcb->registros.SI), &eax, sizeof(uint32_t));
 	memcpy(&(nuevo_pcb->registros.DI), &eax, sizeof(uint32_t));
+	memcpy(&(nuevo_pcb->registros.PC), &eax, sizeof(uint32_t));
 }
 
 
@@ -476,7 +476,7 @@ void sacar_de_bloqueado(t_pcb* pcb){
 	sem_wait(&sem_block);
 		list_remove(plani_block, pcb);
 	sem_post(&sem_block);
-	agregar_a_ready(pcb);	
+	//agregar_a_ready(pcb);	
 }
 
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
@@ -563,7 +563,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
 	sem_post(&puedeEntrarAExec); 
 	llego_contexto = true;
-	if(obtener_algoritmo() == RR)
+	if(obtener_algoritmo() != FIFO )
     pthread_cancel(hilo_quantum);	
 	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
@@ -641,7 +641,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		// ENTRADA SALIDA -----------------------------------------------------------
 		case IO_GEN_SLEEP:
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
-			sacar_de_exec(pcb,IO);
+			
 			char * nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
 			char* unidades_trabajo1 = extraer_string_del_buffer(buffer);
 			log_info(kernel_logger, "nombre de la interfaz %s", nombre_interfaz_solicitada1);
@@ -653,14 +653,15 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada			
 			if (! validar_interfaz_e_instruccion(pcb, interfaz1, op_code))
 				break;	
-					
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada1);		
 			if(sem_trywait(&interfaz1->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz1->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada1);
 				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo1);
-				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
 				enviar_paquete(paquete_interfaz, interfaz1->fd_interfaz);
 				destruir_buffer(buffer_interfaz);		
@@ -669,6 +670,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados1 = malloc(sizeof(t_lista_block));
 				lista_bloqueados1->pcb = pcb;
 				lista_bloqueados1->operacion = op_code;
+				lista_bloqueados1->parametros = list_create();
 				list_add(lista_bloqueados1->parametros, unidades_trabajo1);
 				queue_push(interfaz1->cola_procesos_bloqueados,lista_bloqueados1);
 			}
@@ -676,10 +678,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			break;
 		case IO_STDIN_READ:
 			log_info(kernel_logger,"LLegó un IO_STDIN_READ");
-			sacar_de_exec(pcb,IO);
+			
 
 			char* nombre_interfaz_solicitada2 = extraer_string_del_buffer(buffer);
-			char* registro_direccion2 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_stdin = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio2 = extraer_string_del_buffer(buffer);
 
 			sem_wait(&mutex_lista_interfaces);
@@ -689,15 +691,17 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz2, op_code))
 			break;	
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada2);
 
 			if(sem_trywait(&interfaz2->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz2->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz2 = crear_buffer();
-				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);
-				cargar_string_a_buffer(buffer_interfaz2, registro_direccion2);
-				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
 				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);
+				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz2, lista_dir_stdin); //Lista direcciones 
+				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
 				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
 				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
 				destruir_buffer(buffer_interfaz2);			
@@ -706,7 +710,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados2 = malloc(sizeof(t_lista_block));
 				lista_bloqueados2->pcb = pcb;
 				lista_bloqueados2->operacion = op_code;
-				list_add(lista_bloqueados2->parametros, registro_direccion2);
+				list_add(lista_bloqueados2->parametros, lista_dir_stdin);
 				list_add(lista_bloqueados2->parametros, registro_tamanio2);
 				queue_push(interfaz2->cola_procesos_bloqueados,lista_bloqueados2);
 			}
@@ -716,7 +720,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			sacar_de_exec(pcb,IO);
 
 			char* nombre_interfaz_solicitada3 = extraer_string_del_buffer(buffer);
-			char* registro_direccion3 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_stdout = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio3 = extraer_string_del_buffer(buffer);
 
 			sem_wait(&mutex_lista_interfaces);
@@ -726,15 +730,16 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz3, op_code))
 			break;	
-
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada3);
 			if(sem_trywait(&interfaz3->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz3->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz3 = crear_buffer();
-				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);
-				cargar_string_a_buffer(buffer_interfaz3, registro_direccion3);
-				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
 				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
+				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz3, lista_dir_stdout); //Lista direcciones 
+				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
 				t_paquete* paquete_interfaz3 = crear_paquete(IO_STDOUT_WRITE, buffer_interfaz3);
 				enviar_paquete(paquete_interfaz3, interfaz3->fd_interfaz);
 				destruir_buffer(buffer_interfaz3);			
@@ -743,14 +748,14 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados3 = malloc(sizeof(t_lista_block));
 				lista_bloqueados3->pcb = pcb;
 				lista_bloqueados3->operacion = op_code;
-				list_add(lista_bloqueados3->parametros, registro_direccion3);
+				list_add(lista_bloqueados3->parametros, lista_dir_stdout);
 				list_add(lista_bloqueados3->parametros, registro_tamanio3);
 				queue_push(interfaz3->cola_procesos_bloqueados,lista_bloqueados3);
 			}
 		break;
 		case IO_FS_CREATE :
 			log_info(kernel_logger,"LLegó un IO_FS_CREATE");
-			sacar_de_exec(pcb,IO);
+			
 
 			char* nombre_interfaz_solicitada4 = extraer_string_del_buffer(buffer);
 			char* nombre_archivo4 = extraer_string_del_buffer(buffer);
@@ -762,14 +767,15 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz4, op_code))
 			break;	
-
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada4);
 			if(sem_trywait(&interfaz4->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz4->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz4 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz4, nombre_interfaz_solicitada4);
 				cargar_string_a_buffer(buffer_interfaz4, nombre_archivo4);
-				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);
 				t_paquete* paquete_interfaz4 = crear_paquete(IO_FS_CREATE , buffer_interfaz4);
 				enviar_paquete(paquete_interfaz4, interfaz4->fd_interfaz);
 				destruir_buffer(buffer_interfaz4);			
@@ -784,7 +790,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		break;
 		case IO_FS_DELETE:
 			log_info(kernel_logger,"LLegó un IO_FS_DELETE");
-			sacar_de_exec(pcb,IO);
+			
 
 			char* nombre_interfaz_solicitada5 = extraer_string_del_buffer(buffer);
 			char* nombre_archivo5 = extraer_string_del_buffer(buffer);
@@ -796,14 +802,15 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz5, op_code))
 			break;	
-
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada5);
 			if(sem_trywait(&interfaz5->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz5->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz5 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz5, nombre_interfaz_solicitada5);
 				cargar_string_a_buffer(buffer_interfaz5, nombre_archivo5);
-				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);
 				t_paquete* paquete_interfaz5 = crear_paquete(IO_FS_DELETE , buffer_interfaz5);
 				enviar_paquete(paquete_interfaz5, interfaz5->fd_interfaz);
 				destruir_buffer(buffer_interfaz5);			
@@ -832,15 +839,16 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz6, op_code))
 			break;	
-
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada6);
 			if(sem_trywait(&interfaz6->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz6->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz6 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz6, nombre_interfaz_solicitada6);
 				cargar_string_a_buffer(buffer_interfaz6, nombre_archivo6);
 				cargar_string_a_buffer(buffer_interfaz6, registro_tamanio6);
-				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);
 				t_paquete* paquete_interfaz6 = crear_paquete(IO_FS_TRUNCATE , buffer_interfaz6);
 				enviar_paquete(paquete_interfaz6, interfaz6->fd_interfaz);
 				destruir_buffer(buffer_interfaz6);			
@@ -856,14 +864,14 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		break;
 		case IO_FS_WRITE:
 			log_info(kernel_logger,"LLegó un IO_FS_WRITE");
-			sacar_de_exec(pcb,IO);
+			
 
 			char* nombre_interfaz_solicitada7 = extraer_string_del_buffer(buffer);
 			char* nombre_archivo7 = extraer_string_del_buffer(buffer);
-			char* registro_direccion7 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_fswrite = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio7 = extraer_string_del_buffer(buffer);
 			char* registro_puntero_archivo7 = extraer_string_del_buffer(buffer);
-
+			
 			sem_wait(&mutex_lista_interfaces);
 				t_entrada_salida* interfaz7 = buscar_interfaz(nombre_interfaz_solicitada7);
 			sem_post(&mutex_lista_interfaces);
@@ -871,17 +879,18 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz7, op_code))
 			break;	
-
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada7);
 			if(sem_trywait(&interfaz7->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz7->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz7 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz7, nombre_interfaz_solicitada7);
 				cargar_string_a_buffer(buffer_interfaz7, nombre_archivo7);
-				cargar_string_a_buffer(buffer_interfaz7, registro_direccion7);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz7, lista_dir_fswrite); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz7, registro_tamanio7);
 				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);
-				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
 				t_paquete* paquete_interfaz7 = crear_paquete(IO_FS_WRITE  , buffer_interfaz7);
 				enviar_paquete(paquete_interfaz7, interfaz7->fd_interfaz);
 				destruir_buffer(buffer_interfaz7);			
@@ -891,7 +900,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados7->pcb = pcb;
 				lista_bloqueados7->operacion = op_code;
 				list_add(lista_bloqueados7->parametros, nombre_archivo7);
-				list_add(lista_bloqueados7->parametros, registro_direccion7);
+				list_add(lista_bloqueados7->parametros, lista_dir_fswrite);
 				list_add(lista_bloqueados7->parametros, registro_tamanio7);
 				list_add(lista_bloqueados7->parametros, registro_puntero_archivo7);
 				queue_push(interfaz7->cola_procesos_bloqueados,lista_bloqueados7);
@@ -903,7 +912,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
 			char* nombre_interfaz_solicitada8 = extraer_string_del_buffer(buffer);
 			char* nombre_archivo8 = extraer_string_del_buffer(buffer);
-			char* registro_direccion8 = extraer_string_del_buffer(buffer);
+			t_list* lista_dir_fsread = extraer_lista_de_direcciones_de_buffer(buffer);
 			char* registro_tamanio8 = extraer_string_del_buffer(buffer);
 			char* registro_puntero_archivo8 = extraer_string_del_buffer(buffer);
 
@@ -914,17 +923,18 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			//valido si la interfaz existe/esta conectada y si soporta la instruccion solicitada
 			if (! validar_interfaz_e_instruccion(pcb, interfaz8, op_code))
 			break;	
-
+			sacar_de_exec(pcb,IO);
+			log_info(kernel_logger,"PID: %d - Bloqueado por: %s", pcb->pid, nombre_interfaz_solicitada8);
 			if(sem_trywait(&interfaz8->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz8->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz8 = crear_buffer();
+				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);
-				cargar_string_a_buffer(buffer_interfaz8, registro_direccion8);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz8, lista_dir_fsread); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);
 				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);
-				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
 				t_paquete* paquete_interfaz8 = crear_paquete(IO_FS_READ  , buffer_interfaz8);
 				enviar_paquete(paquete_interfaz8, interfaz8->fd_interfaz);
 				destruir_buffer(buffer_interfaz8);			
@@ -934,11 +944,18 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados8->pcb = pcb;
 				lista_bloqueados8->operacion = op_code;
 				list_add(lista_bloqueados8->parametros, nombre_archivo8);
-				list_add(lista_bloqueados8->parametros, registro_direccion8);
+				list_add(lista_bloqueados8->parametros, lista_dir_fsread);
 				list_add(lista_bloqueados8->parametros, registro_tamanio8);
 				list_add(lista_bloqueados8->parametros, registro_puntero_archivo8);
 				queue_push(interfaz8->cola_procesos_bloqueados,lista_bloqueados8);
 			}
+		break;
+
+		case EXIT:
+			log_info(kernel_logger,"LLegó un EXIT proceso %d",pcb->pid);
+			//t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
+			atender_fin_proceso(buffer,op_code,pcb);
+			break;
 		break;
 
 		default:
@@ -1039,23 +1056,128 @@ void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
 	finalizarProceso(valor_pcb.pid);//Le aviso a memoria
 	//Libero los recursos asignados al proceso
 	liberar_recursos(pcb);
+	liberar_interfaces(pcb);
     destruir_buffer(buffer);
-	free(pcb);	
+	//free(pcb);	
+}
+
+void liberar_interfaces(t_pcb* pcb){
+
+	int cantidadInterfacesConectadas = list_size(lista_interfaces);
+	for (int i = 0; i < cantidadInterfacesConectadas; i++){
+		t_entrada_salida * interfaz = list_get(lista_interfaces, i);
+		queue_remove_element(interfaz->cola_procesos_bloqueados, pcb);
+		if (interfaz->pid_usandola == pcb-> pid){
+			//sacar_de_cola_de_espera_por_interfaz(pcb,posicion_recurso); 
+			liberar_interfaz(interfaz);			
+		}		
+	}
+
+}
+
+void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
+	
+	if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz
+        interfaz_a_liberar->pid_usandola = 0;
+        sem_post(&interfaz_a_liberar->sem_disponible);
+    }else{
+        t_lista_block* proximo_proceso_bloqueado = queue_pop(interfaz_a_liberar->cola_procesos_bloqueados);
+        interfaz_a_liberar->pid_usandola = proximo_proceso_bloqueado->pcb->pid;
+
+        t_buffer* buffer_interfaz = crear_buffer();
+		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
+
+		
+		for(int i=0; i < list_size(proximo_proceso_bloqueado->parametros); i++){
+			cargar_string_a_buffer(buffer_interfaz, list_get(proximo_proceso_bloqueado->parametros, i));
+		}
+		
+		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
+		t_paquete* paquete_interfaz = crear_paquete(proximo_proceso_bloqueado->operacion, buffer_interfaz);
+		enviar_paquete(paquete_interfaz, interfaz_a_liberar->fd_interfaz);
+		destruir_buffer(buffer_interfaz);
+		free(proximo_proceso_bloqueado);
+	
+    }
+				
+				
 }
 
 void liberar_recursos(t_pcb* pcb) {
-		int cant_recursos = list_size(pcb->recursos_asignados);
+		for(int j = 0 ; j < string_array_size(RECURSOS); j++){
+			queue_remove_element(plani_block_recursos[j], pcb);//Acá lo saco cuando el recurso no fue asignado. 
+		}
+		int cant_recursos = list_size(pcb->recursos_asignados);		
 		for (int i = 0; i < cant_recursos; i++) {
 			t_recurso* recurso = list_get(pcb->recursos_asignados, i);
-			
-			for (int j = 0; j < recurso->cantidad; j++) {
-			signal_recursos_finalizar_proceso(recurso->nombre); 
-			log_info(kernel_logger,"Hice signal n° %d del recurso %s", j,recurso->nombre);
+			int posicion_recurso = encontrar_posicion_recurso(recurso->nombre);			
+			for (int j = 0; j < recurso->cantidad; j++) { //libero cada instancia
+				//signal_recursos_finalizar_proceso(recurso->nombre); 
+				log_info(kernel_logger,"Hago signal n° %d del recurso %s", j,recurso->nombre);
+				signal_recurso(pcb, recurso->nombre);			
 			}
-		}
-			log_info(kernel_logger,"Recursos asignados al proceso ", pcb->pid);
+			
+			// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
+			/*if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
+				sem_wait(&mutex_recursos);
+					t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
+				sem_post(&mutex_recursos);
+						
+				if (algoritmo_plani == VRR){
+					agregar_a_cola_prioritaria(pcb_bloqueado);
+				}else{
+					sacar_de_bloqueado(pcb_bloqueado);
+					//agregar_a_ready(pcb_bloqueado);// TODO ESTO HAY QUE SACARLO YA QUE LO AGREGAMOS A READY MAS ARRIBA
+				} 
+				sem_wait(&semaforo_recursos[posicion_recurso]);
+				// VER DE USAR FUNCIONES ANTERIORES - LE TENGO QUE DAR EL RECURSO
+				*/
+
+			}
+			
+			
+			
 						
 		
+}
+
+void sacar_de_cola_de_espera_por_recurso(t_pcb* pcb, int posicion_del_recurso) {
+	
+	queue_remove_element(plani_block_recursos[posicion_del_recurso], pcb);
+	/*
+	int tamanioColaDeColas = queue_size(plani_block_recursos); 
+	for (int i = 0; i < tamanioColaDeColas; i++) {
+		t_pcb* pcb_in_queue = queue_pop(plani_block_recursos[posicion_del_recurso]);
+		if (pcb_in_queue->pid == pcb->pid) {
+			// Skip removing the PCB at the specified position
+			i = tamaniocola;
+			//continue; ??
+		}
+		queue_push(plani_block_recursos[posicion], pcb_in_queue);
+	}
+	*/
+}
+
+// no hay funcion para eliminar un elemento particular de la cola --> 
+void queue_remove_element(t_queue *queue, void *element_to_remove) {
+    t_queue *temp_queue = queue_create();
+    void *element;
+
+    // Transferir elementos, omitiendo el que se desea eliminar
+    while (!queue_is_empty(queue)) {
+        element = queue_pop(queue);
+        if (element != element_to_remove) {
+            queue_push(temp_queue, element);
+        }
+    }
+
+    // Restaurar la cola original
+    while (!queue_is_empty(temp_queue)) {
+        queue_push(queue, queue_pop(temp_queue));
+    }
+
+    // Destruir la cola temporal
+    queue_destroy(temp_queue);
 }
 
 void finalizarProceso(int pid){
@@ -1161,9 +1283,9 @@ char *mensaje_a_string(op_code motivo){
 	switch (motivo){
     case SUCCESS:    
 	    return "SUCCESS";
-    /*case INVALID_WRITE:
-        return "INVALID_INTERFACE";*/
-    case INVALID_INTERFACE:
+    case EXIT:
+        return "SUCESS";
+    /*case INVALID_INTERFACE:
         return "INVALID_INTERFACE";/*
     case INVALID_RESOURCE:
         return "INVALID_RESOURCE";
@@ -1198,7 +1320,8 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 	
 	if (sem_trywait(&semaforo_recursos[posicion_recurso]) >= 0) { // si lo esta --> lo decrementa y va a ready
 		sacar_de_exec(pcb, PROCESO_DESALOJADO);   
-		//agregar_a_ready(pcb);
+		// Buscar el recurso en la lista de recursos asignados del PCB
+		agregar_recurso_a_pcb(pcb, recurso_recibido); // lo pongo aca pq quiero que me lo agregue solo si se lo di
 	}else { // si el recurso no esta disponible --> se agrega a la cola de bloqueados por ese recurso y a la lista bloqueados (estado == block)
 		sem_wait(&mutex_recursos);
 			queue_push(plani_block_recursos[posicion_recurso], pcb);
@@ -1206,71 +1329,83 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		//agregar_a_bloqueado(pcb);
 		//lo manejo
 		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
+		log_info(kernel_logger, "PID: %d - Bloqueado por: %s", pcb->pid, recurso_recibido);
 	} 
-	// Buscar el recurso en la lista de recursos asignados del PCB
-	int existerecurso=0;
-	//log_info(kernel_logger, "Tamaño de lista de recursos del proceso %d", list_size(pcb->recursos_asignados));
-	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
-		t_recurso *recurso = list_get(pcb->recursos_asignados, i);
-		if (strcmp(recurso->nombre, recurso_recibido) == 0) {
-			//Si está en la lista le incremento la cantidad de recursos asignados en +1.
-			existerecurso=1;
-			recurso->cantidad += 1;
-			break;
-		}
-	}
-		// Si no se encontró el recurso, incrementar la cantidad y lo añado a la lista de recursos asignados al pcb.
-		if (existerecurso!=1) {
-			t_recurso *nuevo_recurso = malloc(sizeof(t_recurso));
-			nuevo_recurso->nombre = recurso_recibido;
-			nuevo_recurso->cantidad += 1;
-			list_add(pcb->recursos_asignados, nuevo_recurso);
-			
-		}
+	
     
 }
+
+void agregar_recurso_a_pcb(t_pcb* pcb, char* recurso_recibido){
+	int existerecurso=0;
+		// veo si ya lo tengo 
+		for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
+			t_recurso *recurso = list_get(pcb->recursos_asignados, i);
+			if (strcmp(recurso->nombre, recurso_recibido) == 0) {
+				//Si está en la lista le incremento la cantidad de recursos asignados en +1.
+				existerecurso=1;
+				recurso->cantidad += 1;
+				//break; 
+			}
+		}
+		// Si no se encontró el recurso, incrementar la cantidad y lo añado a la lista de recursos asignados al pcb.
+		if (existerecurso==0) {
+			t_recurso *nuevo_recurso = malloc(sizeof(t_recurso));
+			nuevo_recurso->nombre = recurso_recibido;
+			nuevo_recurso->cantidad = 1;
+			list_add(pcb->recursos_asignados, nuevo_recurso);
+		}
+}
+
 void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 
 	// si el recurso que me pide no existe lo mando a exit
 	int posicion_recurso = encontrar_posicion_recurso(recurso_recibido);
 	if(posicion_recurso == -1){
 		log_error(kernel_logger, "No se encontro el recurso %s", recurso_recibido);
-		sacar_de_exec(pcb, INVALID_RESOURCE);
-		return;
+		if(pcb->estado != EXIT) 
+			sacar_de_exec(pcb, INVALID_RESOURCE);
+	return;
 	}
 
-	// si existe, le subo una instancia al recurso
+	// si existe, le subo una instancia al recurso y le saco el recurso de su lista
 	sem_post(&semaforo_recursos[posicion_recurso]);
+	//remove_from_plani_block(pcb,posicion_recurso);
+	// Buscar y sacar el recurso en la lista de recursos asignados del PCB
+	t_recurso *recurso = NULL;
+	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
+		t_recurso *recurso = list_get(pcb->recursos_asignados, i);
+		if (strcmp(recurso->nombre, recurso_recibido) == 0) {
+			recurso->cantidad -= 1; 
+			if(recurso->cantidad == 0){
+				list_remove_element(pcb->recursos_asignados, recurso);
+			}else
+				list_replace(pcb->recursos_asignados, i, recurso);
+			//break;
+		}
+	}
 
-	// si hay pcbs en cola para el recurso --> saco el siguiente, lo pongo en ready, y bajo una instancia
+	// si hay pcbs en cola para el recurso --> saco el siguiente, le asigno el recurso, lo pongo en ready (segun alg), y bajo una instancia
 	if(!queue_is_empty(plani_block_recursos[posicion_recurso])){
 		sem_wait(&mutex_recursos);
 			t_pcb * pcb_bloqueado = queue_pop(plani_block_recursos[posicion_recurso]);
 		sem_post(&mutex_recursos);
+		
+		sem_wait(&semaforo_recursos[posicion_recurso]);
+		agregar_recurso_a_pcb(pcb_bloqueado, recurso_recibido);
+		log_info(kernel_logger,"Recursos asignados al proceso ", pcb_bloqueado->pid); 
 
+		
 		sacar_de_bloqueado(pcb_bloqueado);
 		if (algoritmo_plani == VRR){
 			agregar_a_cola_prioritaria(pcb_bloqueado);
 		}else{
 			agregar_a_ready(pcb_bloqueado);
 		} 
-		sem_wait(&semaforo_recursos[posicion_recurso]);
 
 	}
 
 
-	// Buscar el recurso en la lista de recursos asignados del PCB
-	t_recurso *recurso_actual = NULL;
-	for (int i = 0; i < list_size(pcb->recursos_asignados); i++) {
-		t_recurso *recurso_actual = list_get(pcb->recursos_asignados, i);
-		if (strcmp(recurso_actual->nombre, recurso_recibido) == 0) {
-			recurso_actual->cantidad -= 1;
-			if(recurso_actual->cantidad == 0){
-				list_remove_element(pcb->recursos_asignados, recurso_actual);
-			}
-			break;
-		}
-	}
+	
 }
 
 void signal_recursos_finalizar_proceso(char* recurso){

@@ -71,7 +71,7 @@ void cambiar_grado_multiprogramacion(t_buffer* buffer){
 
 
 void iniciar_proceso(t_buffer* buffer){    
-    char* path = extraer_string_del_buffer(buffer); 
+    char* path = extraer_string_del_buffer(buffer);         
     printf("El path del proceso a iniciar es: %s\n", path);     
 
            
@@ -87,6 +87,8 @@ void iniciar_proceso(t_buffer* buffer){
     
     t_paquete* paquete_memoria = crear_paquete(CREAR_PROCESO_KM, buffer_memoria);
     enviar_paquete(paquete_memoria, conexion_k_memoria);
+    free(path);
+    destruir_paquete(paquete_memoria);
 }
 void finalizar_proceso_por_consola(t_buffer* buffer){    
     int pid= extraer_int_del_buffer(buffer); 
@@ -103,12 +105,13 @@ void finalizar_proceso_por_consola(t_buffer* buffer){
     cargar_pcb_a_buffer(buffer_cpu_interrupt, pcb_a_finalizar);
     t_paquete* paquete_cpu = crear_paquete(FINPROCESO, buffer_cpu_interrupt);
     enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+    destruir_paquete(paquete_cpu);
 
     }
     else{
         sacar_pcb_de_lista(pcb_a_finalizar);
         agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
-    }
+    }    
 }
 
 void mandar_fin_proceso_a_cpu(t_pcb* pcb_a_finalizar){
@@ -116,6 +119,7 @@ void mandar_fin_proceso_a_cpu(t_pcb* pcb_a_finalizar){
       cargar_pcb_a_buffer(buffer_cpu_interrupt, pcb_a_finalizar);
      t_paquete* paquete_cpu = crear_paquete(FINPROCESO, buffer_cpu_interrupt);
       enviar_paquete(paquete_cpu, conexion_cpu_interrupt);
+      destruir_paquete(paquete_cpu);
 }
 
 void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
@@ -144,8 +148,9 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
                         sacar_pcb_de_lista(pcb_a_finalizar);
                         agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
                         liberar_recursos(pcb_a_finalizar);
+                        liberar_interfaces(pcb_a_finalizar);
                     }                               
-                    //finalizar_proceso_por_consola(buffer_finalizar_proceso);
+                    //finalizar_proceso_por_consola(buffer_finalizar_proceso);                    
 
                     break;
                 case INICIAR_PLANIFICACION:

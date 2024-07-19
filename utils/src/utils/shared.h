@@ -35,6 +35,7 @@ typedef struct{
 	uint32_t EDX;
 	uint32_t SI;
 	uint32_t DI;
+	uint32_t PC; //preguntar
 } t_registros;
 
 
@@ -42,7 +43,6 @@ typedef struct{
 
 typedef struct{
 	int pid;
-	int program_counter;
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
@@ -154,7 +154,7 @@ typedef enum
 
 typedef struct{
     t_pcb* pcb;    
-    char* parametros; //cola de archivo o recurso
+    t_list* parametros; 
 	op_code operacion; 
 }t_lista_block;
 typedef struct {
@@ -230,6 +230,16 @@ t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer);
 t_paquete* crear_paquete(op_code cod_op, t_buffer* buffer);
 void destruir_paquete(t_paquete* paquete);
 void iniciar_proceso(t_buffer* buffer);
+
+typedef struct direccion_fisica_io {
+    int size;
+    int df;
+} t_direccion_fisica_io;
+
+void cargar_lista_direcciones_a_buffer(t_buffer* buffer,t_list* lista_direcciones);
+void cargar_direccion_fisica_a_buffer(t_buffer* buffer,t_direccion_fisica_io* direccion);
+t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer);
+t_direccion_fisica_io* extraer_direccion_de_buffer(t_buffer* buffer);
 
 
 #endif
