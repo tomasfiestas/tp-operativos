@@ -193,14 +193,7 @@ void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor){
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor){
     cargar_a_buffer(buffer, &valor, sizeof(uint8_t));
 }
-void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb){
-    cargar_int_a_buffer(buffer, pcb->pid);
-    cargar_estado_a_buffer(buffer, pcb->estado);
-    cargar_registros_a_buffer(buffer, pcb->registros);
-    cargar_int_a_buffer(buffer, pcb->quantum);
-    cargar_int_a_buffer(buffer, pcb->ejecuto);   
-    
-}
+
 void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado){
     cargar_a_buffer(buffer, &estado, sizeof(t_estado));
 }
@@ -274,8 +267,21 @@ void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb){
 }
 
 void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion) {
-    cargar_a_buffer(buffer, instruccion, sizeof(t_instruccion));
+    int buffer_size = sizeof(op_code) + sizeof(int) +  (instruccion->tamanio_lista * sizeof(char*)) + instruccion->tamanio_lista*1;
+    cargar_a_buffer(buffer, instruccion, buffer_size);
 }
+void cargar_instruccion_a_enviar_a_buffer(t_buffer* buffer, t_instruccion_a_enviar instruccion) {     
+    cargar_a_buffer(buffer, &instruccion, sizeof(t_instruccion_a_enviar));
+}
+
+t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer) {
+    t_instruccion_a_enviar* instruccion_a_enviar ;
+    instruccion_a_enviar = extraer_de_buffer(buffer);
+    t_instruccion_a_enviar valor_instruccion = *instruccion_a_enviar;
+    free(instruccion_a_enviar);
+    return valor_instruccion;    
+}
+
 
 void cargar_instruccion_a_enviar_a_buffer(t_buffer* buffer, t_instruccion_a_enviar instruccion) {     
     cargar_a_buffer(buffer, &instruccion, sizeof(t_instruccion_a_enviar));
@@ -288,6 +294,7 @@ t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer)
     free(instruccion_a_enviar);
     return valor_instruccion;    
 }
+
 
 t_estado extraer_estado_del_buffer(t_buffer* buffer){
     t_estado* estado = malloc(sizeof(t_estado));
@@ -405,7 +412,9 @@ void cargar_direccion_a_buffer(t_buffer* buffer,t_direccion_fisica_io* direccion
 }
 
 t_direccion_fisica_io* extraer_direccion_de_buffer(t_buffer* buffer){
-        t_direccion_fisica_io* direccion_fisica = malloc(sizeof(t_direccion_fisica_io));
+
+        t_direccion_fisica_io *direccion_fisica = malloc(sizeof(t_direccion_fisica_io));
+
         direccion_fisica->df = extraer_int_del_buffer(buffer);
         direccion_fisica->size = extraer_int_del_buffer(buffer);
         return direccion_fisica;
@@ -419,5 +428,7 @@ t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
         t_direccion_fisica_io* direccion_fisica = extraer_direccion_de_buffer(buffer);
         list_add(lista_direcciones,direccion_fisica);
     }
+
     return lista_direcciones;
+
 }

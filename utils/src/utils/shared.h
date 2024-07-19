@@ -24,6 +24,11 @@ typedef enum{
 	EXIT
 } t_estado;
 
+typedef struct direccion_fisica_io {
+    int size;
+    int df;
+} t_direccion_fisica_io;
+
 typedef struct{
 	uint8_t AX;
 	uint8_t BX;
@@ -39,10 +44,10 @@ typedef struct{
 } t_registros;
 
 
-
-
 typedef struct{
-	int pid;
+
+	int pid;	
+
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
@@ -191,6 +196,8 @@ typedef struct
 } t_paquete;
 
 
+
+
 int crear_conexion_cliente(char* ip, char* puerto);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 
@@ -216,7 +223,6 @@ void cargar_int_a_buffer(t_buffer* buffer, int valor);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
 void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
-void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb);
 void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado);
 void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
@@ -247,15 +253,18 @@ t_paquete* crear_paquete(op_code cod_op, t_buffer* buffer);
 void destruir_paquete(t_paquete* paquete);
 void iniciar_proceso(t_buffer* buffer);
 
+
 typedef struct direccion_fisica_io {
     int size;
     int df;
 } t_direccion_fisica_io;
 
+
 void cargar_lista_direcciones_a_buffer(t_buffer* buffer,t_list* lista_direcciones);
 void cargar_direccion_fisica_a_buffer(t_buffer* buffer,t_direccion_fisica_io* direccion);
 t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer);
 t_direccion_fisica_io* extraer_direccion_de_buffer(t_buffer* buffer);
+
 
 
 #endif
