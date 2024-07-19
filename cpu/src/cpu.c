@@ -158,6 +158,7 @@ void atender_crear_pr(t_buffer* buffer){
     log_info(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
     ciclo_de_instruccion(pcbb);
     destruir_buffer(buffer);
+
 }
 
 /*void devolver_pcb(t_pcb pcb){

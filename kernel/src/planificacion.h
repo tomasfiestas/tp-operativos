@@ -65,15 +65,26 @@ void *manejo_quantum(t_pcb * pcb);
 
 void finalizarProceso(int pid);
 t_pcb *buscarPcb(int pid_a_buscar);
+t_pcb *buscarPcbBloqueado(int pid_a_buscar);
 void sacar_de_lista(t_list * lista, int pid);
 void sacar_pcb_de_lista(t_pcb* pcb);
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar);
 char *mensaje_a_string(op_code motivo);
 void mostrar_pids_y_estados();
+void sacar_de_bloqueado(t_pcb* pcb);
+void actualizar_contextos(t_pcb* origen,t_pcb* destino);
+void liberar_recursos(t_pcb* pcb);
+void liberar_interfaces(t_pcb* pcb);
+void signal_recursos_finalizar_proceso(char* recurso);
+//void remove_from_plani_block(t_pcb* pcb, int posicion);
+void sacar_de_cola_de_espera_por_recurso(t_pcb* pcb, int posicion_del_recurso);
+void queue_remove_element(t_queue *queue, void *element_to_remove);
 
 //Manejo de IO
 t_entrada_salida* buscar_interfaz(char* nombre);
 int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_code);
-
+int validar_interfaz_e_instruccion(t_pcb * pcb,t_entrada_salida* interfaz, op_code op_code);
+void liberar_interfaces(t_pcb* pcb);
+void liberar_interfaz(t_entrada_salida * interfaz);
 
 #endif 
