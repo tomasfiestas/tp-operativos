@@ -6,7 +6,8 @@
 #include <utils/hello.h>
 #include <utils/logging.h>
 #include <utils/shared.h>
-#include<readline/readline.h>
+#include <readline/readline.h>
+#include <filesystem.h>
 
 /*
 void crear_interfaz(char* nombre, char* tipo){
@@ -18,11 +19,6 @@ void crear_interfaz(char* nombre, char* tipo){
     log_info(logger, "Interfaz Generica creada");
 }
 */
-
-int conexion_kernel;
-int conexion_memoria;
-
-
 typedef enum{
     GENERICA,
     STDIN,
@@ -50,26 +46,23 @@ typedef struct{
     t_buffer* buffer;
 } t_struct_atender_kernel;
 
-
-
-
 extern t_log* io_logger;
 
-t_config* entradasalida_config;
+extern t_config* entradasalida_config;
 
-char* TIPO_INTERFAZ;
-char* TIEMPO_UNIDAD_TRABAJO;
-char* IP_KERNEL;
-char* PUERTO_KERNEL;
-char* IP_MEMORIA;
-char* PUERTO_MEMORIA;
-char* PATH_BASE_DIALFS;
-char* BLOCK_SIZE;
-char* BLOCK_COUNT;
-char* RETRASO_COMPACTACION;
-int conexion_kernel;
-int conexion_kernel2;
-
+extern char* TIPO_INTERFAZ;
+extern char* TIEMPO_UNIDAD_TRABAJO;
+extern char* IP_KERNEL;
+extern char* PUERTO_KERNEL;
+extern char* IP_MEMORIA;
+extern char* PUERTO_MEMORIA;
+extern char* PATH_BASE_DIALFS;
+extern char* BLOCK_SIZE;
+extern char* BLOCK_COUNT;
+extern char* RETRASO_COMPACTACION;
+extern int conexion_kernel;
+extern int conexion_kernel2;
+extern int conexion_memoria;
 
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 
@@ -102,5 +95,8 @@ void* leer_de_memoria(t_list* lista_df,int bytes_a_leer, int pid, int socket_mem
 t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer);
 
 void inicializar_interfaces(char* path);
+
+t_fcb* crear_fcb(char* nombre_archivo);
+
 
 #endif

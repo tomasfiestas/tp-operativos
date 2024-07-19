@@ -122,7 +122,7 @@ int bitmap_encontrar_bloques_libres_continuos(int tamanio_archivo){
     int i, j;
     bool bloque_ocupado;
     int bloques_encontrados = 0;
-    int cantidad_bloques_necesarios = calcular_bloques_necesarios(tamanio_archivo);
+    int cantidad_bloques_necesarios = bloques_necesarios(tamanio_archivo);
 
     for(i = 0; i <= atoi(BLOCK_COUNT) - cantidad_bloques_necesarios; i++){
         bloques_encontrados = 0;
@@ -301,7 +301,7 @@ void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid){
 
     fcb->TAMANIO_ARCHIVO = tamanio_nuevo;
     fcb-> BLOQUE_INICIAL = nuevo_inicial;
-    crear_archivo(fcb);
+    crear_archivo_metadata(fcb);
 }
 
 
@@ -313,7 +313,7 @@ void achicar_archivo(t_fcb *fcb, int tamanio_nuevo){
         bitmap_marcar_bloque_libre(fcb->BLOQUE_INICIAL + i);
     }
     fcb->TAMANIO_ARCHIVO = tamanio_nuevo;
-    crear_archivo(fcb);
+    crear_archivo_metadata(fcb);
 
 }
 
@@ -362,7 +362,7 @@ int compactar_fcb(t_fcb* fcb){
     //revisar
     contenido_a_agrandar = buscar_contenido_fcb(fcb_a_cambiar);
 
-    bitmap_marcar_bloques_libres(fcb->BLOQUE_INICIAL, max(calcular_bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) + fcb_a_cambiar->BLOQUE_INICIAL -1,0));
+    bitmap_marcar_bloques_libres(fcb->BLOQUE_INICIAL, max(bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) + fcb_a_cambiar->BLOQUE_INICIAL -1,0));
 
     for(int i = 0; i < list_size(lista_fcb); i++){
         t_fcb* fcb_actual = list_get(lista_fcb, i);
@@ -370,8 +370,8 @@ int compactar_fcb(t_fcb* fcb){
             continue;
         }
         int bloque_inicial = fcb_actual->BLOQUE_INICIAL;
-        int bloque_final = max(calcular_bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) + bloque_inicial - 1, 0);
-        int tamanio = calcular_bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) * atoi(BLOCK_SIZE);
+        int bloque_final = max(bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) + bloque_inicial - 1, 0);
+        int tamanio = bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) * atoi(BLOCK_SIZE);
 
         char* contenido_bloques;
         contenido_bloques = buscar_contenido_fcb(fcb_actual);
@@ -380,7 +380,7 @@ int compactar_fcb(t_fcb* fcb){
         int nuevo_bloque_inicial = copiar_contenido_a(contenido_bloques, tamanio);
         fcb_actual->BLOQUE_INICIAL = nuevo_bloque_inicial;
 
-        crear_archivo(fcb_actual);
+        crear_archivo_metadata(fcb_actual);
         free(fcb_actual->nombre_archivo);
         free(fcb_actual);
     }
@@ -391,6 +391,23 @@ int compactar_fcb(t_fcb* fcb){
 
 
 }
+
+t_fcb* buscar_fcb(t_fcb* fcb1, t_list* lista_fcbs){
+    bool comparar_fcb(void *fcb){
+        t_fcb *fcb_a_comparar = (t_fcb *) fcb;
+        return fcb_a_comparar->BLOQUE_INICIAL == fcb1->BLOQUE_INICIAL;
+    }
+
+    if(lista_fcbs == NULL){
+        log_error(io_logger, "La lista de fcbs es nula");
+        return NULL;
+    }
+
+    t_fcb *fcb_encontrado = (t_fcb *)list_find(lista_fcbs, comparar_fcb);
+
+    return fcb_encontrado;
+}
+
 
 char* leer_bloques(int bloque_inicial, int tamanio){
     char *dato= malloc(tamanio);
@@ -413,7 +430,7 @@ char* leer_bloques(int bloque_inicial, int tamanio){
 
 char* buscar_contenido_fcb(t_fcb* fcb){
     int bloque_inicial = fcb->BLOQUE_INICIAL;
-    int bloques_a_leer = calcular_bloques_necesarios(fcb->TAMANIO_ARCHIVO);
+    int bloques_a_leer = bloques_necesarios(fcb->TAMANIO_ARCHIVO);
     int tamanio_lectura = bloques_a_leer * atoi(BLOCK_SIZE);
 
     char* contenido = malloc(tamanio_lectura);
@@ -429,10 +446,10 @@ int copiar_contenido_a(char* contenido, int tamanio){
 
     escribir_archivo(bloque_inicial, 0, contenido, tamanio);
 
-    if(calcular_bloques_necesarios(tamanio) == 1){
+    if(bloques_necesarios(tamanio) == 1){
         bitmap_marcar_bloque_ocupado(bloque_inicial);
     } else {
-        bitmap_marcar_bloques_ocupados(bloque_inicial, calcular_bloques_necesarios(tamanio));
+        bitmap_marcar_bloques_ocupados(bloque_inicial, bloques_necesarios(tamanio));
     }
 
     return bloque_inicial;

@@ -1,3 +1,6 @@
+#ifndef FYLESYSTEM_H
+#define FYLESYSTEM_H
+
 #include <commons/bitarray.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,13 +13,14 @@
 #include <commons/config.h>
 #include <dirent.h>
 #include <stdint.h>
-typedef struct fcb{
+
+typedef struct {
     char* nombre_archivo;
     uint32_t TAMANIO_ARCHIVO;
     uint32_t BLOQUE_INICIAL;
 } t_fcb;
 
-typedef struct t_bitmap{
+typedef struct {
     char* direccion;
     uint32_t tamanio;
     t_bitarray *bitarray;
@@ -82,4 +86,6 @@ char* buscar_contenido_fcb(t_fcb* fcb);
 
 int copiar_contenido_a(char* contenido, int tamanio);
 
+t_fcb* buscar_fcb(t_fcb* fcb1, t_list* lista_fcbs);
 
+#endif

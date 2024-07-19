@@ -1,5 +1,19 @@
 #include "entradasalida.h"
-#include <filesystem.h>
+
+char* TIPO_INTERFAZ;
+char* TIEMPO_UNIDAD_TRABAJO;
+char* IP_KERNEL;
+char* PUERTO_KERNEL;
+char* IP_MEMORIA;
+char* PUERTO_MEMORIA;
+char* PATH_BASE_DIALFS;
+char* BLOCK_SIZE;
+char* BLOCK_COUNT;
+char* RETRASO_COMPACTACION;
+t_config* entradasalida_config;
+int conexion_kernel;
+int conexion_kernel2;
+int conexion_memoria;
 
 t_log* io_logger;
 t_list* interfaces;
@@ -279,7 +293,7 @@ void inicializar_interfaces(char* path){
     
         t_buffer* buffer_recibido = struct_atender_kernel->buffer;
         char* nombre_recibido = extraer_string_del_buffer(buffer_recibido);
-        t_interfaz *interfaz = buscar_interfaz(nombre_recibido);
+        t_interfaz *interfaz = buscar_interfaz(nombre_recibido); //verificar
         int pid = extraer_int_del_buffer(buffer_recibido);
 
                 
@@ -345,7 +359,7 @@ void inicializar_interfaces(char* path){
         case IO_FS_CREATE:
 
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
-        char* nombre_archivo_nuevo = buffer_read_string(buffer_recibido);
+        char* nombre_archivo_nuevo =  extraer_string_del_buffer(buffer_recibido);
         t_fcb* fcb_crear = crear_fcb(nombre_archivo_nuevo);
         bitmap_marcar_bloque_ocupado(fcb_crear->BLOQUE_INICIAL);
         crear_archivo_metadata(fcb_crear);
@@ -360,7 +374,7 @@ void inicializar_interfaces(char* path){
         case IO_FS_DELETE:
 
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
-        char* nombre_archivo_a_borrar = buffer_read_string(buffer_recibido);
+        char* nombre_archivo_a_borrar = extraer_string_del_buffer(buffer_recibido);
         marcar_bloques_libres(nombre_archivo_a_borrar);
         eliminar_archivo_metadata(nombre_archivo_a_borrar);
 
@@ -375,8 +389,8 @@ void inicializar_interfaces(char* path){
 
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
 
-        char* nombre_archivo_a_truncar = buffer_read_string(buffer_recibido);
-        uint32_t tamanio_a_truncar = buffer_read_int(buffer_recibido); //int o uint????
+        char* nombre_archivo_a_truncar = extraer_string_del_buffer(buffer_recibido);
+        uint32_t tamanio_a_truncar = extraer_int_del_buffer(buffer_recibido); //int o uint????
         t_fcb* fcb_truncar = leer_metadata(nombre_archivo_a_truncar);
         if(fcb_truncar->TAMANIO_ARCHIVO > tamanio_a_truncar){
             achicar_archivo(fcb_truncar, tamanio_a_truncar);
@@ -396,7 +410,7 @@ void inicializar_interfaces(char* path){
         //Nombre archivo, lista df, tamanio, offset
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
         
-        char* nombre_archivo_escribir = buffer_read_string(buffer_recibido); 
+        char* nombre_archivo_escribir = extraer_string_del_buffer(buffer_recibido); 
         t_list* lista_direcciones_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
         int tamanio_lectura = tamanio_a_leer_direcciones(lista_direcciones_escribir); // consultar  si saco tamaño de las fs o de lo que me pasa
         int offset = extraer_int_del_buffer(buffer_recibido); // ojo tipos de datos.
@@ -420,11 +434,24 @@ void inicializar_interfaces(char* path){
 
         case IO_FS_READ:
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
-        char* nombre_archivo_leer = buffer_read_string(buffer_recibido);
+        char* nombre_archivo_leer = extraer_string_del_buffer(buffer_recibido);
         t_list* lista_direcciones_a_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
-        int offset_archivo = extraer_int_del_buffer(buffer_recibido); //avisar que no es string
+        int tamanio_escritura = tamanio_a_leer_direcciones(lista_direcciones_a_escribir);
+        int offset_archivo = extraer_int_del_buffer(buffer_recibido); 
 
+        log_info(io_logger, "Escribir archivo %s, PID: %i, Tamaño a leer: %i, Offset: %i", nombre_archivo_leer, pid, tamanio_escritura, offset_archivo);
 
+        t_fcb *fcb_read = leer_metadata(nombre_archivo_leer);
+        char* dato_leido = leer_archivo(tamanio_escritura, fcb_read, offset_archivo);
+
+        enviar_para_escribir(lista_direcciones_a_escribir, dato_leido, pid, conexion_memoria); 
+
+        free(dato_leido);
+        free(nombre_archivo_leer);
+        free(fcb_read);
+        list_destroy(lista_direcciones_a_escribir);
+
+        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_READ");
         break;
 
 
@@ -451,7 +478,7 @@ void inicializar_interfaces(char* path){
 }
 
 
-void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int pid_read){
+void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int pid_read, int socket_memoria){
     
     int tamanio_a_sacar = 0;
     
@@ -474,6 +501,8 @@ void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int 
 
     }
 }
+
+
 
 void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir){
 
@@ -645,7 +674,7 @@ void instruccion_realizada(t_buffer* buffer_response, int socket_kernel, char* n
         log_info(io_logger, "Operacion finalizada de %s, PID: %d", instruccion_realizada, pid);
 
 }
-
+/*
 t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
     int cantidad_direcciones = extraer_int_del_buffer(buffer);
     t_list* lista_direcciones = list_create();
@@ -655,4 +684,17 @@ t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
         list_add(lista_direcciones,direccion_fisica);
     }
     return lista_direcciones;
+}
+*/
+t_fcb* crear_fcb(char* nombre_archivo){
+    t_fcb* fcb = malloc(sizeof(t_fcb));
+
+    if(fcb == NULL) { return NULL; } 
+
+    fcb->nombre_archivo = nombre_archivo;
+    fcb->TAMANIO_ARCHIVO = 0;
+    fcb->BLOQUE_INICIAL = bitmap_encontrar_bloque_libre();
+    log_trace(io_logger, "EL bloque inicial designado es %i", fcb->BLOQUE_INICIAL);
+
+    return fcb;
 }
