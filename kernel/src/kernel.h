@@ -37,6 +37,7 @@ int tamanio_lista_recursos;
 int result;
 bool llego_contexto = false;
 int identificador_hilo = 0;
+sem_t mutex_lista_interfaces;
 
 t_list* lista_interfaces;
 void atender_entradasalida2(void* socket_cliente_ptr);

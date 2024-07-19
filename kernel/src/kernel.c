@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
     //Espero a los clientes
-   //cliente_entradasalida = esperar_cliente(servidor); 
+   // cliente_entradasalida = esperar_cliente(servidor); 
 
     
     //Planificacion
@@ -71,6 +71,7 @@ int main(int argc, char* argv[]) {
     pthread_join(hilo_entradasalida,NULL);*/
 
     //Acá espero y manejo a entrada y salida. Por cada uno que acepto creo un hilo.
+    sem_init(&mutex_lista_interfaces,0,1);
     while(1){
         pthread_t hilo_entradasalida;
         int *fd_conexion_ptr = malloc(sizeof(int));
@@ -91,6 +92,7 @@ int main(int argc, char* argv[]) {
 void atender_entradasalida2(void* socket_cliente_ptr){
     int cliente_entradasalida2 = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
+    
     bool control_key = 1;
     while (control_key){
         op_code op_code = recibir_operacion(cliente_entradasalida2);        
@@ -104,22 +106,53 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             nueva_interfaz->tipo = tipo;
             //nueva_interfaz->disponible = 1;
             sem_init(&nueva_interfaz->sem_disponible, 0, 1);
+            nueva_interfaz-> pid_usandola = 0;
             nueva_interfaz->fd_interfaz = cliente_entradasalida2;
             log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s",
             nueva_interfaz->nombre,nueva_interfaz->tipo);
             nueva_interfaz->cola_procesos_bloqueados = queue_create();
-            list_add(lista_interfaces, nueva_interfaz);
+            sem_wait(&mutex_lista_interfaces);
+                list_add(lista_interfaces, nueva_interfaz);
+            sem_post(&mutex_lista_interfaces);
             log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
+            break;
+            
+            case OPERACION_FINALIZADA:
+            log_info(kernel_logger, "Operacion finalizada");
+            t_buffer *buffer2 = recibir_buffer(cliente_entradasalida2);
+            char* nombre2 = extraer_string_del_buffer(buffer2);
+            int pid = extraer_int_del_buffer(buffer2);
+            t_entrada_salida * interfaz_a_liberar = buscar_interfaz(nombre2);
+
+            //Hay que poner el PCB en la cola de listos
+            t_pcb* pcb_a_liberar = buscarPcbBloqueado(pid);
+            if(pcb_a_liberar != NULL){
+                sacar_de_bloqueado(pcb_a_liberar);  
+            if (ALGORITMO_PLANIFICACION ==VRR ){
+                agregar_a_cola_prioritaria(pcb_a_liberar); //REVISAR no se pq entra aca si es fifo
+            }else
+                agregar_a_ready(pcb_a_liberar);
+            
+            //agregar_a_exit(pcb_a_liberar,SUCCESS);  
+                               
+            }
+            liberar_interfaz(interfaz_a_liberar);
+
+            
+
             break;
         default:
 			log_error(kernel_logger, "Se desconectó la interfaz: %d", op_code);
-            list_remove_element(lista_interfaces, nueva_interfaz);
+            sem_wait(&mutex_lista_interfaces);
+                list_remove_element(lista_interfaces, nueva_interfaz);
+            sem_post(&mutex_lista_interfaces);
             log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
 			control_key = 0;
 			break;
         }
     }
 }
+
 
 
 
