@@ -662,6 +662,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_int_a_buffer(buffer_interfaz, pcb->pid);									// - PID
 				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada1);			// - INTERFAZ
 				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo1);						// - PARAMETRO 1
+
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
 				enviar_paquete(paquete_interfaz, interfaz1->fd_interfaz);
 				destruir_buffer(buffer_interfaz);		
@@ -701,7 +702,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);												// - PID
 				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);							// - INTERFAZ
 				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);									// - PARAMETRO 1
-				cargar_lista_direcciones_a_buffer(buffer_interfaz2, lista_dir_stdin); 							// - LISTA DE DIRECCIONES
+				cargar_lista_direcciones_a_buffer(buffer_interfaz2, lista_dir_stdin); 						// - LISTA DE DIRECCIONES
 				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
 				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
 				destruir_buffer(buffer_interfaz2);		
@@ -909,8 +910,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados7->pcb = pcb;
 				lista_bloqueados7->operacion = op_code;
 				lista_bloqueados7->parametros = list_create();
-				list_add(lista_bloqueados7->parametros, nombre_archivo7);				
-				list_add(lista_bloqueados7->parametros, registro_tamanio7);
+				list_add(lista_bloqueados7->parametros, nombre_archivo7);
+        list_add(lista_bloqueados7->parametros, registro_tamanio7);
 				list_add(lista_bloqueados7->parametros, registro_puntero_archivo7);
 				lista_bloqueados7->direcciones = list_create();
 				lista_bloqueados7->direcciones = lista_dir_fswrite;
@@ -956,7 +957,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados8->pcb = pcb;
 				lista_bloqueados8->operacion = op_code;
 				lista_bloqueados8->parametros = list_create();
-				list_add(lista_bloqueados8->parametros, nombre_archivo8);				
+				list_add(lista_bloqueados8->parametros, nombre_archivo8);
+
 				list_add(lista_bloqueados8->parametros, registro_tamanio8);
 				list_add(lista_bloqueados8->parametros, registro_puntero_archivo8);
 				lista_bloqueados8->direcciones = list_create();
@@ -1099,17 +1101,20 @@ void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
         interfaz_a_liberar->pid_usandola = proximo_proceso_bloqueado->pcb->pid;
 
         t_buffer* buffer_interfaz = crear_buffer();
-		//cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
+
+		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
 		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
 		
 		for(int i=0; i < list_size(proximo_proceso_bloqueado->parametros); i++){
 			cargar_string_a_buffer(buffer_interfaz, list_get(proximo_proceso_bloqueado->parametros, i));
 		}
+
 		if(list_size(proximo_proceso_bloqueado->direcciones) > 0){
 			cargar_lista_direcciones_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->direcciones);
 		}
 		
 		
+
 		t_paquete* paquete_interfaz = crear_paquete(proximo_proceso_bloqueado->operacion, buffer_interfaz);
 		enviar_paquete(paquete_interfaz, interfaz_a_liberar->fd_interfaz);
 		destruir_buffer(buffer_interfaz);
