@@ -254,10 +254,6 @@ void destruir_paquete(t_paquete* paquete);
 void iniciar_proceso(t_buffer* buffer);
 
 
-typedef struct direccion_fisica_io {
-    int size;
-    int df;
-} t_direccion_fisica_io;
 
 
 void cargar_lista_direcciones_a_buffer(t_buffer* buffer,t_list* lista_direcciones);

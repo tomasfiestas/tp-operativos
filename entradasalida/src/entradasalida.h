@@ -73,7 +73,7 @@ void inicializar_interfaces(char* path);
 
  void crear_interfaz(char* nombre, char* tipo,int unidades_trabajo);
 void crear_interfaz_fs(char* nombre, char* tipo, int tiempo_unidad_trabajo,int block_size, int block_count, int retraso_compactacion);
-
+void inicializar_interfaces(char* path);
 void atender_kernel(void* socket_cliente_ptr);
 
 
