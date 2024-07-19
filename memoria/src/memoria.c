@@ -44,21 +44,6 @@ int main(int argc, char *argv[])
     inicializar_bitmap();
     procesos = list_create();
 
-    // TEST - ignorar
-    uint8_t test_8_bit_value = 255;
-    uint32_t test_32_bit_value = 65535;
-    t_buffer* buffer = crear_buffer();
-    cargar_uint8_a_buffer(buffer, test_8_bit_value);
-    cargar_uint32_a_buffer(buffer, test_32_bit_value);
-    void* test_8_bit_del_buffer = extraer_de_buffer(buffer);
-    void* test_32_bit_del_buffer = extraer_de_buffer(buffer);
-    escribir_memoria(0, 0, test_8_bit_del_buffer, 1);
-    void* test_8_bit_leido = leer_memoria(0, 0, 1);
-    printf("Valor leido: %d\n", *(uint8_t*) test_8_bit_leido);
-    cargar_string_a_buffer(buffer, test_8_bit_leido);
-    char* test_8_bit_leido_del_buffer = extraer_string_del_buffer(buffer);
-    printf("Valor leido del buffer: %d\n", *(uint8_t*) test_8_bit_leido_del_buffer);
-
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
     log_info(memoria_logger, "Servidor de memoria iniciado ");    
@@ -429,7 +414,6 @@ t_list* parse_file(const char* filePath) {
 
         list_add(instrucciones, instruccion);
         instruccion->tamanio_lista = list_size(instruccion->parametros);
-        log_info(memoria_logger, "Instruccion: %s", list_get(instruccion->parametros, 0));
         cantidad_instrucciones++;
     }
     
@@ -461,11 +445,6 @@ void atender_crear_proceso(t_buffer* buffer){
     list_add(procesos, proceso);
 
     free(path);
-
-    // TEST:
-    // finalizar_proceso(pid);
-    // resize(pid, 128);
-    // resize(pid, 32);
 }
 
 void atender_eliminar_proceso(t_buffer* buffer){
