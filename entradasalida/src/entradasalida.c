@@ -292,9 +292,9 @@ void inicializar_interfaces(char* path){
  void atender_peticiones_de_kernel(t_struct_atender_kernel* struct_atender_kernel){
     
         t_buffer* buffer_recibido = struct_atender_kernel->buffer;
-        char* nombre_recibido = extraer_string_del_buffer(buffer_recibido);
-        t_interfaz *interfaz = buscar_interfaz(nombre_recibido); //verificar
         int pid = extraer_int_del_buffer(buffer_recibido);
+        char* nombre_recibido = extraer_string_del_buffer(buffer_recibido);
+        t_interfaz *interfaz = buscar_interfaz(nombre_recibido); //verificar        
 
                 
         switch(struct_atender_kernel->codigo_operacion){   
@@ -325,10 +325,10 @@ void inicializar_interfaces(char* path){
         break;
 
         case IO_STDIN_READ:
-
-        char* direccion = extraer_string_del_buffer(buffer_recibido); //Direccion
-        int tamanio = atoi(extraer_string_del_buffer(buffer_recibido));// Tamanio 
-        //int pid = extraer_int_del_buffer(buffer_recibido); //PID
+        
+        int tamanio = atoi(extraer_string_del_buffer(buffer_recibido));// Tamanio       
+        
+        
 
         t_list* lista_direcciones = crear_lista_direcciones(buffer_recibido);
 
@@ -341,13 +341,12 @@ void inicializar_interfaces(char* path){
         break;
         
         case IO_STDOUT_WRITE:
-
-        t_list* direcciones_a_leer = crear_lista_direcciones(buffer_recibido);
-        int cantidad_a_leer = extraer_int_del_buffer(buffer_recibido);
-        int* tamanio_a_leer = tamanio_a_leer_direcciones(direcciones_a_leer, cantidad_a_leer);
+        int tamanio_a_leer = atoi(extraer_string_del_buffer(buffer_recibido));
+        t_list* direcciones_a_leer = crear_lista_direcciones(buffer_recibido);        
+        //int* tamanio_a_leer = tamanio_a_leer_direcciones(direcciones_a_leer, cantidad_a_leer);
 
         char* dato_a_leer = (char*)leer_de_memoria(direcciones_a_leer, tamanio_a_leer, pid, conexion_memoria);
-        printf("Dato leido: %s", dato_a_leer); //Es necesario el tamanio?
+        log_info(io_logger,"Dato leido: %s", dato_a_leer); //Es necesario el tamanio?
 
         list_destroy(direcciones_a_leer);
         free(dato_a_leer);
