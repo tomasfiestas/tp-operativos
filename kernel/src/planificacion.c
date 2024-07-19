@@ -643,7 +643,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			
 			char * nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
-			char* unidades_trabajo1 = extraer_int_del_buffer(buffer);
+			char* unidades_trabajo1 = extraer_string_del_buffer(buffer);
 			log_info(kernel_logger, "nombre de la interfaz %s", nombre_interfaz_solicitada1);
 
 			sem_wait(&mutex_lista_interfaces);
@@ -658,10 +658,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz1->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz1->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada1);
-				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo1);
+				t_buffer* buffer_interfaz = crear_buffer();                                     /// BUFFER A ENVIAR CON:
+				cargar_int_a_buffer(buffer_interfaz, pcb->pid);									// - PID
+				cargar_string_a_buffer(buffer_interfaz, nombre_interfaz_solicitada1);			// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz, unidades_trabajo1);						// - PARAMETRO 1
 				t_paquete* paquete_interfaz = crear_paquete(IO_GEN_SLEEP, buffer_interfaz);
 				enviar_paquete(paquete_interfaz, interfaz1->fd_interfaz);
 				destruir_buffer(buffer_interfaz);		
@@ -697,11 +697,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz2->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz2->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz2 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);
-				cargar_lista_direcciones_a_buffer(buffer_interfaz2, lista_dir_stdin); //Lista direcciones 
-				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
+				t_buffer* buffer_interfaz2 = crear_buffer();													// BUFFER A ENVIAR CON:
+				cargar_int_a_buffer(buffer_interfaz2, pcb->pid);												// - PID
+				cargar_string_a_buffer(buffer_interfaz2, nombre_interfaz_solicitada2);							// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);									// - PARAMETRO 1
+				cargar_lista_direcciones_a_buffer(buffer_interfaz2, lista_dir_stdin); 							// - LISTA DE DIRECCIONES
 				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
 				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
 				destruir_buffer(buffer_interfaz2);		
@@ -738,11 +738,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz3->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz3->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz3 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);				
-				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
-				cargar_lista_direcciones_a_buffer(buffer_interfaz3, lista_dir_stdout); //Lista direcciones 
+				t_buffer* buffer_interfaz3 = crear_buffer();													// BUFFER A ENVIAR CON: 
+				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);												// - PID
+				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);							// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);									// - PARAMETRO 1
+				cargar_lista_direcciones_a_buffer(buffer_interfaz3, lista_dir_stdout); 							// - LISTA DE DIRECCIONES
 				t_paquete* paquete_interfaz3 = crear_paquete(IO_STDOUT_WRITE, buffer_interfaz3);
 				enviar_paquete(paquete_interfaz3, interfaz3->fd_interfaz);
 				destruir_buffer(buffer_interfaz3);
@@ -753,9 +753,9 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados3->pcb = pcb;
 				lista_bloqueados3->operacion = op_code;
 				lista_bloqueados3->parametros = list_create();
+				list_add(lista_bloqueados3->parametros, registro_tamanio3);
 				lista_bloqueados3->direcciones = list_create();
 				lista_bloqueados3->direcciones = lista_dir_stdout;
-				list_add(lista_bloqueados3->parametros, registro_tamanio3);
 				queue_push(interfaz3->cola_procesos_bloqueados,lista_bloqueados3);
 			}
 		break;
@@ -778,10 +778,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz4->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz4->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz4 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz4, nombre_interfaz_solicitada4);
-				cargar_string_a_buffer(buffer_interfaz4, nombre_archivo4);
+				t_buffer* buffer_interfaz4 = crear_buffer();												// BUFFER A ENVIAR CON:
+				cargar_int_a_buffer(buffer_interfaz4, pcb->pid);											// - PID
+				cargar_string_a_buffer(buffer_interfaz4, nombre_interfaz_solicitada4);						// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz4, nombre_archivo4);									// - PARAMETRO 1
 				t_paquete* paquete_interfaz4 = crear_paquete(IO_FS_CREATE , buffer_interfaz4);
 				enviar_paquete(paquete_interfaz4, interfaz4->fd_interfaz);
 				destruir_buffer(buffer_interfaz4);			
@@ -814,10 +814,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz5->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz5->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz5 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz5, nombre_interfaz_solicitada5);
-				cargar_string_a_buffer(buffer_interfaz5, nombre_archivo5);
+				t_buffer* buffer_interfaz5 = crear_buffer();													// BUFFER A ENVIAR CON:
+				cargar_int_a_buffer(buffer_interfaz5, pcb->pid);												// - PID
+				cargar_string_a_buffer(buffer_interfaz5, nombre_interfaz_solicitada5);							// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz5, nombre_archivo5);										// - PARAMETRO 1
 				t_paquete* paquete_interfaz5 = crear_paquete(IO_FS_DELETE , buffer_interfaz5);
 				enviar_paquete(paquete_interfaz5, interfaz5->fd_interfaz);
 				destruir_buffer(buffer_interfaz5);			
@@ -852,11 +852,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz6->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz6->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz6 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz6, nombre_interfaz_solicitada6);
-				cargar_string_a_buffer(buffer_interfaz6, nombre_archivo6);
-				cargar_string_a_buffer(buffer_interfaz6, registro_tamanio6);
+				t_buffer* buffer_interfaz6 = crear_buffer();													// BUFFER A ENVIAR CON: 
+				cargar_int_a_buffer(buffer_interfaz6, pcb->pid);												// - PID
+				cargar_string_a_buffer(buffer_interfaz6, nombre_interfaz_solicitada6);							// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz6, nombre_archivo6);										// - PARAMETRO 1
+				cargar_string_a_buffer(buffer_interfaz6, registro_tamanio6);									// - PARAMETRO 2
 				t_paquete* paquete_interfaz6 = crear_paquete(IO_FS_TRUNCATE , buffer_interfaz6);
 				enviar_paquete(paquete_interfaz6, interfaz6->fd_interfaz);
 				destruir_buffer(buffer_interfaz6);
@@ -892,13 +892,13 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz7->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz7->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz7 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz7, nombre_interfaz_solicitada7);
-				cargar_string_a_buffer(buffer_interfaz7, nombre_archivo7);
-				cargar_lista_direcciones_a_buffer(buffer_interfaz7, lista_dir_fswrite); //Lista direcciones 
-				cargar_string_a_buffer(buffer_interfaz7, registro_tamanio7);
-				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);
+				t_buffer* buffer_interfaz7 = crear_buffer();														// BUFFER A ENVIAR CON:
+				cargar_int_a_buffer(buffer_interfaz7, pcb->pid);													// - PID
+				cargar_string_a_buffer(buffer_interfaz7, nombre_interfaz_solicitada7);								// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz7, nombre_archivo7);											// - PARAMETRO 1
+				cargar_string_a_buffer(buffer_interfaz7, registro_tamanio7);										// - PARAMETRO 2
+				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);								// - PARAMETRO 3
+				cargar_lista_direcciones_a_buffer(buffer_interfaz7, lista_dir_fswrite);               				// - LISTA DE DIRECCIONES
 				t_paquete* paquete_interfaz7 = crear_paquete(IO_FS_WRITE  , buffer_interfaz7);
 				enviar_paquete(paquete_interfaz7, interfaz7->fd_interfaz);
 				destruir_buffer(buffer_interfaz7);		
@@ -939,13 +939,13 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			if(sem_trywait(&interfaz8->sem_disponible) ==0 ){
 				//MANDAR A TOMI.
 				interfaz8->pid_usandola = pcb->pid;
-				t_buffer* buffer_interfaz8 = crear_buffer();
-				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);
-				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);
-				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);
-				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);
-				cargar_lista_direcciones_a_buffer(buffer_interfaz8, lista_dir_fsread); //Lista direcciones 
+				t_buffer* buffer_interfaz8 = crear_buffer();												// BUFFER A ENVIAR CON: 
+				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);											// - PID
+				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);						// - INTERFAZ
+				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);									// - PARAMETRO 1
+				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);								// - PARAMETRO 2
+				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);						// - PARAMETRO 3
+				cargar_lista_direcciones_a_buffer(buffer_interfaz8, lista_dir_fsread); 						// - LISTA DE DIRECCIONES
 				t_paquete* paquete_interfaz8 = crear_paquete(IO_FS_READ  , buffer_interfaz8);
 				enviar_paquete(paquete_interfaz8, interfaz8->fd_interfaz);
 				destruir_buffer(buffer_interfaz8);			
