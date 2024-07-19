@@ -643,7 +643,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			
 			char * nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
-			char* unidades_trabajo1 = extraer_string_del_buffer(buffer);
+			char* unidades_trabajo1 = extraer_int_del_buffer(buffer);
 			log_info(kernel_logger, "nombre de la interfaz %s", nombre_interfaz_solicitada1);
 
 			sem_wait(&mutex_lista_interfaces);
@@ -704,20 +704,23 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_string_a_buffer(buffer_interfaz2, registro_tamanio2);
 				t_paquete* paquete_interfaz2 = crear_paquete(IO_STDIN_READ, buffer_interfaz2);
 				enviar_paquete(paquete_interfaz2, interfaz2->fd_interfaz);
-				destruir_buffer(buffer_interfaz2);			
+				destruir_buffer(buffer_interfaz2);		
+				list_destroy_and_destroy_elements(lista_dir_stdin,free);	
 			}
 			else{
 				t_lista_block* lista_bloqueados2 = malloc(sizeof(t_lista_block));
 				lista_bloqueados2->pcb = pcb;
 				lista_bloqueados2->operacion = op_code;
-				list_add(lista_bloqueados2->parametros, lista_dir_stdin);
+				lista_bloqueados2->parametros = list_create();
 				list_add(lista_bloqueados2->parametros, registro_tamanio2);
+				lista_bloqueados2->direcciones = list_create();
+				lista_bloqueados2->direcciones = lista_dir_stdin;
 				queue_push(interfaz2->cola_procesos_bloqueados,lista_bloqueados2);
 			}
 		break;
 		case IO_STDOUT_WRITE:
 			log_info(kernel_logger,"LLegó un IO_STDOUT_WRITE");
-			sacar_de_exec(pcb,IO);
+			//sacar_de_exec(pcb,IO);
 
 			char* nombre_interfaz_solicitada3 = extraer_string_del_buffer(buffer);
 			t_list* lista_dir_stdout = extraer_lista_de_direcciones_de_buffer(buffer);
@@ -737,18 +740,21 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				interfaz3->pid_usandola = pcb->pid;
 				t_buffer* buffer_interfaz3 = crear_buffer();
 				cargar_int_a_buffer(buffer_interfaz3, pcb->pid);
-				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);
-				cargar_lista_direcciones_a_buffer(buffer_interfaz3, lista_dir_stdout); //Lista direcciones 
+				cargar_string_a_buffer(buffer_interfaz3, nombre_interfaz_solicitada3);				
 				cargar_string_a_buffer(buffer_interfaz3, registro_tamanio3);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz3, lista_dir_stdout); //Lista direcciones 
 				t_paquete* paquete_interfaz3 = crear_paquete(IO_STDOUT_WRITE, buffer_interfaz3);
 				enviar_paquete(paquete_interfaz3, interfaz3->fd_interfaz);
-				destruir_buffer(buffer_interfaz3);			
+				destruir_buffer(buffer_interfaz3);
+				list_destroy_and_destroy_elements(lista_dir_stdout,free);		
 			}
 			else{
 				t_lista_block* lista_bloqueados3 = malloc(sizeof(t_lista_block));
 				lista_bloqueados3->pcb = pcb;
 				lista_bloqueados3->operacion = op_code;
-				list_add(lista_bloqueados3->parametros, lista_dir_stdout);
+				lista_bloqueados3->parametros = list_create();
+				lista_bloqueados3->direcciones = list_create();
+				lista_bloqueados3->direcciones = lista_dir_stdout;
 				list_add(lista_bloqueados3->parametros, registro_tamanio3);
 				queue_push(interfaz3->cola_procesos_bloqueados,lista_bloqueados3);
 			}
@@ -784,6 +790,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados4 = malloc(sizeof(t_lista_block));
 				lista_bloqueados4->pcb = pcb;
 				lista_bloqueados4->operacion = op_code;
+				lista_bloqueados4->parametros = list_create();
 				list_add(lista_bloqueados4->parametros, nombre_archivo4);
 				queue_push(interfaz4->cola_procesos_bloqueados,lista_bloqueados4);
 			}
@@ -819,6 +826,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados5 = malloc(sizeof(t_lista_block));
 				lista_bloqueados5->pcb = pcb;
 				lista_bloqueados5->operacion = op_code;
+				lista_bloqueados5->parametros = list_create();
 				list_add(lista_bloqueados5->parametros, nombre_archivo5);
 				queue_push(interfaz5->cola_procesos_bloqueados,lista_bloqueados5);
 			}
@@ -851,7 +859,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_string_a_buffer(buffer_interfaz6, registro_tamanio6);
 				t_paquete* paquete_interfaz6 = crear_paquete(IO_FS_TRUNCATE , buffer_interfaz6);
 				enviar_paquete(paquete_interfaz6, interfaz6->fd_interfaz);
-				destruir_buffer(buffer_interfaz6);			
+				destruir_buffer(buffer_interfaz6);
 			}
 			else{
 				t_lista_block* lista_bloqueados6 = malloc(sizeof(t_lista_block));
@@ -893,16 +901,19 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_string_a_buffer(buffer_interfaz7, registro_puntero_archivo7);
 				t_paquete* paquete_interfaz7 = crear_paquete(IO_FS_WRITE  , buffer_interfaz7);
 				enviar_paquete(paquete_interfaz7, interfaz7->fd_interfaz);
-				destruir_buffer(buffer_interfaz7);			
+				destruir_buffer(buffer_interfaz7);		
+				list_destroy_and_destroy_elements(lista_dir_fswrite,free);	
 			}
 			else{
 				t_lista_block* lista_bloqueados7 = malloc(sizeof(t_lista_block));
 				lista_bloqueados7->pcb = pcb;
 				lista_bloqueados7->operacion = op_code;
-				list_add(lista_bloqueados7->parametros, nombre_archivo7);
-				list_add(lista_bloqueados7->parametros, lista_dir_fswrite);
+				lista_bloqueados7->parametros = list_create();
+				list_add(lista_bloqueados7->parametros, nombre_archivo7);				
 				list_add(lista_bloqueados7->parametros, registro_tamanio7);
 				list_add(lista_bloqueados7->parametros, registro_puntero_archivo7);
+				lista_bloqueados7->direcciones = list_create();
+				lista_bloqueados7->direcciones = lista_dir_fswrite;
 				queue_push(interfaz7->cola_procesos_bloqueados,lista_bloqueados7);
 			}
 		break;
@@ -932,21 +943,24 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				cargar_int_a_buffer(buffer_interfaz8, pcb->pid);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_interfaz_solicitada8);
 				cargar_string_a_buffer(buffer_interfaz8, nombre_archivo8);
-				cargar_lista_direcciones_a_buffer(buffer_interfaz8, lista_dir_fsread); //Lista direcciones 
 				cargar_string_a_buffer(buffer_interfaz8, registro_tamanio8);
 				cargar_string_a_buffer(buffer_interfaz8, registro_puntero_archivo8);
+				cargar_lista_direcciones_a_buffer(buffer_interfaz8, lista_dir_fsread); //Lista direcciones 
 				t_paquete* paquete_interfaz8 = crear_paquete(IO_FS_READ  , buffer_interfaz8);
 				enviar_paquete(paquete_interfaz8, interfaz8->fd_interfaz);
 				destruir_buffer(buffer_interfaz8);			
+				list_destroy_and_destroy_elements(lista_dir_fsread,free);
 			}
 			else{
 				t_lista_block* lista_bloqueados8 = malloc(sizeof(t_lista_block));
 				lista_bloqueados8->pcb = pcb;
 				lista_bloqueados8->operacion = op_code;
-				list_add(lista_bloqueados8->parametros, nombre_archivo8);
-				list_add(lista_bloqueados8->parametros, lista_dir_fsread);
+				lista_bloqueados8->parametros = list_create();
+				list_add(lista_bloqueados8->parametros, nombre_archivo8);				
 				list_add(lista_bloqueados8->parametros, registro_tamanio8);
 				list_add(lista_bloqueados8->parametros, registro_puntero_archivo8);
+				lista_bloqueados8->direcciones = list_create();
+				lista_bloqueados8->direcciones = lista_dir_fsread;
 				queue_push(interfaz8->cola_procesos_bloqueados,lista_bloqueados8);
 			}
 		break;
@@ -1085,14 +1099,17 @@ void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
         interfaz_a_liberar->pid_usandola = proximo_proceso_bloqueado->pcb->pid;
 
         t_buffer* buffer_interfaz = crear_buffer();
-		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
-
+		//cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
+		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
 		
 		for(int i=0; i < list_size(proximo_proceso_bloqueado->parametros); i++){
 			cargar_string_a_buffer(buffer_interfaz, list_get(proximo_proceso_bloqueado->parametros, i));
 		}
+		if(list_size(proximo_proceso_bloqueado->direcciones) > 0){
+			cargar_lista_direcciones_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->direcciones);
+		}
 		
-		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
+		
 		t_paquete* paquete_interfaz = crear_paquete(proximo_proceso_bloqueado->operacion, buffer_interfaz);
 		enviar_paquete(paquete_interfaz, interfaz_a_liberar->fd_interfaz);
 		destruir_buffer(buffer_interfaz);
