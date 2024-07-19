@@ -31,13 +31,16 @@ int main(int argc, char *argv[])
     // Obtengo los valores de la configuracion
     PUERTO_ESCUCHA = config_get_string_value(memoria_config, "PUERTO_ESCUCHA");
     log_info(memoria_logger, "PUERTO_ESCUCHA: %s", PUERTO_ESCUCHA);
-    TAM_MEMORIA = config_get_string_value(memoria_config, "TAM_MEMORIA");
-    log_info(memoria_logger, "TAM_MEMORIA: %s", TAM_MEMORIA);
-    TAM_PAGINA = config_get_string_value(memoria_config, "TAM_PAGINA");
-    log_info(memoria_logger, "TAM_PAGINA: %s", TAM_PAGINA);
     PATH_INSTRUCCIONES = config_get_string_value(memoria_config, "PATH_INSTRUCCIONES");
     log_info(memoria_logger, "PATH_INSTRUCCIONES: %s", PATH_INSTRUCCIONES);
-    RETARDO_RESPUESTA = config_get_string_value(memoria_config, "RETARDO_RESPUESTA");
+
+    t_config* memoria_config_pruebas = iniciar_config(argv[1]);
+    TAM_MEMORIA = config_get_string_value(memoria_config_pruebas, "TAM_MEMORIA");
+    log_info(memoria_logger, "TAM_MEMORIA: %s", TAM_MEMORIA);
+    TAM_PAGINA = config_get_string_value(memoria_config_pruebas, "TAM_PAGINA");
+    log_info(memoria_logger, "TAM_PAGINA: %s", TAM_PAGINA);
+    
+    RETARDO_RESPUESTA = config_get_string_value(memoria_config_pruebas, "RETARDO_RESPUESTA");
     log_info(memoria_logger, "RETARDO_RESPUESTA: %s", RETARDO_RESPUESTA);
 
     inicializar_memoria();

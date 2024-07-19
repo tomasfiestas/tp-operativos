@@ -17,10 +17,9 @@ int main(int argc, char* argv[]) {
     log_info(logger, "PUERTO_MEMORIA: %s", PUERTO_MEMORIA);
     PATH_BASE_DIALFS = config_get_string_value(entradasalida_config, "PATH_BASE_DIALFS");
     log_info(logger, "PATH_BASE_DIALFS: %s", PATH_BASE_DIALFS);
-    BLOCK_SIZE = config_get_string_value(entradasalida_config, "BLOCK_SIZE");
-    log_info(logger, "LOCK_SIZE: %s", BLOCK_SIZE);
-    BLOCK_COUNT = config_get_string_value(entradasalida_config, "BLOCK_COUNT");
-    log_info(logger, "BLOCK_COUNT: %s", BLOCK_COUNT);
+    
+    inicializar_interfaces(argv[1]);
+      
 
     
     interfaces = list_create();  
@@ -403,9 +402,8 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
 void inicializar_interfaces(char* path){
  t_config* entradasalida_config2 = iniciar_config(path);
     int cantidad_interfaces = config_get_int_value(entradasalida_config2, "CANTIDAD_INTERFACES");
-    for(int i = 0;i < cantidad_interfaces; i++){
-        // Concatenate the value of 'i' to 'nombre_interfaz'
-        
+    for(int i = 0;i < cantidad_interfaces; i++){        
+
         char nombre_interfaz[16] = "NOMBRE_INTERFAZ";
         
         char buffer_nombre[5];
@@ -414,7 +412,8 @@ void inicializar_interfaces(char* path){
         char* nombre_interfaz2 = config_get_string_value(entradasalida_config2,nombre_interfaz);
         
         
-        log_info(logger, "TIPO: %s", nombre_interfaz2);
+        log_info(logger, "NOMBRE_INTERFAZ: %s", nombre_interfaz2);
+
         char tipo_interfaz[14] = "TIPO_INTERFAZ";
         char buffer_tipo[5];
         sprintf(buffer_tipo, "%d", i);

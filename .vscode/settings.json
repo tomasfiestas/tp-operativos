@@ -1,5 +1,7 @@
 {
     "files.associations": {
+        "pthread.h": "c",
+        "readline.h": "c"
         "planificacion.h": "c",
         "log.h": "c",
         "logging.h": "c",
