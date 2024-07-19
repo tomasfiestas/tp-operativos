@@ -24,6 +24,11 @@ typedef enum{
 	EXIT
 } t_estado;
 
+typedef struct direccion_fisica_io {
+    int size;
+    int df;
+} t_direccion_fisica_io;
+
 typedef struct{
 	uint8_t AX;
 	uint8_t BX;
@@ -35,29 +40,39 @@ typedef struct{
 	uint32_t EDX;
 	uint32_t SI;
 	uint32_t DI;
+	uint32_t PC; //preguntar
 } t_registros;
 
 
-
-
 typedef struct{
-	int pid;
-	int program_counter;
+
+	int pid;	
+
 	t_estado estado;
 	t_registros registros;	
 	//t_list* tabla_archivos;	
 	int64_t quantum;//USAR uint_32
+	t_list* recursos_asignados;
 	int ejecuto;
 } t_pcb;
+
+typedef struct {
+	char* nombre;
+	int cantidad;
+}t_recurso;
+
 
 typedef struct{
     char* nombre;
     char* tipo;    
     int disponible;
 	sem_t sem_disponible;
+	int pid_usandola; //guarda el pid del proceso que la este usando (ninguno --> =0)
     int fd_interfaz;
 	t_queue* cola_procesos_bloqueados;
 }t_entrada_salida;
+
+
 
 
 
@@ -125,6 +140,7 @@ typedef enum
 	IO_FS_WRITE,
 	IO_FS_READ,
 	CREAR_NUEVA_INTERFAZ,
+	OPERACION_FINALIZADA,
 	SOLICITAR_LECTURA,
 	// Memoria
 	SET,
@@ -133,18 +149,37 @@ typedef enum
 	MOV_IN,
 	MOV_OUT,
 	RESIZE,
+	RESIZE_OK,
+	OUT_OF_MEMORY,
 	JNZ,
 	COPY_STRING,
 	WAIT,
 	SIGNAL,
-	EXIT_OP_CODE
+	EXIT_OP_CODE,
+	SOLICITUD_MARCO,
+	SOLICITUD_MARCO_OK,
+	LEER,
+	LEER_OK,
+	ESCRIBIR,
+	ESCRIBIR_OK
 
 }op_code;
 
+typedef struct{
+    t_pcb* pcb;    
+    t_list* parametros; 
+	t_list* direcciones;
+	op_code operacion; 
+}t_lista_block;
 typedef struct {
 	op_code operacion;
+	int tamanio_lista;
 	t_list* parametros;
 } t_instruccion;
+
+typedef struct {
+	op_code operacion;	
+} t_instruccion_a_enviar;
 
 
 // CLIENTE
@@ -159,6 +194,8 @@ typedef struct
 	op_code codigo_operacion;
 	t_buffer* buffer;
 } t_paquete;
+
+
 
 
 int crear_conexion_cliente(char* ip, char* puerto);
@@ -186,12 +223,12 @@ void cargar_int_a_buffer(t_buffer* buffer, int valor);
 void cargar_string_a_buffer(t_buffer* buffer, char* valor);
 void cargar_uint32_a_buffer(t_buffer* buffer, uint32_t valor);
 void cargar_uint8_a_buffer(t_buffer* buffer, uint8_t valor);
-void cargar_contexto_ejecucion_a_buffer(t_buffer* buffer, t_pcb* pcb);
 void cargar_estado_a_buffer(t_buffer* buffer, t_estado estado);
 void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
 void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb);
 void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion);
+void cargar_instruccion_a_enviar_a_buffer(t_buffer* buffer, t_instruccion_a_enviar instruccion);
 
 t_registros extraer_registros_del_buffer(t_buffer* buffer);
 t_pcb recibir_contexto_ejecucion(t_buffer* buffer);
@@ -207,6 +244,7 @@ void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
 t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer);
+t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer);
 
 
 
@@ -214,6 +252,19 @@ t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer);
 t_paquete* crear_paquete(op_code cod_op, t_buffer* buffer);
 void destruir_paquete(t_paquete* paquete);
 void iniciar_proceso(t_buffer* buffer);
+
+
+typedef struct direccion_fisica_io {
+    int size;
+    int df;
+} t_direccion_fisica_io;
+
+
+void cargar_lista_direcciones_a_buffer(t_buffer* buffer,t_list* lista_direcciones);
+void cargar_direccion_fisica_a_buffer(t_buffer* buffer,t_direccion_fisica_io* direccion);
+t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer);
+t_direccion_fisica_io* extraer_direccion_de_buffer(t_buffer* buffer);
+
 
 
 #endif
