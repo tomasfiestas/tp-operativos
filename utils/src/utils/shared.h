@@ -144,11 +144,19 @@ typedef enum
 	MOV_IN,
 	MOV_OUT,
 	RESIZE,
+	RESIZE_OK,
+	OUT_OF_MEMORY,
 	JNZ,
 	COPY_STRING,
 	WAIT,
 	SIGNAL,
-	EXIT_OP_CODE
+	EXIT_OP_CODE,
+	SOLICITUD_MARCO,
+	SOLICITUD_MARCO_OK,
+	LEER,
+	LEER_OK,
+	ESCRIBIR,
+	ESCRIBIR_OK
 
 }op_code;
 
@@ -160,8 +168,13 @@ typedef struct{
 }t_lista_block;
 typedef struct {
 	op_code operacion;
+	int tamanio_lista;
 	t_list* parametros;
 } t_instruccion;
+
+typedef struct {
+	op_code operacion;	
+} t_instruccion_a_enviar;
 
 
 // CLIENTE
@@ -209,6 +222,7 @@ void cargar_registros_a_buffer(t_buffer* buffer, t_registros registros);
 void cargar_pcb_a_buffer(t_buffer* buffer, t_pcb* pcb);
 void cargar_pcb_a_buffer2(t_buffer* buffer, t_pcb pcb);
 void cargar_instruccion_a_buffer(t_buffer* buffer, t_instruccion* instruccion);
+void cargar_instruccion_a_enviar_a_buffer(t_buffer* buffer, t_instruccion_a_enviar instruccion);
 
 t_registros extraer_registros_del_buffer(t_buffer* buffer);
 t_pcb recibir_contexto_ejecucion(t_buffer* buffer);
@@ -224,6 +238,7 @@ void* serializar_paquete(t_paquete* paquete);
 //t_pcb extraer_pcb_del_buffer(t_buffer* buffer);
 t_pcb* extraer_pcb_del_buffer(t_buffer* buffer);
 t_instruccion extraer_instruccion_del_buffer(t_buffer* buffer);
+t_instruccion_a_enviar extraer_instruccion_a_enviar_del_buffer(t_buffer* buffer);
 
 
 
