@@ -9,7 +9,7 @@
 #include <math.h>
 #include <commons/config.h>
 #include <dirent.h>
-
+#include <stdint.h>
 typedef struct fcb{
     char* nombre_archivo;
     uint32_t TAMANIO_ARCHIVO;
@@ -23,9 +23,10 @@ typedef struct t_bitmap{
 } t_bitmap;
 
 
-extern char* bitmap;
+extern t_bitmap* bitmap;
 
 extern t_bitarray* bitarray;
+
 
 int max(int a, int b);
 
@@ -67,13 +68,13 @@ char* leer_archivo(int tamanio, t_fcb *fcb, int offset);
 
 void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid);
 
-int compactar(t_fcb* fcb);
-
 void achicar_archivo(t_fcb *fcb, int tamanio_nuevo);
 
 t_list* leer_directorio();
 
 bool comparar_tamanios_fcbs(void *e1, void* e2);
+
+int compactar_fcb(t_fcb* fcb);
 
 char* leer_bloques(int bloque_inicial, int tamanio);
 
