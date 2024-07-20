@@ -21,6 +21,8 @@ typedef struct {
     uint32_t BLOQUE_INICIAL;
 } t_fcb;
 
+extern char* PATH_BASE_DIALFS;
+
 typedef struct {
     char* direccion;
     uint32_t tamanio;

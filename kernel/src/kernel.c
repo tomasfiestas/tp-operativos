@@ -93,18 +93,13 @@ int main(int argc, char* argv[]) {
 void atender_entradasalida2(void* socket_cliente_ptr){
     int cliente_entradasalida2 = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);
-    bool control_key = 1;
-    t_buffer* buffer_response = crear_buffer();
-            cargar_string_a_buffer(buffer_response, "SLP1"); //NOMBRE
-            cargar_string_a_buffer(buffer_response, "5"); //UNIDADES
-            cargar_int_a_buffer(buffer_response, 1);//PID
-            t_paquete* paquete = crear_paquete(IO_GEN_SLEEP, buffer_response);
-            enviar_paquete(paquete, cliente_entradasalida2);
-            destruir_paquete(paquete);
+    bool control_key = 1;    
     while (control_key){
-        op_code op_code = recibir_operacion(cliente_entradasalida2);        
+        op_code op_code = recibir_operacion(cliente_entradasalida2);     
+           
         switch (op_code){
             case CREAR_NUEVA_INTERFAZ:
+            lista_interfaces = list_create();
             t_buffer *buffer = recibir_buffer(cliente_entradasalida2);
             char* nombre = extraer_string_del_buffer(buffer);
             char* tipo = extraer_string_del_buffer(buffer);
@@ -118,8 +113,15 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             nueva_interfaz->nombre,nueva_interfaz->tipo);
             nueva_interfaz->cola_procesos_bloqueados = queue_create();
             list_add(lista_interfaces, nueva_interfaz);
-            log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
-
+            log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));         
+            
+            t_buffer* buffer_response = crear_buffer();
+            cargar_int_a_buffer(buffer_response, 1); //PID
+            cargar_string_a_buffer(buffer_response, "DIALFS"); //NOMBRE
+            cargar_string_a_buffer(buffer_response, "archivito"); //TAMANIO            
+            t_paquete* paquete = crear_paquete(IO_FS_CREATE, buffer_response);
+            enviar_paquete(paquete, cliente_entradasalida2);
+            destruir_paquete(paquete);
 
 
             

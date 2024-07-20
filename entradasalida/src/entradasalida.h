@@ -56,7 +56,6 @@ extern char* IP_KERNEL;
 extern char* PUERTO_KERNEL;
 extern char* IP_MEMORIA;
 extern char* PUERTO_MEMORIA;
-extern char* PATH_BASE_DIALFS;
 extern char* BLOCK_SIZE;
 extern char* BLOCK_COUNT;
 extern char* RETRASO_COMPACTACION;

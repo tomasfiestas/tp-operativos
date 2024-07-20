@@ -161,18 +161,18 @@ bool hay_espacio_contiguo(t_fcb* fcb, int bloques, int bloques_necesarios){
 
 
 void crear_archivo_metadata(t_fcb *fcb){
-
+    verificar_directorio();
     char* path = get_fullpath(fcb->nombre_archivo);
-
-    log_trace(log_fs, "El path del archivo es: %s", path);
+    //FILE* archivo_metadata = fopen(path,"w");                         //REVISAR TOMI!!!
+    log_info(log_fs, "El path del archivo es: %s", path);
 
     int fd= open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if(fd == -1)    {
         log_error(log_fs, "El archivo de metadata %s no se creo o abrió correctamente", fcb->nombre_archivo);
     }
-
+    
     t_config* config_fcb = config_create(path);
-    config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
+    //config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
     char* tam_arch = malloc(sizeof(uint32_t));
     config_set_value(config_fcb, "TAMANIO_ARCHIVO", tam_arch);
     sprintf(tam_arch, "%d", fcb->TAMANIO_ARCHIVO);
@@ -187,6 +187,18 @@ void crear_archivo_metadata(t_fcb *fcb){
     free(path);
     config_destroy(config_fcb);
 
+}
+
+void verificar_directorio(){
+    struct stat st = {0};
+    if (stat(PATH_BASE_DIALFS, &st) == -1) {
+        // El directorio no existe, intentamos crearlo
+        if (mkdir(PATH_BASE_DIALFS, 0700) == -1) {
+            // La creación del directorio falló
+            abort();
+        }
+
+    }
 }
 
 char* get_fullpath(char* nombre_archivo){
