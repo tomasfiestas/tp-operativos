@@ -3,6 +3,8 @@
 
 int main(int argc, char* argv[]) { 
 
+
+    
     //Inicio el logger del kernel
     kernel_logger = iniciar_logger("kernel.log", "LOGGER_KERNEL");  
 
@@ -32,16 +34,16 @@ int main(int argc, char* argv[]) {
     tamanio_lista_recursos = string_array_size(RECURSOS); 
     
     //Inicio el cliente para cpu dispatch
-    conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
+    //conexion_cpu_dispatch = crear_conexion_cliente(IP_CPU, PUERTO_CPU_DISPATCH);
         
     //Inicio el cliente para cpu interrupt
-    conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
+    //conexion_cpu_interrupt = crear_conexion_cliente(IP_CPU, PUERTO_CPU_INTERRUPT);
     
     
     //Inicio el cliente para memoria
-    conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
-    realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
-    log_info(kernel_logger,"Handshake con Memoria realizado");
+    //conexion_k_memoria = crear_conexion_cliente(IP_MEMORIA,PUERTO_MEMORIA);
+    //realizar_handshake(HANDSHAKE_KERNEL, conexion_k_memoria);
+    //log_info(kernel_logger,"Handshake con Memoria realizado");
     //Inicio el servidor
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
@@ -81,7 +83,7 @@ int main(int argc, char* argv[]) {
     
     
 
-
+    
 
     return EXIT_SUCCESS;
 }
@@ -92,9 +94,11 @@ void atender_entradasalida2(void* socket_cliente_ptr){
     
     bool control_key = 1;
     while (control_key){
-        op_code op_code = recibir_operacion(cliente_entradasalida2);        
+        op_code op_code = recibir_operacion(cliente_entradasalida2);     
+           
         switch (op_code){
             case CREAR_NUEVA_INTERFAZ:
+            lista_interfaces = list_create();
             t_buffer *buffer = recibir_buffer(cliente_entradasalida2);
             char* nombre = extraer_string_del_buffer(buffer);
             char* tipo = extraer_string_del_buffer(buffer);
