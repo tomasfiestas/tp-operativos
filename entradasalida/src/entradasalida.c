@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
 
 
     //Creo conexion como cliente hacia Memoria
-    //conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-    //log_info(io_logger, "Conexion con Memoria establecida");
+    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    log_info(io_logger, "Conexion con Memoria establecida");
 
 
     //Creo conexion como cliente hacia Kernel
@@ -128,7 +128,7 @@ void atender_mensajes_memoria(void* socket_cliente_ptr){
 			break;
 		default:
 			log_error(io_logger, "No se reconoce el handshake");
-			control_key = 0;
+			//control_key = 0;
 			break;
         }
     }
