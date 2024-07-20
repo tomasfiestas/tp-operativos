@@ -17,6 +17,7 @@ int conexion_memoria;
 
 t_log* io_logger;
 t_list* interfaces;
+int tiempo_fs;
 //cambiar a logger a uno mas claro
 int main(int argc, char* argv[]) { 
     //Inicio el logger de entradasalida 
@@ -58,21 +59,22 @@ int main(int argc, char* argv[]) {
     log_info(io_logger, "RETRASO_COMPACTACION: %s", RETRASO_COMPACTACION);
 
     interfaces = list_create();    
+    conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
+    log_info(io_logger, "Conexion con Kernel establecida"); 
     inicializar_interfaces(argv[1]);
 
 
     //Creo conexion como cliente hacia Memoria
-    conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
-    log_info(io_logger, "Conexion con Memoria establecida");
+    //conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
+    //log_info(io_logger, "Conexion con Memoria establecida");
 
 
     //Creo conexion como cliente hacia Kernel
-    conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
-    log_info(io_logger, "Conexion con Kernel establecida");   
+      
        
    
-    /*crear_bitmap();
-    crear_archivo_bloques();*/
+    crear_bitmap();
+    crear_archivo_bloques();
     
        
     //realizar_handshake(HANDSHAKE_ES, conexion_kernel);
@@ -244,6 +246,10 @@ void inicializar_interfaces(char* path){
     dial_fs->retraso_compactacion = retraso_compactacion;
 
     t_buffer* buffer = crear_buffer();
+
+    
+    tiempo_fs = tiempo_unidad_trabajo;
+
     
     cargar_string_a_buffer(buffer, nombre);
     cargar_string_a_buffer(buffer, tipo);
@@ -294,11 +300,10 @@ void inicializar_interfaces(char* path){
         t_buffer* buffer_recibido = struct_atender_kernel->buffer;
         int pid = extraer_int_del_buffer(buffer_recibido);
         char* nombre_recibido = extraer_string_del_buffer(buffer_recibido);
-        t_interfaz *interfaz = buscar_interfaz(nombre_recibido); //verificar        
+        t_interfaz *interfaz = buscar_interfaz(nombre_recibido);   
 
                 
-        switch(struct_atender_kernel->codigo_operacion){   
-        t_buffer* buffer_response = crear_buffer();     
+        switch(struct_atender_kernel->codigo_operacion){           
         case IO_GEN_SLEEP:       
             
 
@@ -312,15 +317,17 @@ void inicializar_interfaces(char* path){
 
                     usleep(tiempo_sleep*1000);
 
-                    printf("Dormi %d ", tiempo_sleep);
+                    log_info(io_logger,"Dormi %d ", tiempo_sleep);
 
             } else {
 
-                printf("El parametro no es valido");
+                log_info(io_logger,"El parametro no es valido");
 
             }
         
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_GEN_SLEEP");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_GEN_SLEEP");
+        free(nombre_recibido);
+        free(struct_atender_kernel);
 
         break;
 
@@ -336,7 +343,7 @@ void inicializar_interfaces(char* path){
 
                 
         enviar_para_escribir(lista_direcciones ,entrada_teclado ,pid);
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_STDIN_READ");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_STDIN_READ");        
 
         break;
         
@@ -348,16 +355,16 @@ void inicializar_interfaces(char* path){
         char* dato_a_leer = (char*)leer_de_memoria(direcciones_a_leer, tamanio_a_leer, pid, conexion_memoria);
         log_info(io_logger,"Dato leido: %s", dato_a_leer); //Es necesario el tamanio?
 
-        list_destroy(direcciones_a_leer);
+        list_destroy_and_destroy_elements(direcciones_a_leer,free);
         free(dato_a_leer);
 
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_STDOUT_WRITE");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_STDOUT_WRITE");
 
         break;
-
+        
         case IO_FS_CREATE:
 
-        usleep(interfaz->tiempo_unidad_trabajo * 1000);
+        usleep(tiempo_fs * 1000);
         char* nombre_archivo_nuevo =  extraer_string_del_buffer(buffer_recibido);
         t_fcb* fcb_crear = crear_fcb(nombre_archivo_nuevo);
         bitmap_marcar_bloque_ocupado(fcb_crear->BLOQUE_INICIAL);
@@ -366,10 +373,10 @@ void inicializar_interfaces(char* path){
         free(nombre_archivo_nuevo);
         free(fcb_crear);
     
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_CREATE");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_CREATE");
 
         break;
-
+        /* 
         case IO_FS_DELETE:
 
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
@@ -452,7 +459,7 @@ void inicializar_interfaces(char* path){
 
         instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_READ");
         break;
-
+        */
 
         default: 
 
@@ -460,7 +467,9 @@ void inicializar_interfaces(char* path){
 
         break;
 
-    } 
+    }   
+    free(nombre_recibido);
+    free(struct_atender_kernel);
 
 
     
@@ -475,6 +484,7 @@ void inicializar_interfaces(char* path){
 	}
 	return NULL;
 }
+
 
 
 void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int pid_read, int socket_memoria){
@@ -660,8 +670,8 @@ void escribir_a_memoria(t_list* lista_paginas, int size,t_pcb* pcb, void* valor)
 return;
 }
 
-void instruccion_realizada(t_buffer* buffer_response, int socket_kernel, char* nombre_recibido, int pid, char* instruccion_realizada){
-      
+void instruccion_realizada(int socket_kernel, char* nombre_recibido, int pid, char* instruccion_realizada){
+        t_buffer* buffer_response = crear_buffer();
         cargar_string_a_buffer(buffer_response, nombre_recibido);
         cargar_int_a_buffer(buffer_response, pid);
 
@@ -697,3 +707,4 @@ t_fcb* crear_fcb(char* nombre_archivo){
 
     return fcb;
 }
+

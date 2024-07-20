@@ -7,40 +7,36 @@
 #include <sys/mman.h>
 
 t_fcb *fcb;
-t_log* log_fs;
 t_bitmap *bitmap;
+t_log* log_fs;
 
 int max(int a, int b){
     return (a > b) ? a : b;
 }
 
 void crear_archivo_bloques()
-{
-    // Abre el archivo para leer y escribir, lo crea si no existe,
-    // seteandole permisos de lectura y escritura para el usuario.
-    int fd = open("bloques.dat", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-    if (fd == -1)
-    {
-        log_error(log_fs, "El archivo de bloques no se creo o abrió correctamente");
-        abort();
+
+{   int tamanio_archivo_bloques = atoi(BLOCK_SIZE) * atoi(BLOCK_COUNT);
+
+    int fd_bloques = open("bloques.dat",  O_CREAT | O_RDWR, S_IRUSR | S_IWUSR); 
+
+    if(fd_bloques == -1){
+        log_error(log_fs , "El archivo de bloques no se creo correctamente");
     }
 
-    // Tamaño del archivo en bytes.
-    int tamanio_archivo = atoi(BLOCK_SIZE) * atoi(BLOCK_COUNT);
-    if (ftruncate(fd, tamanio_archivo) == -1)
-    {
-        log_error(log_fs, "Error al truncar el archivo");
-        abort();
-    }
+    if(ftruncate(fd_bloques, tamanio_archivo_bloques) == -1){
+        log_error(log_fs, "error al truncar el archivo");
+    }   
 
-    close(fd);
+    close(fd_bloques);
 }
 
 void crear_archivo_bitmap()
-{
+{   
     // Abre el archivo para leer y escribir, lo crea si no existe,
     // seteandole permisos de lectura y escritura para el usuario.
    bitmap = malloc(sizeof(t_bitmap));
+   
    
     int fd = open("bitmap.dat", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1)
@@ -104,7 +100,7 @@ void bitmap_marcar_bloques_libres(int bloque_inicial, int bloque_final){
 
 void bitmap_marcar_bloque_ocupado(int numero_bloque){
     bitarray_set_bit(bitmap->bitarray, numero_bloque);
-    log_trace(log_fs, "Se marco el bloque N° %d como ocupado", numero_bloque);
+    log_info(log_fs, "Se marco el bloque N° %d como ocupado", numero_bloque);
     int i = msync(bitmap->direccion, bitmap->tamanio, MS_SYNC);
     if( i == -1){
         log_error(log_fs, "Error al sincronizar los cambios");  
@@ -456,6 +452,31 @@ int copiar_contenido_a(char* contenido, int tamanio){
 
 }
 
+void crear_bitmap(){
+    bitmap = malloc(sizeof(t_bitmap));
+    log_fs = iniciar_logger("filesystem.log", "Filesystem");
+    log_info(log_fs, "Se inicio el logger de filesystem");
+
+    int fd_bitmap = open("bitmap.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    if (fd_bitmap == -1){
+        log_error(io_logger, "Error al abrir el archivo bitmap");
+    }
+
+    bitmap->tamanio = (atoi(BLOCK_COUNT) / 8);
+    
+    if (ftruncate(fd_bitmap, bitmap->tamanio) == -1) {
+        log_error(io_logger, "Error al truncar el archivo Bitmap");
+    }
+
+    bitmap->direccion = mmap(NULL, bitmap->tamanio, PROT_READ | PROT_WRITE, MAP_SHARED, fd_bitmap, 0);
+    if (bitmap->direccion == MAP_FAILED) {
+        log_error(io_logger, "Error al mapear el Bitmap");
+    }
+
+    bitmap->bitarray = bitarray_create_with_mode(bitmap->direccion, bitmap->tamanio, LSB_FIRST);
+
+    close(fd_bitmap);
+}
 
 
 

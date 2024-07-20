@@ -63,6 +63,8 @@ extern char* RETRASO_COMPACTACION;
 extern int conexion_kernel;
 extern int conexion_kernel2;
 extern int conexion_memoria;
+extern int tiempo_fs;
+
 
 void atender_mensajes_memoria(void* socket_cliente_ptr);
 
@@ -86,7 +88,7 @@ t_list* crear_lista_direcciones(t_buffer* buffer);
 
 char* leer_de_consola(int tamanio);
 
-void instruccion_realizada(t_buffer* buffer_response, int socket_kernel, char* nombre_recibido, int pid, char* instruccion_realizada);
+void instruccion_realizada(int socket_kernel, char* nombre_recibido, int pid, char* instruccion_realizada);
 
 void escribir_a_memoria(t_list* lista_paginas, int size,t_pcb* pcb, void* valor);
 

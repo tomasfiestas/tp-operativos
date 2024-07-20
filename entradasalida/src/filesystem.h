@@ -13,6 +13,7 @@
 #include <commons/config.h>
 #include <dirent.h>
 #include <stdint.h>
+#include <commons/log.h>
 
 typedef struct {
     char* nombre_archivo;
@@ -30,6 +31,7 @@ typedef struct {
 extern t_bitmap* bitmap;
 
 extern t_bitarray* bitarray;
+
 
 
 int max(int a, int b);
@@ -87,5 +89,8 @@ char* buscar_contenido_fcb(t_fcb* fcb);
 int copiar_contenido_a(char* contenido, int tamanio);
 
 t_fcb* buscar_fcb(t_fcb* fcb1, t_list* lista_fcbs);
+
+void crear_bitmap();
+void generar_archivo_bloques();
 
 #endif
