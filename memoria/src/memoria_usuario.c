@@ -115,14 +115,16 @@ int resize(int pid, int bytes)
 }
 
 void* leer_memoria(int pid, int direccion_fisica, int size)
-{
-    log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, size);
+{   log_info(memoria_logger, "PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, size);
+    sem_wait(&semaforo_memoria);   // Bloqueo la memoria para que no se pueda leer mientras se esta escribiendo
     return &memoria_total[direccion_fisica];
+    sem_post(&semaforo_memoria);   // Desbloqueo la memoria
 }
 
 int escribir_memoria(int pid, int direccion_fisica, void* bytes, int size)
-{
+{   sem_wait(&semaforo_memoria);   // Bloqueo la memoria para que no se pueda escribir mientras se esta leyendo
     memcpy(&memoria_total[direccion_fisica], bytes, size);
+    sem_post(&semaforo_memoria);   // Desbloqueo la memoria
     log_info(memoria_logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño: %d B", pid, direccion_fisica, size);
     return 1;
 }

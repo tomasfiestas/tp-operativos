@@ -13,6 +13,8 @@ typedef struct {
 extern char* bitmap;
 extern t_bitarray* bitarray;
 extern void* memoria_total;
+extern sem_t semaforo_bitmap;
+extern sem_t semaforo_memoria;
 
 int iniciar_tabla_paginas(t_proceso* proceso);
 void* leer_memoria(int pid, int direccion_fisica, int size);

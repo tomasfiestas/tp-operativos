@@ -18,6 +18,8 @@ int cliente_entradasalida;
 int cliente_kernel;
 int cliente_cpu;
 int cantidad_procesos;
+sem_t semaforo_bitmap;
+sem_t semaforo_memoria;
 
 int main(int argc, char *argv[])
 {
@@ -71,17 +73,24 @@ int main(int argc, char *argv[])
     pthread_create(&hilo_kernel, NULL, atender_kernel, socket_cliente_kernel_ptr);
     pthread_detach(hilo_kernel);
     log_info(memoria_logger, "Atendiendo mensajes de Kernel");  
+
+
+    sem_init(&semaforo_bitmap, 0, 1);
+    sem_init(&semaforo_memoria, 0, 1);
      
-    //Espero conexion de entrada/salida
-    int cliente_entradasalida = esperar_cliente(servidor_memoria);   
+     
 
     //Atiendo mensajes de Entrada/Salida
-    pthread_t hilo_entradasalida;
+    //Agrego este loop infinito que lo que hará es frenarse en esperar cliente para que puedan conectarse todos los nuevos IO
+    while(1){
+    //Espero conexion de entrada/salida
     int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
-    *socket_cliente_entradasalida_ptr = cliente_entradasalida;
+    *socket_cliente_entradasalida_ptr= esperar_cliente(servidor_memoria);  
+    pthread_t hilo_entradasalida;     
     pthread_create(&hilo_entradasalida, NULL,atender_entradasalida, socket_cliente_entradasalida_ptr);
     log_info(memoria_logger, "Atendiendo mensajes de Entrada/Salida");
-    pthread_join(hilo_entradasalida, NULL);
+    pthread_detach(hilo_entradasalida);
+    }
     
     
     
