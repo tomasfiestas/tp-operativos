@@ -220,8 +220,7 @@ void inicializar_interfaces(char* path){
 
 
 
-    t_buffer* buffer = crear_buffer();
-    
+    t_buffer* buffer = crear_buffer();    
     cargar_string_a_buffer(buffer, nombre);
     cargar_string_a_buffer(buffer, tipo);
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
@@ -248,9 +247,7 @@ void inicializar_interfaces(char* path){
     t_buffer* buffer = crear_buffer();
 
     
-    tiempo_fs = tiempo_unidad_trabajo;
-
-    
+    tiempo_fs = tiempo_unidad_trabajo;    
     cargar_string_a_buffer(buffer, nombre);
     cargar_string_a_buffer(buffer, tipo);
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
@@ -325,9 +322,7 @@ void inicializar_interfaces(char* path){
 
             }
         
-        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_GEN_SLEEP");
-        free(nombre_recibido);
-        free(struct_atender_kernel);
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_GEN_SLEEP");       
 
         break;
 
@@ -376,21 +371,21 @@ void inicializar_interfaces(char* path){
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_CREATE");
 
         break;
-        /* 
+         
         case IO_FS_DELETE:
 
-        usleep(interfaz->tiempo_unidad_trabajo * 1000);
+        usleep(tiempo_fs* 1000);
         char* nombre_archivo_a_borrar = extraer_string_del_buffer(buffer_recibido);
         marcar_bloques_libres(nombre_archivo_a_borrar);
         eliminar_archivo_metadata(nombre_archivo_a_borrar);
 
         free(nombre_archivo_a_borrar);
 
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_DELETE");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_DELETE");
         
         break;
 
-
+        /* 
         case IO_FS_TRUNCATE:
 
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
@@ -467,8 +462,8 @@ void inicializar_interfaces(char* path){
 
         break;
 
-    }   
-    free(nombre_recibido);
+    } 
+    free(nombre_recibido);   
     free(struct_atender_kernel);
 
 
