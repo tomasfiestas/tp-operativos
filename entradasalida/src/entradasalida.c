@@ -423,12 +423,12 @@ void inicializar_interfaces(char* path){
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_WRITE");
 
         break;
-        /*
+        
         case IO_FS_READ:
-        usleep(interfaz->tiempo_unidad_trabajo * 1000);
+        usleep(tiempo_fs* 1000);
         char* nombre_archivo_leer = extraer_string_del_buffer(buffer_recibido);
         t_list* lista_direcciones_a_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
-        int tamanio_escritura = tamanio_a_leer_direcciones(lista_direcciones_a_escribir);
+        int tamanio_escritura = extraer_int_del_buffer(buffer_recibido);
         int offset_archivo = extraer_int_del_buffer(buffer_recibido); 
 
         log_info(io_logger, "Escribir archivo %s, PID: %i, Tamaño a leer: %i, Offset: %i", nombre_archivo_leer, pid, tamanio_escritura, offset_archivo);
@@ -443,9 +443,9 @@ void inicializar_interfaces(char* path){
         free(fcb_read);
         list_destroy(lista_direcciones_a_escribir);
 
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_READ");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_READ");
         break;
-        */
+        
 
         default: 
 

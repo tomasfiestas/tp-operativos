@@ -282,7 +282,7 @@ void escribir_archivo(int bloque_inicial, int offset, void* dato, int size){
      lseek(archivo_bloques, offset_total, SEEK_SET);
      write(archivo_bloques, dato, size);
 
-     free(dato);
+     //free(dato);
 
      close(archivo_bloques);
 }
