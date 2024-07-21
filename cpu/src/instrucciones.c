@@ -20,6 +20,7 @@ void ciclo_de_instruccion(t_pcb* pcbb){
     //regs = pcbb->registros;
     hay_interrupcion = 0;
     direccion_fisica = 0;
+    mandaron_finalizar_desde_consola=0;
 
 	while (ctx_global != NULL && !hay_interrupcion ) { //Y no haya interrupciones.
 		instruccion_actual = fetch(pcbb);		
@@ -38,18 +39,27 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             t_buffer* buffer_cpu_ki = crear_buffer();    
             cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);           
             log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcbb->pid);   
+            t_paquete* paquete_cpu = crear_paquete(PROCESO_DESALOJADO, buffer_cpu_ki);
+            enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
+            free(pcbb);            
+            destruir_paquete(paquete_cpu);    
+            ctx_global = NULL;     
+            
+
+        
+        
+	}    else if(mandaron_finalizar_desde_consola){
+            //enviar_pcb_a_kernel
+            t_buffer* buffer_cpu_ki = crear_buffer();    
+            cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);           
+            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcbb->pid);   
             t_paquete* paquete_cpu = crear_paquete(INTERRUPTED_BY_USER, buffer_cpu_ki);
             enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
             free(pcbb);            
             destruir_paquete(paquete_cpu);    
-            ctx_global = NULL;
-
-            
-            
-
-        
-        //hayinterrupcion = 0;
-	}    
+            ctx_global = NULL;     
+        }
+    }
     log_info(cpu_logger, "Valores de los registros del PCB:");
 
             log_info(cpu_logger, "Registro AX: %d | BX:%d | CX: %d", pcbb->registros.AX,pcbb->registros.BX,pcbb->registros.CX);
@@ -57,7 +67,7 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             log_info(cpu_logger, "Registro ECX: %d | EDX:%d | SI: %d", pcbb->registros.ECX,pcbb->registros.EDX,pcbb->registros.SI);
             log_info(cpu_logger, "Registro DI: %d", pcbb->registros.DI);
 }
-}
+
 
 
 t_instruccion solicitar_instruccion_a_memoria(t_pcb* t_pcb)
@@ -426,7 +436,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_buffer* buffer_kernel_wait = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel_wait, contexto);
             cargar_string_a_buffer(buffer_kernel_wait, recurso_wait);
-            t_paquete* paquete_wait = crear_paquete(WAIT, buffer_kernel_wait);
+            t_paquete* paquete_wait = crear_paquete(SOLICITAR_WAIT, buffer_kernel_wait);
             enviar_paquete(paquete_wait, cliente_kernel_dispatch);
             destruir_paquete(paquete_wait);
             ctx_global = NULL;
@@ -437,7 +447,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             t_buffer* buffer_kernel_signal = crear_buffer();
             cargar_pcb_a_buffer(buffer_kernel_signal, contexto);
             cargar_string_a_buffer(buffer_kernel_signal, recurso_signal);
-            t_paquete* paquete_signal = crear_paquete(SIGNAL, buffer_kernel_signal);
+            t_paquete* paquete_signal = crear_paquete(SOLICITAR_SIGNAL, buffer_kernel_signal);
             enviar_paquete(paquete_signal, cliente_kernel_dispatch);
             destruir_paquete(paquete_signal);
             list_destroy_and_destroy_elements(instruccion.parametros, free);

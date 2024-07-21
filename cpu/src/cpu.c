@@ -116,8 +116,7 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     free(socket_cliente_ptr);
     bool control_key = 1;
     while (control_key){
-    op_code handshake = recibir_operacion(cliente_ki); 
-    hay_interrupcion = 1;
+    op_code handshake = recibir_operacion(cliente_ki);    
     t_buffer* buffer = recibir_buffer(cliente_ki);    
     //pthread_cancel(hilo_kernel_dispatch);
     //log_info(cpu_cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
@@ -125,18 +124,11 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 		case FIN_DE_QUANTUM:
 			log_info(cpu_logger, "Me llegó FIN DE QUANTUM");            			              
             atender_fin_quantum(buffer);
+            hay_interrupcion = 1;
 			break;
 		case FINPROCESO:
 			log_info(cpu_logger, "me llegó finalizar proceso");                     
-            /* 
-            t_buffer* buffer_cpu_ki = crear_buffer();    
-            cargar_pcb_a_buffer(buffer_cpu_ki,pcb_ejecutando);             
-            pthread_cancel(hilo_kernel_dispatch);
-            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcb_ejecutando->pid);   
-            t_paquete* paquete_cpu = crear_paquete(INTERRUPTED_BY_USER, buffer_cpu_ki);
-            enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
-            free(pcb_ejecutando);            
-            destruir_paquete(paquete_cpu);*/
+            mandaron_finalizar_desde_consola = 1;
 
 			break;
 		case HANDSHAKE_MEMORIA:

@@ -638,7 +638,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
             break;
 		case SOLICITAR_SIGNAL:
 			log_info(kernel_logger, "Llegó solicitud de signal");
-			char * recurso_signal = extraer_string_del_buffer2(buffer);
+			char * recurso_signal = extraer_string_del_buffer(buffer);
 
 			signal_recurso(pcb,recurso_signal);          
 
