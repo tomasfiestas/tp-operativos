@@ -129,8 +129,10 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             t_pcb* pcb_a_liberar = buscarPcbBloqueado(pid);
             if(pcb_a_liberar != NULL){
                 sacar_de_bloqueado(pcb_a_liberar);  
-            if (ALGORITMO_PLANIFICACION ==VRR ){
-                agregar_a_cola_prioritaria(pcb_a_liberar); //REVISAR no se pq entra aca si es fifo
+           
+            
+            if (strcmp(ALGORITMO_PLANIFICACION, "VRR") == 0){
+                agregar_a_cola_prioritaria(pcb_a_liberar); 
             }else
                 agregar_a_ready(pcb_a_liberar);
             
