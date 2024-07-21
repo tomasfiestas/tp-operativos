@@ -172,10 +172,10 @@ void crear_archivo_metadata(t_fcb *fcb){
     }
     
     t_config* config_fcb = config_create(path);
-    //config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
+    config_set_value(config_fcb, "NOMBRE_ARCHIVO", fcb->nombre_archivo);
     char* tam_arch = malloc(sizeof(uint32_t));
-    config_set_value(config_fcb, "TAMANIO_ARCHIVO", tam_arch);
     sprintf(tam_arch, "%d", fcb->TAMANIO_ARCHIVO);
+    config_set_value(config_fcb, "TAMANIO_ARCHIVO", tam_arch);    
     char* bloque_inicial = malloc(sizeof(uint32_t));
     sprintf(bloque_inicial, "%d", fcb->BLOQUE_INICIAL);
     config_set_value(config_fcb, "BLOQUE_INICIAL", bloque_inicial); //CORREGIR
@@ -230,9 +230,22 @@ t_fcb* leer_metadata(char* nombre_archivo){
     return config_fcb;
 }
 
-void eliminar_archivo_metadata(int size){
+/*void eliminar_archivo_metadata(int size){                                 //Esto recibe INT y le pasas un char*
     int cantidad_bloques = (int)ceil((double)size / atoi(BLOCK_SIZE));
     return max(cantidad_bloques, 1);
+}*/
+
+void eliminar_archivo_metadata(char* nombre_archivo){
+
+    char* fullpath = get_fullpath(nombre_archivo);
+
+    if (remove(fullpath) == 0){
+        log_trace(io_logger, "El archivo %s se elimino correctamente", fullpath);
+    } else {
+        log_error(io_logger, "Error al eliminar el archivo %s", fullpath);
+    }
+
+    free(fullpath);
 }
 
 void borrar_archivo(char* nombre_archivo) {
