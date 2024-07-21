@@ -146,12 +146,14 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
 
                         pthread_cancel(hilo_quantum);
                         mandar_fin_proceso_a_cpu(pcb_a_finalizar);
-                    }else {
+                    }else if(pcb_a_finalizar->estado != EXIT){
                         sacar_pcb_de_lista(pcb_a_finalizar);
                         agregar_a_exit(pcb_a_finalizar,INTERRUPTED_BY_USER);
                         liberar_recursos(pcb_a_finalizar);
                         liberar_interfaces(pcb_a_finalizar);
-                    }                               
+                    }else{
+                        log_info(kernel_logger,"El proceso %d ya finalizo\n",pid);
+                    }                              
                     //finalizar_proceso_por_consola(buffer_finalizar_proceso);                    
 
                     break;
@@ -189,7 +191,7 @@ void ejecutar_script(char* argumentos){
 
 void ejecutar_archivo(const char* filePath) {
     // Abrir el archivo y obtener las instrucciones
-    FILE* file = fopen(filePath, "r");
+    FILE* file = fopen(filePath+1, "r");
     if (file == NULL) {
         printf("No se pudo abrir el archivo de instrucciones.");
         return;

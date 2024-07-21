@@ -392,14 +392,14 @@ void* atender_entradasalida(void* socket_cliente_ptr){
 
 t_list* parse_file(const char* filePath) {
  
-   FILE* file = fopen(filePath, "r");
+   FILE* file = fopen(filePath+1, "r");
     if (file == NULL) {
         log_error(memoria_logger, "No se pudo abrir el archivo de instrucciones.");
         return NULL;
     }
 
     char linea[256];
-
+    
     t_list* instrucciones = list_create();
     int cantidad_instrucciones = 0;
     while (fgets(linea, sizeof(linea), file) != NULL) {
@@ -432,11 +432,11 @@ void atender_crear_proceso(t_buffer* buffer){
 
     destruir_buffer(buffer);
 
-    char* path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(filename) + 2);
-    sprintf(path, "%s/%s", PATH_INSTRUCCIONES, filename);
-    free(filename);
+    //char* path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(filename) + 2);
+    //sprintf(path, "%s/%s", PATH_INSTRUCCIONES, filename);
+    //free(filename);
 
-    t_list* instrucciones = parse_file(path);
+    t_list* instrucciones = parse_file(filename);
 
     t_proceso* proceso = malloc(sizeof(t_proceso));
     proceso->pid = pid;
@@ -447,7 +447,7 @@ void atender_crear_proceso(t_buffer* buffer){
 
     list_add(procesos, proceso);
 
-    free(path);
+    //free(path);
 }
 
 void atender_eliminar_proceso(t_buffer* buffer){
