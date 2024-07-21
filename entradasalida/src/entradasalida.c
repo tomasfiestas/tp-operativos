@@ -7,9 +7,9 @@ char* PUERTO_KERNEL;
 char* IP_MEMORIA;
 char* PUERTO_MEMORIA;
 char* PATH_BASE_DIALFS;
-char* BLOCK_SIZE;
-char* BLOCK_COUNT;
-char* RETRASO_COMPACTACION;
+int BLOCK_SIZE;
+int BLOCK_COUNT;
+int RETRASO_COMPACTACION;
 t_config* entradasalida_config;
 int conexion_kernel;
 int conexion_kernel2;
@@ -48,15 +48,6 @@ int main(int argc, char* argv[]) {
 
     PATH_BASE_DIALFS = config_get_string_value(entradasalida_config, "PATH_BASE_DIALFS");
     log_info(io_logger, "PATH_BASE_DIALFS: %s", PATH_BASE_DIALFS);
-
-    BLOCK_SIZE = config_get_string_value(entradasalida_config, "BLOCK_SIZE");
-    log_info(io_logger, "LOCK_SIZE: %s", BLOCK_SIZE);
-    
-    BLOCK_COUNT = config_get_string_value(entradasalida_config, "BLOCK_COUNT");
-    log_info(io_logger, "BLOCK_COUNT: %s", BLOCK_COUNT);
-
-    RETRASO_COMPACTACION = config_get_string_value(entradasalida_config, "RETRASO_COMPACTACION");
-    log_info(io_logger, "RETRASO_COMPACTACION: %s", RETRASO_COMPACTACION);
 
     interfaces = list_create();    
     conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
@@ -195,13 +186,13 @@ void inicializar_interfaces(char* path){
         log_info(io_logger, "TIEMPO_UNIDAD_TRABAJO: %d", tiempo_obtenido);
 
         if(strcmp(TIPO_INTERFAZ, "DIALFS") == 0){            
-            int block_size = config_get_int_value(entradasalida_config2, "BLOCK_SIZEFS");
-            log_info(io_logger, "BLOCK_SIZE: %d", block_size);
-            int block_count = config_get_int_value(entradasalida_config2, "BLOCK_COUNTFS");
-            log_info(io_logger, "BLOCK_COUNT: %d", block_count);
-            int retraso = config_get_int_value(entradasalida_config2, "RETRASO_COMPACTACION");
-            log_info(io_logger, "RETRASO: %d", retraso);
-            crear_interfaz_fs(nombre_interfaz2, TIPO_INTERFAZ, tiempo_obtenido, block_size, block_count, retraso);
+            BLOCK_SIZE = config_get_int_value(entradasalida_config2, "BLOCK_SIZEFS");
+            log_info(io_logger, "BLOCK_SIZE: %d", BLOCK_SIZE);
+            BLOCK_COUNT = config_get_int_value(entradasalida_config2, "BLOCK_COUNTFS");
+            log_info(io_logger, "BLOCK_COUNT: %d", BLOCK_COUNT);
+            RETRASO_COMPACTACION = config_get_int_value(entradasalida_config2, "RETRASO_COMPACTACION");
+            log_info(io_logger, "RETRASO: %d", RETRASO_COMPACTACION);
+            crear_interfaz_fs(nombre_interfaz2, TIPO_INTERFAZ, tiempo_obtenido, BLOCK_SIZE, BLOCK_COUNT, RETRASO_COMPACTACION);
         }else{
             crear_interfaz(nombre_interfaz2, TIPO_INTERFAZ,tiempo_obtenido);
         }
@@ -385,13 +376,13 @@ void inicializar_interfaces(char* path){
         
         break;
 
-        /* 
+        
         case IO_FS_TRUNCATE:
 
-        usleep(interfaz->tiempo_unidad_trabajo * 1000);
+        usleep(tiempo_fs* 1000);
 
         char* nombre_archivo_a_truncar = extraer_string_del_buffer(buffer_recibido);
-        uint32_t tamanio_a_truncar = extraer_int_del_buffer(buffer_recibido); //int o uint????
+        int tamanio_a_truncar = extraer_int_del_buffer(buffer_recibido); //int o uint????
         t_fcb* fcb_truncar = leer_metadata(nombre_archivo_a_truncar);
         if(fcb_truncar->TAMANIO_ARCHIVO > tamanio_a_truncar){
             achicar_archivo(fcb_truncar, tamanio_a_truncar);
@@ -401,23 +392,23 @@ void inicializar_interfaces(char* path){
 
         free(fcb_truncar);
 
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_TRUNCATE");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_TRUNCATE");
         break;
 
-
+        
         case IO_FS_WRITE:
         //Aca me van a mandar nombre archivo, registro direccion, registro tamaño y registro puntero archivo (offset)
         //Arreglar bien el orden de las cosas por las dudas.
         //Nombre archivo, lista df, tamanio, offset
-        usleep(interfaz->tiempo_unidad_trabajo * 1000);
+        usleep(tiempo_fs* 1000);
         
         char* nombre_archivo_escribir = extraer_string_del_buffer(buffer_recibido); 
         t_list* lista_direcciones_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
-        int tamanio_lectura = tamanio_a_leer_direcciones(lista_direcciones_escribir); // consultar  si saco tamaño de las fs o de lo que me pasa
+        int tamanio_lectura = extraer_int_del_buffer(buffer_recibido);
         int offset = extraer_int_del_buffer(buffer_recibido); // ojo tipos de datos.
         
 
-        char* dato_a_escribir = (char*)leer_de_memoria(lista_direcciones_escribir, tamanio_lectura, pid, conexion_memoria);
+        void* dato_a_escribir = leer_de_memoria(lista_direcciones_escribir, tamanio_lectura, pid, conexion_memoria);
         log_info(io_logger, "Escribir archivo %s, PID: %i, Tamaño a escribir: %i, Offset: %i", nombre_archivo_escribir, pid, tamanio_lectura, offset);
 
 
@@ -429,10 +420,10 @@ void inicializar_interfaces(char* path){
         free(dato_a_escribir);
 
         list_destroy(lista_direcciones_escribir);
-        instruccion_realizada(buffer_response, conexion_kernel, nombre_recibido, pid, "IO_FS_WRITE");
+        instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_WRITE");
 
         break;
-
+        /*
         case IO_FS_READ:
         usleep(interfaz->tiempo_unidad_trabajo * 1000);
         char* nombre_archivo_leer = extraer_string_del_buffer(buffer_recibido);

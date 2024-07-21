@@ -16,7 +16,7 @@ int max(int a, int b){
 
 void crear_archivo_bloques()
 
-{   int tamanio_archivo_bloques = atoi(BLOCK_SIZE) * atoi(BLOCK_COUNT);
+{   int tamanio_archivo_bloques = BLOCK_SIZE * BLOCK_COUNT;
 
     int fd_bloques = open("bloques.dat",  O_CREAT | O_RDWR, S_IRUSR | S_IWUSR); 
 
@@ -47,7 +47,7 @@ void crear_archivo_bitmap()
 
 
     // Tamaño del bitmap en bytes.
-    int tamanio_archivo = ceil((double)atoi(BLOCK_COUNT) / 8);
+    int tamanio_archivo = ceil((double)BLOCK_COUNT / 8);
     bitmap->tamanio = tamanio_archivo;
     if (ftruncate(fd, tamanio_archivo) == -1)
     {
@@ -70,7 +70,7 @@ void crear_archivo_bitmap()
 int bitmap_encontrar_bloque_libre(){
     int i;
     bool bloque;
-    for( i = 0; i< atoi(BLOCK_COUNT); i++)
+    for( i = 0; i< BLOCK_COUNT; i++)
     {
         bloque = bitarray_test_bit(bitmap->bitarray,i);
         if(!bloque){
@@ -120,7 +120,7 @@ int bitmap_encontrar_bloques_libres_continuos(int tamanio_archivo){
     int bloques_encontrados = 0;
     int cantidad_bloques_necesarios = bloques_necesarios(tamanio_archivo);
 
-    for(i = 0; i <= atoi(BLOCK_COUNT) - cantidad_bloques_necesarios; i++){
+    for(i = 0; i <= BLOCK_COUNT - cantidad_bloques_necesarios; i++){
         bloques_encontrados = 0;
 
         for(j = 0; j < cantidad_bloques_necesarios; j++){
@@ -143,7 +143,7 @@ int bitmap_encontrar_bloques_libres_continuos(int tamanio_archivo){
 }
 
 int bloques_necesarios(int size){
-    int cantidad_bloques = (int)ceil((double)size/ atoi(BLOCK_SIZE));
+    int cantidad_bloques = (int)ceil((double)size/ BLOCK_SIZE);
     return max(cantidad_bloques,1);
 }
 
@@ -274,12 +274,12 @@ void marcar_bloques_libres(char* nombre_archivo){
     free(fcb);
 }
 
-void escribir_archivo(int bloque_inicial, int offset, void *dato, int size){
+void escribir_archivo(int bloque_inicial, int offset, void* dato, int size){
      int archivo_bloques = open("bloques.dat", O_RDWR);
 
-     int offset_total = (bloque_inicial * atoi(BLOCK_SIZE)) + offset;
-     lseek(archivo_bloques, offset_total, SEEK_SET);
+     int offset_total = (bloque_inicial * BLOCK_SIZE) + offset;
 
+     lseek(archivo_bloques, offset_total, SEEK_SET);
      write(archivo_bloques, dato, size);
 
      free(dato);
@@ -292,7 +292,7 @@ char* leer_archivo(int tamanio, t_fcb *fcb, int offset){
 
     int archivo_bloques = open("bloques.dat", O_RDWR);
 
-    lseek(archivo_bloques,(fcb->BLOQUE_INICIAL * atoi(BLOCK_SIZE)) + offset, SEEK_SET);
+    lseek(archivo_bloques,(fcb->BLOQUE_INICIAL * BLOCK_SIZE) + offset, SEEK_SET);
     ssize_t bytes_leidos = read(archivo_bloques, dato, tamanio);
     if(bytes_leidos == -1){
         log_error(log_fs, "Error al leer el archivo");
@@ -312,7 +312,7 @@ void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid){
     if(!hay_espacio_contiguo(fcb, bloques_actuales, bloques_finales - bloques_actuales)){
         log_info(log_fs, "Comienzo compatación para pid: %d", pid);
         nuevo_inicial = compactar_fcb(fcb);
-        usleep(atoi(RETRASO_COMPACTACION) * 1000);
+        usleep(RETRASO_COMPACTACION * 1000);
         log_info(log_fs, "Fin compactación para pid: %d", pid);
     }   
 
@@ -378,7 +378,7 @@ int compactar_fcb(t_fcb* fcb){
     t_list* lista_fcb = leer_directorio();
     t_fcb* fcb_a_cambiar = buscar_fcb(fcb, lista_fcb);
 
-    int tamanio_a_agrandar = bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) * atoi(BLOCK_SIZE);
+    int tamanio_a_agrandar = bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) * BLOCK_SIZE;
     char* contenido_a_agrandar = malloc(tamanio_a_agrandar);
     //revisar
     contenido_a_agrandar = buscar_contenido_fcb(fcb_a_cambiar);
@@ -392,7 +392,7 @@ int compactar_fcb(t_fcb* fcb){
         }
         int bloque_inicial = fcb_actual->BLOQUE_INICIAL;
         int bloque_final = max(bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) + bloque_inicial - 1, 0);
-        int tamanio = bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) * atoi(BLOCK_SIZE);
+        int tamanio = bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) * BLOCK_SIZE;
 
         char* contenido_bloques;
         contenido_bloques = buscar_contenido_fcb(fcb_actual);
@@ -434,7 +434,7 @@ char* leer_bloques(int bloque_inicial, int tamanio){
     char *dato= malloc(tamanio);
 
     int file_bloques_dat = open("bloques.dat", O_RDWR);
-    int offset = bloque_inicial * atoi(BLOCK_SIZE);
+    int offset = bloque_inicial * BLOCK_SIZE;
 
     lseek(file_bloques_dat, offset, SEEK_SET);
     ssize_t bytes_leidos = read(file_bloques_dat, dato, tamanio);
@@ -452,7 +452,7 @@ char* leer_bloques(int bloque_inicial, int tamanio){
 char* buscar_contenido_fcb(t_fcb* fcb){
     int bloque_inicial = fcb->BLOQUE_INICIAL;
     int bloques_a_leer = bloques_necesarios(fcb->TAMANIO_ARCHIVO);
-    int tamanio_lectura = bloques_a_leer * atoi(BLOCK_SIZE);
+    int tamanio_lectura = bloques_a_leer * BLOCK_SIZE;
 
     char* contenido = malloc(tamanio_lectura);
 
@@ -487,7 +487,7 @@ void crear_bitmap(){
         log_error(io_logger, "Error al abrir el archivo bitmap");
     }
 
-    bitmap->tamanio = (atoi(BLOCK_COUNT) / 8);
+    bitmap->tamanio = (BLOCK_COUNT) / 8;
     
     if (ftruncate(fd_bitmap, bitmap->tamanio) == -1) {
         log_error(io_logger, "Error al truncar el archivo Bitmap");
