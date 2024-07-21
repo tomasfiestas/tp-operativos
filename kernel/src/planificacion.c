@@ -368,9 +368,10 @@ void agregar_a_ready(t_pcb* nuevo_pcb){
 }
 
 void agregar_a_cola_prioritaria(t_pcb * pcb){
+	const char *magenta = "\033[1;35m";	
 	sem_wait(&sem_aux);
-		queue_push(cola_prioritaria_vrr, pcb);
-		log_info(kernel_logger, "El proceso %d ingreso a la cola prioritaria");
+		queue_push(cola_prioritaria_vrr, pcb);		
+		log_info(kernel_logger, "%sEl proceso %d ingreso a la cola prioritaria",magenta,pcb->pid);
 	sem_post(&sem_aux);	
 }
 
@@ -421,6 +422,8 @@ t_pcb* sacar_de_ready(){
 		}else{ // si es VRR va a priorizar sacar de la cola auxiliar
 			sem_wait(&sem_aux);
     			pcb = queue_pop(cola_prioritaria_vrr);
+				const char *blue = "\033[1;34m";
+				log_info(kernel_logger, "%sEl proceso %d salio de la cola prioritaria", blue,pcb->pid);
         	sem_post(&sem_aux);	
 		}
 		return pcb;
@@ -431,7 +434,7 @@ t_pcb* sacar_de_ready(){
 
 void agregar_a_exec(t_pcb* pcb){
 	sem_wait(&sem_exec);
-		pcb->ejecuto = 1;
+		//pcb->ejecuto = 1;
 		list_add(plani_exec, pcb);
 	sem_post(&sem_exec);
 	cambiar_estado_pcb(pcb, EXEC);
@@ -606,8 +609,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	switch(op_code) {
 		case PROCESO_DESALOJADO:			
             
-			sacar_de_exec(pcb, op_code);     
-    		log_info(kernel_logger, "LLEGO EL PROCESO QUE DESALOJé por FIN de Q", pcb->pid); 
+			sacar_de_exec(pcb, op_code); 
+			const char* green =  "\033[1;32m"; 
+			pcb->ejecuto += 1;
+    		log_info(kernel_logger, "%sPROCESO DESALOJADO: %d N°: %d", green,pcb->pid,pcb->ejecuto); 
 			destruir_buffer(buffer);
 			
 			break;
@@ -677,6 +682,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados1->pcb = pcb;
 				lista_bloqueados1->operacion = op_code;
 				lista_bloqueados1->parametros = list_create();
+				lista_bloqueados1->direcciones = list_create();
 				list_add(lista_bloqueados1->parametros, unidades_trabajo1);
 				queue_push(interfaz1->cola_procesos_bloqueados,lista_bloqueados1);
 			}
@@ -797,6 +803,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados4->pcb = pcb;
 				lista_bloqueados4->operacion = op_code;
 				lista_bloqueados4->parametros = list_create();
+				lista_bloqueados4->direcciones = list_create();
 				list_add(lista_bloqueados4->parametros, nombre_archivo4);
 				queue_push(interfaz4->cola_procesos_bloqueados,lista_bloqueados4);
 			}
@@ -833,6 +840,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				lista_bloqueados5->pcb = pcb;
 				lista_bloqueados5->operacion = op_code;
 				lista_bloqueados5->parametros = list_create();
+				lista_bloqueados5->direcciones = list_create();
 				list_add(lista_bloqueados5->parametros, nombre_archivo5);
 				queue_push(interfaz5->cola_procesos_bloqueados,lista_bloqueados5);
 			}
@@ -871,6 +879,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 				t_lista_block* lista_bloqueados6 = malloc(sizeof(t_lista_block));
 				lista_bloqueados6->pcb = pcb;
 				lista_bloqueados6->operacion = op_code;
+				lista_bloqueados6->parametros = list_create();
+				lista_bloqueados6->direcciones = list_create();
 				list_add(lista_bloqueados6->parametros, nombre_archivo6);
 				list_add(lista_bloqueados6->parametros, registro_tamanio6);
 				queue_push(interfaz6->cola_procesos_bloqueados,lista_bloqueados6);

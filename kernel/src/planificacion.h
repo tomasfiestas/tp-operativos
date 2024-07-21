@@ -25,6 +25,7 @@ t_pcb* sacar_de_ready();
 t_pcb* pcb_de_exec();
 void cambiar_estado_pcb(t_pcb* pcb, t_estado estadoNuevo);
 char* estado_a_string(t_estado estado);
+void agregar_a_cola_prioritaria(t_pcb * pcb);
 //pthread_t hilo_quantum;
 
 void mostrar_pids_ready();

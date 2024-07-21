@@ -131,7 +131,7 @@ void atender_entradasalida2(void* socket_cliente_ptr){
                 sacar_de_bloqueado(pcb_a_liberar);  
            
             
-            if (strcmp(ALGORITMO_PLANIFICACION, "VRR") == 0){
+            if (obtener_algoritmo() == VRR){
                 agregar_a_cola_prioritaria(pcb_a_liberar); 
             }else
                 agregar_a_ready(pcb_a_liberar);
