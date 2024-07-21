@@ -81,15 +81,8 @@ int main(int argc, char* argv[]) {
     *socket_cliente_kernel_ptr = conexion_kernel;
     pthread_create(&hilo_kernel, NULL,atender_kernel, socket_cliente_kernel_ptr);
     log_info(io_logger, "Esperando mensajes de Kernel");
-    pthread_detach(hilo_kernel);
-
-
-    pthread_t hilo_memoria;
-    int* socket_cliente_memoria_ptr = malloc(sizeof(int));
-    *socket_cliente_memoria_ptr = conexion_kernel;
-    pthread_create(&hilo_memoria, NULL,atender_mensajes_memoria, socket_cliente_memoria_ptr);
-    log_info(io_logger, "Esperando mensajes de Memoria");
-    pthread_join(hilo_memoria,NULL);
+    pthread_join(hilo_kernel,NULL);  
+    
 
 
     
@@ -98,32 +91,6 @@ int main(int argc, char* argv[]) {
     }
 
 
-void atender_mensajes_memoria(void* socket_cliente_ptr){
-    int cliente_kernel2 = *(int*)socket_cliente_ptr;
-    free(socket_cliente_ptr);
-    bool control_key = 1;
-    while (control_key){
-        op_code op_code = recibir_operacion(cliente_kernel2);
-        switch (op_code){
-            case HANDSHAKE_KERNEL:
-			log_info(io_logger, "Se conecto el Kernel");
-			break;
-		case HANDSHAKE_CPU:
-			log_info(io_logger, "Se conecto el CPU");
-			break;
-		case HANDSHAKE_MEMORIA:
-			log_info(io_logger, "Se conecto la Memoria");
-			break;
-		case HANDSHAKE_ES:
-			log_info(io_logger, "Se conecto el IO");
-			break;
-		default:
-			log_error(io_logger, "No se reconoce el handshake");
-			control_key = 0;
-			break;
-        }
-    }
-}
 
 
 
@@ -136,59 +103,26 @@ t_mensajes_consola mensaje_a_consola(char *mensaje_consola){
         return ERROR;
 }
 
-/*int crear_conexion_interfaz(char* nombre_interfaz, t_interfaz* interfaz){ 
-
-    t_buffer* buffer = crear_buffer();
-
-    char* ip_kernel = interfaz->IP_KERNEL;
-    char* puerto_kernel = interfaz->PUERTO_KERNEL;
-    char* tipo_interfaz = interfaz->TIPO_INTERFAZ;
-
-    conexion_kernel =  crear_conexion_cliente(ip_kernel,puerto_kernel);
-    log_info(io_logger, "Conexion establecida con %s ", nombre_interfaz);
-
-    t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ, buffer);
-    cargar_string_a_buffer(buffer, nombre_interfaz);
-    cargar_string_a_buffer(buffer, tipo_interfaz);
-    enviar_paquete(paquete, conexion_kernel);
-    destruir_buffer(buffer);
-
-}*/
 
 void inicializar_interfaces(char* path){
- t_config* entradasalida_config2 = iniciar_config(path);
-    int cantidad_interfaces = config_get_int_value(entradasalida_config2, "CANTIDAD_INTERFACES");
-    for(int i = 0;i < cantidad_interfaces; i++){
-        // Concatenate the value of 'i' to 'nombre_interfaz'
+ t_config* entradasalida_config2 = iniciar_config(path);    
+    
         
-        char nombre_interfaz[16] = "NOMBRE_INTERFAZ";
-        
-        char buffer_nombre[5];
-        sprintf(buffer_nombre, "%d", i);
-        strcat(nombre_interfaz, buffer_nombre);
-        char* nombre_interfaz2 = config_get_string_value(entradasalida_config2,nombre_interfaz);
+        char* nombre_interfaz2 = config_get_string_value(entradasalida_config2,"NOMBRE_INTERFAZ");
         
         
-        log_info(io_logger, "TIPO: %s", nombre_interfaz2);
-        char tipo_interfaz[14] = "TIPO_INTERFAZ";
-        char buffer_tipo[5];
-        sprintf(buffer_tipo, "%d", i);
-        strcat(tipo_interfaz, buffer_tipo);
-        char* TIPO_INTERFAZ = config_get_string_value(entradasalida_config2, tipo_interfaz);
+        
+        char* TIPO_INTERFAZ = config_get_string_value(entradasalida_config2, "TIPO_INTERFAZ");
         log_info(io_logger, "TIPO_INTERFAZ: %s", TIPO_INTERFAZ);
 
-        char tiempo[30] = "TIEMPO_UNIDAD_TRABAJO";
         
-        char buffer_tiempo[5];
-        sprintf(buffer_tiempo, "%d", i);
-        strcat(tiempo, buffer_tiempo);
-        int tiempo_obtenido = config_get_int_value(entradasalida_config2,tiempo);
+        int tiempo_obtenido = config_get_int_value(entradasalida_config2,"TIEMPO_UNIDAD_TRABAJO");
         log_info(io_logger, "TIEMPO_UNIDAD_TRABAJO: %d", tiempo_obtenido);
 
         if(strcmp(TIPO_INTERFAZ, "DIALFS") == 0){            
-            BLOCK_SIZE = config_get_int_value(entradasalida_config2, "BLOCK_SIZEFS");
+            BLOCK_SIZE = config_get_int_value(entradasalida_config2, "BLOCK_SIZE");
             log_info(io_logger, "BLOCK_SIZE: %d", BLOCK_SIZE);
-            BLOCK_COUNT = config_get_int_value(entradasalida_config2, "BLOCK_COUNTFS");
+            BLOCK_COUNT = config_get_int_value(entradasalida_config2, "BLOCK_COUNT");
             log_info(io_logger, "BLOCK_COUNT: %d", BLOCK_COUNT);
             RETRASO_COMPACTACION = config_get_int_value(entradasalida_config2, "RETRASO_COMPACTACION");
             log_info(io_logger, "RETRASO: %d", RETRASO_COMPACTACION);
@@ -200,8 +134,8 @@ void inicializar_interfaces(char* path){
 
 
 
-    }
- }
+}
+ 
  void crear_interfaz(char* nombre, char* tipo,int unidades_trabajo){
     t_tipo_interfaz tipo_enum = map_tipo_a_enum(tipo);
     t_interfaz* interfaz = malloc(sizeof(t_interfaz));
@@ -273,13 +207,11 @@ void inicializar_interfaces(char* path){
     bool control_key = 1;
     while(control_key){    
     op_code op_code = recibir_operacion(cliente_kernel2);
-    t_buffer* buffer = recibir_buffer(cliente_kernel2);
-    pthread_t hilo_kernel;    
+    t_buffer* buffer = recibir_buffer(cliente_kernel2);       
     t_struct_atender_kernel* struct_atender_kernel = malloc(sizeof(t_struct_atender_kernel));
     struct_atender_kernel->codigo_operacion = op_code;
     struct_atender_kernel->buffer = buffer;
-    pthread_create(&hilo_kernel, NULL,atender_peticiones_de_kernel, struct_atender_kernel);
-    pthread_detach(hilo_kernel);    
+    atender_peticiones_de_kernel(struct_atender_kernel);  
     }
  }
 
@@ -669,18 +601,6 @@ void instruccion_realizada(int socket_kernel, char* nombre_recibido, int pid, ch
         log_info(io_logger, "Operacion finalizada de %s, PID: %d", instruccion_realizada, pid);
 
 }
-/*
-t_list* extraer_lista_de_direcciones_de_buffer(t_buffer* buffer){
-    int cantidad_direcciones = extraer_int_del_buffer(buffer);
-    t_list* lista_direcciones = list_create();
-
-    for(int i=0;i < cantidad_direcciones; i++){
-        t_direccion_fisica_io* direccion_fisica = extraer_direccion_de_buffer(buffer);
-        list_add(lista_direcciones,direccion_fisica);
-    }
-    return lista_direcciones;
-}
-*/
 t_fcb* crear_fcb(char* nombre_archivo){
     t_fcb* fcb = malloc(sizeof(t_fcb));
 
