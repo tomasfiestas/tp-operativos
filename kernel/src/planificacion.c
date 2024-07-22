@@ -647,8 +647,8 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 
             break;
 		case SOLICITAR_SIGNAL:
-			log_info(kernel_logger, "Llegó solicitud de signal");
 			char * recurso_signal = extraer_string_del_buffer(buffer);
+			log_info(kernel_logger, "Llegó solicitud de signal recurso: %s",recurso_signal);
 
 			signal_recurso(pcb,recurso_signal);          
 
@@ -1440,7 +1440,7 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		agregar_recurso_a_pcb(pcb_bloqueado, recurso_recibido);
 		log_info(kernel_logger,"Recursos asignados al proceso ", pcb_bloqueado->pid); 
 
-		
+		agregar_a_ready(pcb);
 		sacar_de_bloqueado(pcb_bloqueado);
 		if (algoritmo_plani == VRR){
 			agregar_a_cola_prioritaria(pcb_bloqueado);
@@ -1448,6 +1448,9 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 			agregar_a_ready(pcb_bloqueado);
 		} 
 
+	}else{
+		log_info(kernel_logger,"No hay procesos en cola de bloqueados para el recurso %s", recurso_recibido);
+		agregar_a_ready(pcb);
 	}
 
 
