@@ -242,6 +242,10 @@ void* inicio_plani_corto_plazo(void* arg){
 	while(1){
 		sem_wait(&planificacion_corto_plazo_activa);
 		while(running){
+		int sema;
+		sem_getvalue(&hayPCBsEnReady, &sema);
+		const char *cyan = "\033[1;36m";
+		log_info(kernel_logger, "%sValor hayPCBsEnReady: %d",cyan, sema);
 		sem_wait(&hayPCBsEnReady);
 		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
@@ -373,6 +377,7 @@ void agregar_a_cola_prioritaria(t_pcb * pcb){
 		queue_push(cola_prioritaria_vrr, pcb);		
 		log_info(kernel_logger, "%sEl proceso %d ingreso a la cola prioritaria",magenta,pcb->pid);
 	sem_post(&sem_aux);	
+	sem_post(&hayPCBsEnReady);
 }
 
 void mostrar_pids_ready() {
@@ -421,9 +426,9 @@ t_pcb* sacar_de_ready(){
         	sem_post(&sem_ready);	
 		}else{ // si es VRR va a priorizar sacar de la cola auxiliar
 			sem_wait(&sem_aux);
-    			pcb = queue_pop(cola_prioritaria_vrr);
-				const char *blue = "\033[1;34m";
-				log_info(kernel_logger, "%sEl proceso %d salio de la cola prioritaria", blue,pcb->pid);
+			const char *blue = "\033[1;34m";	
+			pcb = queue_pop(cola_prioritaria_vrr);
+			log_info(kernel_logger, "%sEl proceso %d salio de la cola prioritaria", blue,pcb->pid);    										
         	sem_post(&sem_aux);	
 		}
 		return pcb;
@@ -568,11 +573,11 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     int cliente_kd = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);    	
     op_code op_code = recibir_operacion(cliente_kd);
-	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
-	sem_post(&puedeEntrarAExec); 
-	llego_contexto = true;
 	if(obtener_algoritmo() != FIFO )
     pthread_cancel(hilo_quantum);	
+	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
+	sem_post(&puedeEntrarAExec); 
+	llego_contexto = true;	
 	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
 	t_pcb* pcbRecibido = extraer_pcb_del_buffer(buffer);
@@ -1227,7 +1232,7 @@ void finalizarProceso(int pid){
     cargar_int_a_buffer(buffer_memoria, pid);
     //LIBERAR RECURSOS Y ARCHIVOS
     
-    t_paquete* paquete_memoria = crear_paquete(FINPROCESO, buffer_memoria);
+    t_paquete* paquete_memoria = crear_paquete(FINALIZAR_PROCESO_KM, buffer_memoria);
     enviar_paquete(paquete_memoria, conexion_k_memoria);
 }
 

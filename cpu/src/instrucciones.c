@@ -34,11 +34,12 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             */
         }       
         execute(instruccion_actual, pcbb);				//Agregar interrupciones.
-        if(hay_interrupcion){
+        if(hay_interrupcion && ctx_global != NULL && (pcb_a_finalizar->pid ==ctx_global->pid)){
             //enviar_pcb_a_kernel
+            pcbb->quantum = pcb_a_finalizar->quantum;
             t_buffer* buffer_cpu_ki = crear_buffer();    
             cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);           
-            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcbb->pid);   
+            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", ctx_global->pid);   
             t_paquete* paquete_cpu = crear_paquete(PROCESO_DESALOJADO, buffer_cpu_ki);
             enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
             free(pcbb);            
@@ -48,7 +49,7 @@ void ciclo_de_instruccion(t_pcb* pcbb){
 
         
         
-	}    else if(mandaron_finalizar_desde_consola){
+	}    else if(mandaron_finalizar_desde_consola && ctx_global != NULL){
             //enviar_pcb_a_kernel
             t_buffer* buffer_cpu_ki = crear_buffer();    
             cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);           

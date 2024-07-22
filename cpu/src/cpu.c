@@ -122,6 +122,8 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     //log_info(cpu_cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
 	switch(handshake) {
 		case FIN_DE_QUANTUM:
+            t_pcb* pcb_fin = extraer_pcb_del_buffer(buffer);
+            pcb_a_finalizar = pcb_fin;
 			log_info(cpu_logger, "Me llegó FIN DE QUANTUM");            			              
             atender_fin_quantum(buffer);
             hay_interrupcion = 1;
@@ -141,9 +143,7 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 			log_error(cpu_logger, "No se reconoce el handshake");
 			control_key = 0;
 			break;
-	}   
-    //llego_interrupcion = false;
-    log_info(cpu_logger,"llego interrupcion en false"); 
+	}    
     } 
 
 }

@@ -261,7 +261,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         log_info(memoria_logger, "Se conecto el IO");
         break;
     default:
-        log_error(memoria_logger, "No se reconoce el handshake");
+        log_error(memoria_logger, "No se reconoce el handshake de CPU");
         control_key = 0;
         break;
 	}   } 
@@ -290,7 +290,7 @@ void* atender_kernel(void* socket_cliente_ptr){
                 atender_eliminar_proceso(buffer);
                 break;
 		    default:
-			    log_error(memoria_logger, "No se reconoce el handshake");
+			    log_error(memoria_logger, "No se reconoce el handshake de KERNEL");
 			    control_key = 0;
 		    	break;			
         }
@@ -382,7 +382,7 @@ void* atender_entradasalida(void* socket_cliente_ptr){
         destruir_paquete(response);
         break;
 		default:
-			log_error(memoria_logger, "No se reconoce el handshake");
+			log_error(memoria_logger, "No se reconoce el handshake de IO");
 			control_key = 0;
 			break;
         }
