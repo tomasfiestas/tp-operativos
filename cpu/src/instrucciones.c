@@ -1079,8 +1079,8 @@ void agregar_entry_tlb(t_pcb* cpu, int pagina, int marco) {
 
 	// Checkeamos si agregar un elemento haria que nos pasemos del maximo de entradas permitidas, y en ese caso eliminamos el primero.
     //if(strcmp(ALGORITMO_TLB, "FIFO") == 0 || strcmp(ALGORITMO_TLB, "LRU") == 0){   //TODO: Preguntar a franco si esta bien.
-    log_info(cpu_logger, "CANT ENTRADAS %d", atoi(CANTIDAD_ENTRADAS_TLB));
-	if (list_size(tlb) >= atoi(CANTIDAD_ENTRADAS_TLB)) {
+    log_info(cpu_logger, "CANT ENTRADAS %d", CANTIDAD_ENTRADAS_TLB);
+	if (list_size(tlb) >= CANTIDAD_ENTRADAS_TLB) {
 		t_tlb_entry* first_entry = list_remove(tlb, 0);
         log_info(cpu_logger, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
 		free(first_entry);
