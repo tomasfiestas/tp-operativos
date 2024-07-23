@@ -414,18 +414,20 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             destruir_paquete(paquete_resize);
 
             op_code cod_op_resize = recibir_operacion(conexion_memoria);
-            if (cod_op_resize == OUT_OF_MEMORY) {
+            t_buffer* buffer_rta_resize = recibir_buffer(conexion_memoria);
+            int numero = extraer_int_del_buffer(buffer_rta_resize);
+            if (cod_op_resize == OUT_OF_MEMORY) {                
                 log_error(cpu_logger, "Ocurrió un error al hacer RESIZE"); //Mando pcb a kernel
                 t_buffer* buffer_kernel_out_of_memory = crear_buffer();
                 cargar_pcb_a_buffer(buffer_kernel_out_of_memory, contexto);
                 t_paquete* paquete_out_of_memory = crear_paquete(OUT_OF_MEMORY, buffer_kernel_out_of_memory);
                 enviar_paquete(paquete_out_of_memory, cliente_kernel_dispatch);
                 destruir_paquete(paquete_out_of_memory);
+                ctx_global = NULL;                
                 break;
             }
-            else{ //RESIZE_OK
-                t_buffer* buffer_rta_resize = recibir_buffer(conexion_memoria);
-                int numero = extraer_int_del_buffer(buffer_rta_resize);
+            else{ //RESIZE_OK                
+                
                 destruir_buffer(buffer_rta_resize);
                 
                 } 

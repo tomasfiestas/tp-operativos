@@ -74,6 +74,7 @@ int quitar_memoria(t_proceso *proceso, int cantidad_paginas)
             cantidad_paginas--;
         }
     }
+    return 1;
 }
 
 int resize(int pid, int bytes)
