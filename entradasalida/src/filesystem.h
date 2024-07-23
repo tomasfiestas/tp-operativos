@@ -17,8 +17,8 @@
 
 typedef struct {
     char* nombre_archivo;
-    uint32_t TAMANIO_ARCHIVO;
-    uint32_t BLOQUE_INICIAL;
+    int TAMANIO_ARCHIVO;
+    int BLOQUE_INICIAL;
 } t_fcb;
 
 extern char* PATH_BASE_DIALFS;

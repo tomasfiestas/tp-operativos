@@ -68,8 +68,7 @@ int main(int argc, char* argv[]) {
       
        
    
-    crear_bitmap();
-    crear_archivo_bloques();
+    
     
        
     //realizar_handshake(HANDSHAKE_ES, conexion_kernel);
@@ -136,7 +135,11 @@ void inicializar_interfaces(char* path){
         }
         
 
-
+    t_buffer* buffer_memoria = crear_buffer();    
+    cargar_string_a_buffer(buffer_memoria, nombre_interfaz2);    
+    t_paquete* paquete_memoria = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer_memoria);
+    enviar_paquete(paquete_memoria, conexion_memoria);
+    destruir_paquete(paquete_memoria);
 
 }
  
@@ -155,12 +158,7 @@ void inicializar_interfaces(char* path){
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
     enviar_paquete(paquete, conexion_kernel);
     destruir_paquete(paquete);
-
-    t_buffer* buffer_memoria = crear_buffer();    
-    cargar_string_a_buffer(buffer_memoria, nombre);    
-    t_paquete* paquete_memoria = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer_memoria);
-    enviar_paquete(paquete_memoria, conexion_memoria);
-    destruir_paquete(paquete_memoria);
+    
 
     list_add(interfaces, interfaz);
     
@@ -189,6 +187,8 @@ void inicializar_interfaces(char* path){
     enviar_paquete(paquete, conexion_kernel);
     destruir_paquete(paquete);
 
+    crear_bitmap();
+    crear_archivo_bloques();
     
     
 
@@ -326,7 +326,7 @@ void inicializar_interfaces(char* path){
         usleep(tiempo_fs* 1000);
 
         char* nombre_archivo_a_truncar = extraer_string_del_buffer(buffer_recibido);
-        int tamanio_a_truncar = extraer_int_del_buffer(buffer_recibido); //int o uint????
+        int tamanio_a_truncar = atoi(extraer_string_del_buffer(buffer_recibido)); //int o uint????
         t_fcb* fcb_truncar = leer_metadata(nombre_archivo_a_truncar);
         if(fcb_truncar->TAMANIO_ARCHIVO > tamanio_a_truncar){
             achicar_archivo(fcb_truncar, tamanio_a_truncar);
@@ -347,9 +347,10 @@ void inicializar_interfaces(char* path){
         usleep(tiempo_fs* 1000);
         
         char* nombre_archivo_escribir = extraer_string_del_buffer(buffer_recibido); 
+        
+        int tamanio_lectura = atoi(extraer_string_del_buffer(buffer_recibido));
+        int offset = atoi(extraer_string_del_buffer(buffer_recibido)); // ojo tipos de datos.
         t_list* lista_direcciones_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
-        int tamanio_lectura = extraer_int_del_buffer(buffer_recibido);
-        int offset = extraer_int_del_buffer(buffer_recibido); // ojo tipos de datos.
         
 
         void* dato_a_escribir = leer_de_memoria(lista_direcciones_escribir, tamanio_lectura, pid, conexion_memoria);
@@ -371,9 +372,10 @@ void inicializar_interfaces(char* path){
         case IO_FS_READ:
         usleep(tiempo_fs* 1000);
         char* nombre_archivo_leer = extraer_string_del_buffer(buffer_recibido);
+        
+        int tamanio_escritura = atoi(extraer_string_del_buffer(buffer_recibido));
+        int offset_archivo = atoi(extraer_string_del_buffer(buffer_recibido)); 
         t_list* lista_direcciones_a_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
-        int tamanio_escritura = extraer_int_del_buffer(buffer_recibido);
-        int offset_archivo = extraer_int_del_buffer(buffer_recibido); 
 
         log_info(io_logger, "Escribir archivo %s, PID: %i, Tamaño a leer: %i, Offset: %i", nombre_archivo_leer, pid, tamanio_escritura, offset_archivo);
 

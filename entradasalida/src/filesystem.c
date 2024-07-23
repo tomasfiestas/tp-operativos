@@ -463,7 +463,7 @@ char* buscar_contenido_fcb(t_fcb* fcb){
 
 int copiar_contenido_a(char* contenido, int tamanio){
     int bloque_inicial = bitmap_encontrar_bloque_libre();
-    log_trace(io_logger, "Se encontró el bloque N° %d", bloque_inicial);
+    log_info(io_logger, "Se encontró el bloque N° %d", bloque_inicial);
 
     escribir_archivo(bloque_inicial, 0, contenido, tamanio);
 
@@ -499,6 +499,9 @@ void crear_bitmap(){
     }
 
     bitmap->bitarray = bitarray_create_with_mode(bitmap->direccion, bitmap->tamanio, LSB_FIRST);
+    for(int i = 0; i < bitmap->tamanio; i++) {
+        bitarray_clean_bit(bitmap->bitarray, i);
+    }
 
     close(fd_bitmap);
 }

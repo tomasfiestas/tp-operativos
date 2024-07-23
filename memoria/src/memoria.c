@@ -529,7 +529,7 @@ int map_instruccion_a_enum(char* instruccion){
         return IO_STDIN_READ ;
     } else if(strcmp(instruccion, "IO_STDOUT_WRITE") == 0){
         return IO_STDOUT_WRITE ;
-    } else if(strcmp(instruccion, "IO_FS_CREATE ") == 0){
+    } else if(strcmp(instruccion, "IO_FS_CREATE") == 0){
         return IO_FS_CREATE  ;
     }
     else if(strcmp(instruccion, "IO_FS_DELETE") == 0){
