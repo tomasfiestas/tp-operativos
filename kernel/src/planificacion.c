@@ -1115,8 +1115,10 @@ void liberar_interfaces(t_pcb* pcb){
 }
 
 void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
+		 const char *yellow = "\033[1;33m";
 	
 	if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz
+		log_info(kernel_logger, "%sNo hay procesos esperando por la interfaz %s", yellow,interfaz_a_liberar->nombre);
         interfaz_a_liberar->pid_usandola = 0;
         sem_post(&interfaz_a_liberar->sem_disponible);
     }else{
@@ -1124,10 +1126,10 @@ void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
         interfaz_a_liberar->pid_usandola = proximo_proceso_bloqueado->pcb->pid;
 
         t_buffer* buffer_interfaz = crear_buffer();
-
-		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
 		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
+		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
 		
+		log_info(kernel_logger, "%sPongo el proceso %d que estaba esperando interfaz %s", yellow,interfaz_a_liberar->pid_usandola,interfaz_a_liberar->nombre);
 		for(int i=0; i < list_size(proximo_proceso_bloqueado->parametros); i++){
 			cargar_string_a_buffer(buffer_interfaz, list_get(proximo_proceso_bloqueado->parametros, i));
 		}

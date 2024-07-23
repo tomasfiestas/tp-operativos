@@ -14,6 +14,8 @@ t_config* entradasalida_config;
 int conexion_kernel;
 int conexion_kernel2;
 int conexion_memoria;
+char* nombre_interfaz2;
+const char *green = "\033[1;32m";
 
 t_log* io_logger;
 t_list* interfaces;
@@ -52,13 +54,15 @@ int main(int argc, char* argv[]) {
     interfaces = list_create();    
     conexion_kernel = crear_conexion_cliente(IP_KERNEL, PUERTO_KERNEL);
     log_info(io_logger, "Conexion con Kernel establecida"); 
-    inicializar_interfaces(argv[1]);
-
 
     //Creo conexion como cliente hacia Memoria
     conexion_memoria = crear_conexion_cliente(IP_MEMORIA, PUERTO_MEMORIA);
     log_info(io_logger, "Conexion con Memoria establecida");
 
+    inicializar_interfaces(argv[1]);
+
+
+   
 
     //Creo conexion como cliente hacia Kernel
       
@@ -108,7 +112,7 @@ void inicializar_interfaces(char* path){
  t_config* entradasalida_config2 = iniciar_config(path);    
     
         
-        char* nombre_interfaz2 = config_get_string_value(entradasalida_config2,"NOMBRE_INTERFAZ");
+        nombre_interfaz2 = config_get_string_value(entradasalida_config2,"NOMBRE_INTERFAZ");
         
         
         
@@ -151,6 +155,12 @@ void inicializar_interfaces(char* path){
     t_paquete* paquete = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer);
     enviar_paquete(paquete, conexion_kernel);
     destruir_paquete(paquete);
+
+    t_buffer* buffer_memoria = crear_buffer();    
+    cargar_string_a_buffer(buffer_memoria, nombre);    
+    t_paquete* paquete_memoria = crear_paquete(CREAR_NUEVA_INTERFAZ,buffer_memoria);
+    enviar_paquete(paquete_memoria, conexion_memoria);
+    destruir_paquete(paquete_memoria);
 
     list_add(interfaces, interfaz);
     
@@ -207,6 +217,7 @@ void inicializar_interfaces(char* path){
     bool control_key = 1;
     while(control_key){    
     op_code op_code = recibir_operacion(cliente_kernel2);
+    log_info(io_logger, "Operacion recibida: %d", op_code);
     t_buffer* buffer = recibir_buffer(cliente_kernel2);       
     t_struct_atender_kernel* struct_atender_kernel = malloc(sizeof(t_struct_atender_kernel));
     struct_atender_kernel->codigo_operacion = op_code;
@@ -266,14 +277,15 @@ void inicializar_interfaces(char* path){
         break;
         
         case IO_STDOUT_WRITE:
+        
         int tamanio_a_leer = atoi(extraer_string_del_buffer(buffer_recibido));
         t_list* direcciones_a_leer = crear_lista_direcciones(buffer_recibido);        
-        //int* tamanio_a_leer = tamanio_a_leer_direcciones(direcciones_a_leer, cantidad_a_leer);
+        
+        char* dato_a_leer = malloc(tamanio_a_leer);
+        dato_a_leer = (char*)leer_de_memoria(direcciones_a_leer, tamanio_a_leer, pid, conexion_memoria);
+        log_info(io_logger,"%sDato leido: %s",green ,dato_a_leer); //Es necesario el tamanio?
 
-        char* dato_a_leer = (char*)leer_de_memoria(direcciones_a_leer, tamanio_a_leer, pid, conexion_memoria);
-        log_info(io_logger,"Dato leido: %s", dato_a_leer); //Es necesario el tamanio?
-
-        list_destroy_and_destroy_elements(direcciones_a_leer,free);
+        list_destroy(direcciones_a_leer);  //VERIFICAR PARA LIBERAR MEMORIA BIEN !!!
         free(dato_a_leer);
 
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_STDOUT_WRITE");
@@ -420,7 +432,7 @@ void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int 
         op_code op_code = recibir_operacion(conexion_memoria);
         t_buffer* buffer_respuesta = recibir_buffer(conexion_memoria);
         int algo = extraer_int_del_buffer(buffer_respuesta);
-        if(op_code == ESCRIBIR_OK){
+        if(op_code != ESCRIBIR_OK){
             log_error(io_logger, "No se escribió correctamente en memoria");
         }
         tamanio_a_sacar += t_df->size;
@@ -434,6 +446,7 @@ void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int 
 void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir){
 
    t_buffer* buffer_escritura = crear_buffer();
+    cargar_string_a_buffer(buffer_escritura, nombre_interfaz2); //Nombre interfaz
     cargar_int_a_buffer(buffer_escritura, pid);    //PID
     cargar_int_a_buffer(buffer_escritura, direccion_fisica); //Direccion fisica
     cargar_int_a_buffer(buffer_escritura, tamanio); //Tamanio
@@ -441,7 +454,7 @@ void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char*
 
 
     t_paquete* paquete_escritura = crear_paquete(IO_STDIN_READ, buffer_escritura);
-    enviar_paquete(paquete_escritura, conexion_kernel);
+    enviar_paquete(paquete_escritura, conexion_memoria);
     destruir_paquete(paquete_escritura);
 
     
@@ -449,12 +462,13 @@ void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char*
 
 void enviar_solicitud_lectura(int pid, int direccion_fisica, int tamanio, int socket_memoria){
     t_buffer* buffer_lectura = crear_buffer();
+    cargar_string_a_buffer(buffer_lectura, nombre_interfaz2);
     cargar_int_a_buffer(buffer_lectura, pid);
     cargar_int_a_buffer(buffer_lectura, direccion_fisica);
     cargar_int_a_buffer(buffer_lectura, tamanio);
 
     t_paquete* paquete_lectura = crear_paquete(IO_STDOUT_WRITE, buffer_lectura); 
-    enviar_paquete(paquete_lectura, conexion_kernel);
+    enviar_paquete(paquete_lectura, conexion_memoria);
     destruir_paquete(paquete_lectura);
 
 }
@@ -485,15 +499,15 @@ int tamanio_a_leer_direcciones(t_list* lista_direcciones){
 
 char* leer_de_consola(int tamanio){
 
-    char* string_a_leer;
-    
+    char* string_a_leer;    
+    log_info(io_logger, "%s Ingrese una cadena de texto", green,tamanio);
     string_a_leer = readline("> ");
 
     if(string_length(string_a_leer) > tamanio){
-        log_trace(io_logger, "La cadena ocupa %i y deberia ocupar %i, se recortara", string_length(string_a_leer), tamanio);
+        log_info(io_logger, "La cadena ocupa %i y deberia ocupar %i, se recortara", string_length(string_a_leer), tamanio);
     }
     char* string_recortado = string_substring_until(string_a_leer, tamanio);
-    log_trace(io_logger, "La cadena ingresada es: %s ", string_recortado);
+    log_info(io_logger, "La cadena ingresada es: %s ", string_recortado);
     free(string_a_leer);
     return string_recortado;
 }
@@ -508,21 +522,22 @@ void* leer_de_memoria(t_list* lista_df,int bytes_a_leer, int pid, int socket_mem
     t_direccion_fisica_io* dir_fisica = list_get(lista_df,i);
 
     t_buffer* buffer_envio = crear_buffer();
+    cargar_string_a_buffer(buffer_envio, nombre_interfaz2);
     cargar_int_a_buffer(buffer_envio, pid);  //PID
     cargar_int_a_buffer(buffer_envio, dir_fisica->df);  //DIR_FISICA
     cargar_int_a_buffer(buffer_envio, dir_fisica->size);    //TAMANIO A LEER
 
     t_paquete* paquete = crear_paquete(IO_STDOUT_WRITE, buffer_envio);  //LEER 
-    enviar_paquete(paquete, socket_memoria);
+    enviar_paquete(paquete, conexion_memoria);
     destruir_paquete(paquete);
 
-    op_code cod_op = recibir_operacion(socket_memoria);
+    op_code cod_op = recibir_operacion(conexion_memoria);
     if (cod_op != LEER_OK) {
         log_error(io_logger, "Ocurrió un error al hacer MOV_IN");
         return NULL;
     }
 
-    t_buffer* buffer_respuesta = recibir_buffer(socket_memoria);
+    t_buffer* buffer_respuesta = recibir_buffer(conexion_memoria);
     if (buffer_respuesta == NULL) {
         log_error(io_logger, "Error al recibir el buffer de respuesta");
         return NULL;
@@ -558,6 +573,7 @@ void escribir_a_memoria(t_list* lista_paginas, int size,t_pcb* pcb, void* valor)
     }
 
     t_buffer *buffer_envio = crear_buffer();
+    cargar_string_a_buffer(buffer_envio, nombre_interfaz2);
     cargar_int_a_buffer(buffer_envio, pcb->pid);
     cargar_int_a_buffer(buffer_envio, direccion_fisica->df);
     cargar_int_a_buffer(buffer_envio, tamano_a_escribir); 

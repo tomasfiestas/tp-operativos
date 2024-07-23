@@ -110,8 +110,8 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             sem_init(&nueva_interfaz->sem_disponible, 0, 1);
             nueva_interfaz-> pid_usandola = 0;
             nueva_interfaz->fd_interfaz = cliente_entradasalida2;
-            log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s",
-            nueva_interfaz->nombre,nueva_interfaz->tipo);
+            log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s y socket %d",
+            nueva_interfaz->nombre,nueva_interfaz->tipo,nueva_interfaz->fd_interfaz);
             nueva_interfaz->cola_procesos_bloqueados = queue_create();
             sem_wait(&mutex_lista_interfaces);
                 list_add(lista_interfaces, nueva_interfaz);
@@ -120,23 +120,29 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             break;
             
             case OPERACION_FINALIZADA:
-            log_info(kernel_logger, "Operacion finalizada");
+            
             t_buffer *buffer2 = recibir_buffer(cliente_entradasalida2);
             char* nombre2 = extraer_string_del_buffer(buffer2);
             int pid = extraer_int_del_buffer(buffer2);
             t_entrada_salida * interfaz_a_liberar = buscar_interfaz(nombre2);
+            log_info(kernel_logger, "Operacion finalizada %s , PID: %d", interfaz_a_liberar->nombre,pid);
 
             //Hay que poner el PCB en la cola de listos
-            t_pcb* pcb_a_liberar = buscarPcbBloqueado(pid);
+            t_pcb* pcb_a_liberar = buscarPcb(pid);
+            log_info(kernel_logger, "Se encontró el pcb a liberar: %d", pcb_a_liberar->pid);
             if(pcb_a_liberar != NULL){
                 sacar_de_bloqueado(pcb_a_liberar);  
            
-            
+             const char *cyan = "\033[1;36m";
             if (obtener_algoritmo() == VRR){
+                log_info(kernel_logger, "%sSe agrega a la cola prioritaria el pcb %d",cyan, pcb_a_liberar->pid);
                 agregar_a_cola_prioritaria(pcb_a_liberar); 
-            }else
+                log_info(kernel_logger, "%sSe agregó a la cola prioritaria el pcb %d", cyan,pcb_a_liberar->pid);
+            }else{ 
+                log_info(kernel_logger, "%sSe agrega a la cola READY %d",cyan, pcb_a_liberar->pid);
                 agregar_a_ready(pcb_a_liberar);
-            
+                log_info(kernel_logger, "%sSe agregó a la cola READY %d",cyan, pcb_a_liberar->pid);
+            }
             //agregar_a_exit(pcb_a_liberar,SUCCESS);  
                                
             }

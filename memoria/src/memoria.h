@@ -15,6 +15,11 @@ typedef struct {
     t_list* paginas;
 } t_proceso;
 
+typedef struct {
+    char* nombre;
+    int socket;
+} t_io;
+
 extern t_log* memoria_logger;
 extern t_config* memoria_config;
 extern t_list* procesos;
@@ -39,5 +44,6 @@ t_list* parse_file(const char* filePath);
 t_proceso* obtener_proceso(int pid);
 void atender_crear_proceso(t_buffer* buffer);
 void atender_eliminar_proceso(t_buffer* buffer);
+t_io* buscar_interfaz(char* nombre);
 
 #endif

@@ -18,6 +18,7 @@ int cliente_entradasalida;
 int cliente_kernel;
 int cliente_cpu;
 int cantidad_procesos;
+t_list* lista_interfaces;
 
 int main(int argc, char *argv[])
 {
@@ -46,6 +47,7 @@ int main(int argc, char *argv[])
     inicializar_memoria();
     inicializar_bitmap();
     procesos = list_create();
+    lista_interfaces = list_create();
 
     // Inicio servidor Memoria
     int servidor_memoria = iniciar_servidor(PUERTO_ESCUCHA);
@@ -304,10 +306,10 @@ void* atender_kernel(void* socket_cliente_ptr){
 void* atender_entradasalida(void* socket_cliente_ptr){
     int cliente_es = *(int*)socket_cliente_ptr;
     free(socket_cliente_ptr);    
-    bool control_key = 1;
-    while (control_key){
+    bool control_key2 = 1;
+    while (control_key2){
         op_code op_code = recibir_operacion(cliente_es);
-        t_buffer* buffer;
+        t_buffer* buffer;                
         int pid;
         int direccion_fisica;
         int cantidad_bytes;
@@ -341,6 +343,8 @@ void* atender_entradasalida(void* socket_cliente_ptr){
             // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA. LOS MARCOS PODRIAN NO SER CONTIGUOS.
             log_info(memoria_logger, "Solicitud de escritura en memoria");
             buffer = recibir_buffer(cliente_es);
+            char* nombre_interfaz = extraer_string_del_buffer(buffer);
+            t_io* io_read = buscar_interfaz(nombre_interfaz);
             usleep(atoi(RETARDO_RESPUESTA) * 1000);
 
             pid = extraer_int_del_buffer(buffer);
@@ -354,7 +358,7 @@ void* atender_entradasalida(void* socket_cliente_ptr){
             response_buffer = crear_buffer();
             cargar_int_a_buffer(response_buffer, ESCRIBIR_OK);
             response = crear_paquete(ESCRIBIR_OK, response_buffer);
-            enviar_paquete(response, cliente_entradasalida);
+            enviar_paquete(response, io_read->socket);
             destruir_paquete(response);
             break;
         case IO_STDOUT_WRITE:  // Parametros: PID, Direccion Fisica, Cantidad bytes
@@ -370,6 +374,8 @@ void* atender_entradasalida(void* socket_cliente_ptr){
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
         log_info(memoria_logger, "Solicitud de lectura de memoria");
         buffer = recibir_buffer(cliente_es);
+        char* nombre_interfaz_write = extraer_string_del_buffer(buffer);
+        t_io* io_write = buscar_interfaz(nombre_interfaz_write);
         usleep(atoi(RETARDO_RESPUESTA) * 1000);
         
         pid = extraer_int_del_buffer(buffer);
@@ -381,16 +387,36 @@ void* atender_entradasalida(void* socket_cliente_ptr){
         response_buffer = crear_buffer();
         cargar_a_buffer(response_buffer, bytes_leidos, cantidad_bytes);
         response = crear_paquete(LEER_OK, response_buffer);
-        enviar_paquete(response, cliente_entradasalida);
+        enviar_paquete(response, io_write->socket);
         destruir_paquete(response);
         break;
+        case CREAR_NUEVA_INTERFAZ:
+        buffer = recibir_buffer(cliente_es);
+        char* nombre_interfaz_nueva = extraer_string_del_buffer(buffer);
+        t_io* io = malloc(sizeof(t_io));
+        io->nombre = nombre_interfaz_nueva;
+        io->socket = cliente_es;
+        list_add(lista_interfaces, io);
+        log_info(memoria_logger, "Se creo la interfaz %s", io->nombre);
+        break;
+
 		default:
 			log_error(memoria_logger, "No se reconoce el handshake de IO");
-			control_key = 0;
+			control_key2 = 0;
 			break;
         }
     }
     return NULL;
+}
+
+t_io* buscar_interfaz(char* nombre) {
+	for (int i = 0; i < list_size(lista_interfaces); i++) {
+		t_io* entrada_salida = list_get(lista_interfaces, i);
+		if (strcmp(entrada_salida->nombre, nombre) == 0) {
+			return entrada_salida;			
+		}		
+	}
+	return NULL;
 }
 
 t_list* parse_file(const char* filePath) {
