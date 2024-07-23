@@ -73,15 +73,18 @@ int main(int argc, char *argv[])
     log_info(memoria_logger, "Atendiendo mensajes de Kernel");  
      
     //Espero conexion de entrada/salida
-    int cliente_entradasalida = esperar_cliente(servidor_memoria);   
+    //int cliente_entradasalida = esperar_cliente(servidor_memoria);   
 
     //Atiendo mensajes de Entrada/Salida
-    pthread_t hilo_entradasalida;
+    while(1){
+    //Espero conexion de entrada/salida
     int* socket_cliente_entradasalida_ptr = malloc(sizeof(int));
-    *socket_cliente_entradasalida_ptr = cliente_entradasalida;
-    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida, socket_cliente_entradasalida_ptr);
-    log_info(memoria_logger, "Atendiendo mensajes de Entrada/Salida");
-    pthread_join(hilo_entradasalida, NULL);
+    *socket_cliente_entradasalida_ptr= esperar_cliente(servidor_memoria); 
+    log_info(memoria_logger, "Atendiendo mensajes de Entrada/Salida"); 
+    pthread_t hilo_entradasalida;     
+    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida, socket_cliente_entradasalida_ptr);    
+    pthread_detach(hilo_entradasalida);
+    }
     
     
     

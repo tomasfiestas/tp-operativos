@@ -64,7 +64,7 @@ char* get_fullpath(char* nombre_archivo);
 
 t_fcb* leer_metadata(char* nombre_archivo);
 
-void eliminar_archivo_metadata(int size);
+void eliminar_archivo_metadata(char* nombre_archivo);
 
 void borrar_archivo(char* nombre_archivo);
 

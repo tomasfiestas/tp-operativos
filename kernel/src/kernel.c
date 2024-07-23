@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
     pthread_create(&hilo_consola, NULL, (void *)leer_consola, NULL);
     pthread_detach(hilo_consola);
 
+    lista_interfaces = list_create();
 
     //Atiendo mensajes de Entrada/Salida
     /*pthread_t hilo_entradasalida;
@@ -98,7 +99,7 @@ void atender_entradasalida2(void* socket_cliente_ptr){
            
         switch (op_code){
             case CREAR_NUEVA_INTERFAZ:
-            lista_interfaces = list_create();
+            
             t_buffer *buffer = recibir_buffer(cliente_entradasalida2);
             char* nombre = extraer_string_del_buffer(buffer);
             char* tipo = extraer_string_del_buffer(buffer);
