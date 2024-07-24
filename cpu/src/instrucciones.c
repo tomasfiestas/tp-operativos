@@ -298,8 +298,26 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
     case SUM:                                                                    //SUM(Registro Destino, Registro Origen)
             char* registro_destino_sum = (char*) list_get(instruccion.parametros, 0);
             char* registro_origen_sum = (char*) list_get(instruccion.parametros, 1);
-            int valor_origen_sum = *(int*)obtener_puntero_al_registro(contexto, registro_origen_sum);
-            int valor_destino_sum = *(int*)obtener_puntero_al_registro(contexto, registro_destino_sum);
+
+            int valor_origen_sum;
+            int bytes_a_leer_sum = calcular_bytes_a_leer(registro_origen_sum);
+            if(bytes_a_leer_sum==1){
+             valor_origen_sum= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_origen_sum);    
+            }else{
+                valor_origen_sum = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_origen_sum);    
+            } 
+
+
+            int valor_destino_sum;
+            int bytes_a_destino_sum = calcular_bytes_a_leer(registro_origen_sum);
+            if(bytes_a_destino_sum==1){
+             valor_origen_sum= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_destino_sum);    
+            }else{
+                valor_destino_sum = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_destino_sum);    
+            }           
+
+            
+            
             log_info(cpu_logger, "PID: %d - Ejecutando: <SUM> - <%s %s>", contexto->pid, registro_destino_sum, registro_origen_sum);
             asignar_valor_a_registro(contexto, registro_destino_sum, valor_destino_sum + valor_origen_sum);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
@@ -307,9 +325,24 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
 
     case SUB:                                                                    //SUB(Registro Destino, Registro Origen)
             char* registro_destino_sub = (char*) list_get(instruccion.parametros, 0);
-            char* registro_origen_sub = (char*) list_get(instruccion.parametros, 1);
-            int valor_origen_sub = *(int*)obtener_puntero_al_registro(contexto, registro_origen_sub);
-            int valor_destino_sub = *(int*)obtener_puntero_al_registro(contexto, registro_destino_sub);
+            char* registro_origen_sub = (char*) list_get(instruccion.parametros, 1);            
+            
+            int valor_destino_sub;
+            int bytes_a_leer_sub = calcular_bytes_a_leer(registro_origen_sum);
+            if(bytes_a_leer_sub==1){
+             valor_destino_sub= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_origen_sub);    
+            }else{
+                valor_destino_sub = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_origen_sub);    
+            }
+            int valor_origen_sub;
+            int bytes_a_origen_sub = calcular_bytes_a_leer(registro_origen_sub);
+            if(bytes_a_origen_sub==1){
+             valor_origen_sub= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_origen_sub);
+            }else{
+                valor_origen_sub = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_origen_sub);
+            }
+
+
             log_info(cpu_logger, "PID: %d - Ejecutando: <SUB> - <%s %s>", contexto->pid, registro_destino_sub, registro_origen_sub);
             asignar_valor_a_registro(contexto, registro_destino_sub, valor_destino_sub - valor_origen_sub);
             list_destroy_and_destroy_elements(instruccion.parametros, free);
@@ -317,8 +350,17 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
 
     case JNZ:                                                                     //JNZ(Registro, Instrucción)
             char* registro_jnz = (char*) list_get(instruccion.parametros, 0);
-            int numero_instruccion = *((int*) list_get(instruccion.parametros, 1));
-            int valor_registro = *(int*)obtener_puntero_al_registro(contexto, registro_jnz);
+            int numero_instruccion = *((int*) list_get(instruccion.parametros, 1));  
+
+            int valor_registro;
+            int bytes_a_leer_jnz = calcular_bytes_a_leer(registro_jnz);
+            if(bytes_a_leer_jnz==1){
+             valor_registro= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_jnz);    
+            }else{
+                valor_registro = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_jnz);    
+            } 
+
+            
             log_info(cpu_logger, "PID: %d - Ejecutando: <JNZ> - <%s %d>", contexto->pid, registro_jnz, numero_instruccion);
             if (valor_registro != 0) {
                 contexto->registros.PC = numero_instruccion;
@@ -390,6 +432,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             void* valor_out = obtener_puntero_al_registro(contexto, registro_datos);
             
             log_info(cpu_logger, "PID: %d - Ejecutando: MOV_OUT - %s %s", contexto->pid, registro_direccion, registro_datos);
+            log_info(cpu_logger, "PID: %d - Dirección Lógica: %d - Valor: %d", contexto->pid, direccion_logica, *(uint8_t*)valor_out);
             t_list* lista_df = traducir_direccion_mmu(direccion_logica,contexto, bytes_a_escribir);           
 
 
@@ -401,6 +444,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             escribir_a_memoria(lista_df,bytes_a_escribir, contexto, valor_out);
             
             list_destroy_and_destroy_elements(instruccion.parametros, free);
+            list_destroy_and_destroy_elements(lista_df, free);
             break;
 
     case RESIZE:
@@ -976,6 +1020,7 @@ t_list* traducir_direccion_mmu(int dir_logica, t_pcb *ctx,int tamanio_solicitad)
     int desplazamiento = dir_logica % tamanio_pagina;
     int disponible = tamanio_pagina - desplazamiento;  
     int nro_pagina = numero_pagina(dir_logica);
+    log_info(cpu_logger, "PID: %d - OBTENER MARCO - Página: %d | logica: %d" ,ctx->pid,nro_pagina,dir_logica);
     
     
     if ( disponible < tamanio_solicitad){
@@ -1028,14 +1073,19 @@ int solicitar_numero_de_marco(int num_pagina, int pid)
     t_buffer *buffer = crear_buffer();
     cargar_int_a_buffer(buffer,pid);
     cargar_int_a_buffer(buffer,num_pagina);
+    const char *green = "\033[1;32m";
+
+    
 
     t_paquete *paquete = crear_paquete(SOLICITUD_MARCO,buffer);
     enviar_paquete(paquete,conexion_memoria);
     destruir_paquete(paquete);
+    log_info(cpu_logger, "%s PID: %d -Solicitando marco para pagina %d",green,pid,num_pagina);
     int num_marco;
     op_code cod_op = recibir_operacion(conexion_memoria);
     t_buffer *buffer_recibido = recibir_buffer(conexion_memoria);
     num_marco = extraer_int_del_buffer(buffer_recibido);
+    log_info(cpu_logger, "%s PID: %d -Marco obtenido para pagina %d: %d",green,pid,num_pagina,num_marco);
     if(num_marco < 0)
     {
         log_error(cpu_logger, "Ocurrio un error al recibir el numero de marco");

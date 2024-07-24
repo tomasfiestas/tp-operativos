@@ -487,7 +487,7 @@ void crear_bitmap(){
         log_error(io_logger, "Error al abrir el archivo bitmap");
     }
 
-    bitmap->tamanio = BLOCK_COUNT;   //REVISAR
+    bitmap->tamanio = BLOCK_COUNT/8;   //REVISAR
     
     if (ftruncate(fd_bitmap, bitmap->tamanio) == -1) {
         log_error(io_logger, "Error al truncar el archivo Bitmap");

@@ -129,7 +129,7 @@ int escribir_memoria(int pid, int direccion_fisica, void* bytes, int size)
 }
 
 int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
-{
+{     const char *magenta = "\033[1;35m";
     // Por cada pagina libre
     t_list_iterator* iterator = list_iterator_create(proceso->paginas);
     while(list_iterator_has_next(iterator) && cantidad_paginas > 0) {
@@ -144,6 +144,7 @@ int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
                     pagina->frame = i;
                     bitarray_set_bit(bitarray, i);
                     cantidad_paginas--;
+                    log_info(memoria_logger, "%sPID: %d - Pagina: %d - Marco: %d", magenta,proceso->pid, pagina->frame, i);
                     break;
                 }
             }
@@ -162,12 +163,13 @@ int asignar_memoria(t_proceso *proceso, int cantidad_paginas)
  * Retorna -1 si la pagina no esta poblada para ningun proceso.
  */
 int obtener_numero_marco(int pid,int numero_pagina)
-{
+{   const char *green = "\033[1;32m";
     t_proceso *proceso = obtener_proceso(pid);
     t_pagina *pagina = list_get(proceso->paginas, numero_pagina);
+    log_info(memoria_logger, "Tamaño de paginas del proceso %d | %d", proceso->pid, list_size(proceso->paginas));
     if (pagina->presente)
     {
-        log_info(memoria_logger, "PID: %d - Pagina: %d - Marco: %d", proceso->pid, numero_pagina, pagina->frame);    
+        log_info(memoria_logger, "%s PID: %d - Pagina: %d - Marco: %d", green,proceso->pid, numero_pagina, pagina->frame);    
         return pagina->frame;
     }  
     return -1;
