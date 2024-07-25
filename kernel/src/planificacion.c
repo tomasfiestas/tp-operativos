@@ -492,8 +492,7 @@ void sacar_de_bloqueado(t_pcb* pcb){
 		list_remove_element(plani_block, pcb);
 	log_info(kernel_logger,"Sacamos de bloqueado con exito");	
 	sem_post(&sem_block);
-	//agregar_a_ready(pcb);	
-	free(removido);
+	//agregar_a_ready(pcb);		
 }
 
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
