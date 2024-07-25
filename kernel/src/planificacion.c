@@ -486,10 +486,14 @@ void agregar_a_bloqueado(t_pcb* pcb){
 }
 
 void sacar_de_bloqueado(t_pcb* pcb){
+	log_info(kernel_logger,"Empezó a sacar de bloqueado");
 	sem_wait(&sem_block);
-		list_remove(plani_block, pcb);
+	log_info(kernel_logger,"Semaforo habilito sacar de bloqueado");
+		t_pcb* removido = list_remove(plani_block, pcb);
+	log_info(kernel_logger,"Sacamos de bloqueado con exito");	
 	sem_post(&sem_block);
 	//agregar_a_ready(pcb);	
+	free(removido);
 }
 
 void agregar_a_exit(t_pcb* pcb,op_code motivo_a_mostrar){
