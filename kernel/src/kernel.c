@@ -129,7 +129,7 @@ void atender_entradasalida2(void* socket_cliente_ptr){
 
             //Hay que poner el PCB en la cola de listos
             t_pcb* pcb_a_liberar = buscarPcb(pid);
-            log_info(kernel_logger, "Se encontró el pcb a liberar: %d", pcb_a_liberar->pid);
+            //log_info(kernel_logger, "Se encontró el pcb a liberar: %d", pcb_a_liberar->pid);
             if(pcb_a_liberar != NULL){
                 sacar_de_bloqueado(pcb_a_liberar);  
            
