@@ -330,9 +330,9 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             int valor_destino_sub;
             int bytes_a_leer_sub = calcular_bytes_a_leer(registro_origen_sum);
             if(bytes_a_leer_sub==1){
-             valor_destino_sub= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_origen_sub);    
+             valor_destino_sub= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_destino_sub);    
             }else{
-                valor_destino_sub = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_origen_sub);    
+                valor_destino_sub = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_destino_sub);    
             }
             int valor_origen_sub;
             int bytes_a_origen_sub = calcular_bytes_a_leer(registro_origen_sub);
