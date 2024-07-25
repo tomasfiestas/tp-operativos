@@ -1115,6 +1115,7 @@ void liberar_interfaces(t_pcb* pcb){
 }
 
 void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
+	log_info(kernel_logger,"Liberando interfaz");
 		 const char *yellow = "\033[1;33m";
 	
 	if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz

@@ -132,6 +132,7 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             log_info(kernel_logger, "Se encontró el pcb a liberar: %d", pcb_a_liberar->pid);
             if(pcb_a_liberar != NULL){
                 sacar_de_bloqueado(pcb_a_liberar);  
+            log_info(kernel_logger, "Se liberó: %d", pcb_a_liberar->pid);
            
              const char *cyan = "\033[1;36m";
             if (obtener_algoritmo() == VRR){
