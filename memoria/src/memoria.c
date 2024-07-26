@@ -117,7 +117,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
     op_code op_code = recibir_operacion(cliente);    
 	switch(op_code) {
     case SOLICITUD_INST:
-        log_info(memoria_logger, "Solicitud de instrucciones");
+        log_trace(memoria_logger, "Solicitud de instrucciones");
         t_buffer *buffer = recibir_buffer(cliente);
         usleep(atoi(RETARDO_RESPUESTA) * 1000);
 
@@ -153,7 +153,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
     case RESIZE: // Parametros: PID, Bytes
         // El parametro pasado (cantidad de bytes) es absoluto, no es relativo al tamaño anterior.
         // Esta funcion se asegurara de cambiar al tamaño deseado, caso contrario enviará OUT_OF_MEMORY.
-        log_info(memoria_logger, "Solicitud de resize");
+        log_trace(memoria_logger, "Solicitud de resize");
         usleep(atoi(RETARDO_RESPUESTA) * 1000);
         buffer = recibir_buffer(cliente);
 
@@ -186,7 +186,7 @@ void* atender_cpu(void* socket_cliente_ptr) {
         // * LEER 4 BYTES A PARTIR DE DIRECCION FISICA 4
         // * LEER 1 BYTES A PARTIR DE DIRECCION FISICA 8
         // CADA UNA ES UNA LLAMADA/OPERACION DISTINTA.
-        log_info(memoria_logger, "Solicitud de lectura de memoria");
+        log_trace(memoria_logger, "Solicitud de lectura de memoria");
         buffer = recibir_buffer(cliente);
         usleep(atoi(RETARDO_RESPUESTA) * 1000);
         
@@ -481,7 +481,7 @@ void atender_crear_proceso(t_buffer* buffer){
 
 void atender_eliminar_proceso(t_buffer* buffer){
     int pid = extraer_int_del_buffer(buffer);
-    log_info(memoria_logger, "Destruyendo proceso PID: %d", pid);
+    log_trace(memoria_logger, "Destruyendo proceso PID: %d", pid);
     destruir_buffer(buffer);
     finalizar_proceso(pid);
 }

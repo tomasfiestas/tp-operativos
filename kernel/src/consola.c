@@ -158,13 +158,13 @@ void procesar_mensaje(t_mensajes_consola mensaje_a_consola, char** argumentos){
 
                     break;
                 case INICIAR_PLANIFICACION:
-                    log_info(kernel_logger, "INICIAR_PLANIFICACION\n");
+                    log_trace(kernel_logger, "INICIAR_PLANIFICACION\n");
 	                iniciar_planificacion();           
 
                     break;
                 case DETENER_PLANIFICACION:
                     detener_planificacion();
-                    log_info(kernel_logger, "DETENER_PLANIFICACION\n");
+                    log_trace(kernel_logger, "DETENER_PLANIFICACION\n");
                     
                     break; 
                 case MULTIPROGRAMACION:

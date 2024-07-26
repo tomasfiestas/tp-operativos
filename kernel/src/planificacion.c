@@ -83,8 +83,7 @@ void crear_pcb(int pid){
 	list_add(total_pcbs, nuevo_pcb);
 	sem_post(&sem_total_pcbs);
 	
-	agregar_a_new(nuevo_pcb);
-	log_info(kernel_logger, "Nuevo proceso %d en NEW", pid);
+	agregar_a_new(nuevo_pcb);	
 	
 }
 
@@ -138,7 +137,7 @@ void inicializar_semaforos(){
 
 
 void inicializar_listas(){
-	log_info(kernel_logger, "Algoritmo planificacion: %s", ALGORITMO_PLANIFICACION);
+	log_trace(kernel_logger, "Algoritmo planificacion: %s", ALGORITMO_PLANIFICACION);
 	
 	algoritmo_plani = obtener_algoritmo();
 	int cant_recursos = string_array_size(RECURSOS);
@@ -160,7 +159,7 @@ void inicializar_listas(){
 	t_queue ** lista_recursos_bloqueados = malloc(sizeof(t_queue*)*cant_recursos);
 	for(int i = 0; i < cant_recursos; i++){
 		lista_recursos_bloqueados[i] = queue_create();
-		log_info(kernel_logger, "cola de recurso en posicion %d inicializada", i);
+		log_trace(kernel_logger, "cola de recurso en posicion %d inicializada", i);
 	}
 	plani_block_recursos = lista_recursos_bloqueados;
 
@@ -210,16 +209,16 @@ void* inicio_plani_largo_plazo(void* arg){
 		while(running){
 		// Espero a que haya procesos en new 			
 		sem_wait(&hayPCBsEnNew);
-		log_info(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
+		log_trace(kernel_logger, "Planificador Largo PLazo: Hay PCBs en NEW.");
 		
 		// Espero a que el grado de multiprogramacion me permita agregar un proceso a RAM		
 		sem_wait(&multiPermiteIngresar); // estaba aca (por el comentario d arriba) no se pq ni cuando desaparecio
-		log_info(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
+		log_trace(kernel_logger, "Planificador Largo PLazo: Multiprogramacion permite ingresar a RAM.");
 		
 		//Se agrega el pcb a READY
 		t_pcb* pcb = sacar_siguiente_de_new();		
 		agregar_a_ready(pcb);
-		log_info(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
+		log_trace(kernel_logger, "Planificador Largo PLazo: Se agrego un nuevo proceso a READY");
 		
 		//sem_getvalue(&planificacion_largo_plazo_activa, &valor);
 		//sem_post(&planificacion_largo_plazo_activa);
@@ -245,12 +244,12 @@ void* inicio_plani_corto_plazo(void* arg){
 		int sema;
 		sem_getvalue(&hayPCBsEnReady, &sema);
 		const char *cyan = "\033[1;36m";
-		log_info(kernel_logger, "%sValor hayPCBsEnReady: %d",cyan, sema);
+		log_trace(kernel_logger, "%sValor hayPCBsEnReady: %d",cyan, sema);
 		sem_wait(&hayPCBsEnReady);
-		  log_info(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
+		  log_trace(kernel_logger, "Planificador Corto PLazo: Hay PCBs en READY.");
 
 		sem_wait(&puedeEntrarAExec);
-		  log_info(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
+		  log_trace(kernel_logger, "Planificador Corto PLazo: PCB puede entrar a EXEC.");
 
 		t_pcb* pcb;
 		
@@ -275,7 +274,7 @@ void* inicio_plani_corto_plazo(void* arg){
     	int* socket_cliente_cpu_dispatch_ptr = malloc(sizeof(int));
     	*socket_cliente_cpu_dispatch_ptr = conexion_cpu_dispatch;
     	pthread_create(&hilo_kernel_dispatch, NULL, atender_cpu_dispatch, socket_cliente_cpu_dispatch_ptr);
-    	log_info(kernel_logger, "Atendiendo mensajes de CPU Interrupt");
+    	log_trace(kernel_logger, "Atendiendo mensajes de CPU Interrupt");
     	pthread_join(hilo_kernel_dispatch,NULL);//REVISAR
 		//sem_getvalue(&planificacion_corto_plazo_activa, &valor_corto_plazo);
 		
@@ -314,7 +313,7 @@ void resetear_semaforos_multi(int vieja_multi){
 	}else{
 		for(i=0; i < vieja_multi - GRADO_MULTIPROGRAMACION; i++){
 			if(sem_trywait(&multiPermiteIngresar) == -1){
-				log_info(kernel_logger, "No se puede reducir mas el grado de multiprogramacion ya que se encuentra completo, se veran los cambios una vez que finalice un proceso");
+				//log_info(kernel_logger, "No se puede reducir mas el grado de multiprogramacion ya que se encuentra completo, se veran los cambios una vez que finalice un proceso");
 				gradosPendientes ++;
 			}
 		}
@@ -372,10 +371,13 @@ void agregar_a_ready(t_pcb* nuevo_pcb){
 }
 
 void agregar_a_cola_prioritaria(t_pcb * pcb){
-	const char *magenta = "\033[1;35m";	
+	const char *magenta = "\033[1;35m";
 	sem_wait(&sem_aux);
-		queue_push(cola_prioritaria_vrr, pcb);		
-		log_info(kernel_logger, "%sEl proceso %d ingreso a la cola prioritaria",magenta,pcb->pid);
+		queue_push(cola_prioritaria_vrr, pcb);	
+		char* cola_priori = string_cola(cola_prioritaria_vrr);
+		log_info(kernel_logger, "Cola Ready Prioridad: %s",cola_priori);
+		free(cola_priori);	
+		log_trace(kernel_logger, "%sEl proceso %d ingreso a la cola prioritaria",magenta,pcb->pid);
 	sem_post(&sem_aux);	
 	sem_post(&hayPCBsEnReady);
 }
@@ -402,6 +404,24 @@ t_pcb* sacar_siguiente_de_new(){
 	t_pcb* pcb = list_remove(plani_new,0);
 	sem_post(&sem_new);
 	return pcb;
+}
+
+char* string_cola(t_queue* cola){
+    char* lista = string_new();
+    string_append(&lista, "[");
+
+    int size = queue_size(cola);
+    for (int i = 0; i < size; i++)
+    {
+        int* PID = list_get(cola->elements, i);
+        char* string_PID = string_itoa(*PID);
+        string_append(&lista, string_PID);
+        free(string_PID);
+        if (i != size - 1) string_append(&lista, ",");
+    }
+
+    string_append(&lista, "]");
+    return lista;
 }
 
 t_pcb* sacar_de_ready(){
@@ -486,11 +506,11 @@ void agregar_a_bloqueado(t_pcb* pcb){
 }
 
 void sacar_de_bloqueado(t_pcb* pcb){
-	log_info(kernel_logger,"Empezó a sacar de bloqueado");
+	log_trace(kernel_logger,"Empezó a sacar de bloqueado");
 	sem_wait(&sem_block);
-	log_info(kernel_logger,"Semaforo habilito sacar de bloqueado");
+	log_trace(kernel_logger,"Semaforo habilito sacar de bloqueado");
 		list_remove_element(plani_block, pcb);
-	log_info(kernel_logger,"Sacamos de bloqueado con exito");	
+	log_trace(kernel_logger,"Sacamos de bloqueado con exito");	
 	sem_post(&sem_block);
 	//agregar_a_ready(pcb);		
 }
@@ -519,7 +539,7 @@ t_pcb* pcb_de_exec(){
 void mandar_contexto_a_CPU(t_pcb* pcb){
 	t_buffer* buffer_cpu = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu,pcb);    
-	log_info(kernel_logger, "Envio contexto de ejecucion a CPU %d", pcb->pid);
+	log_trace(kernel_logger, "Envio contexto de ejecucion a CPU %d", pcb->pid);
 	t_paquete* paquete_cpu = crear_paquete(CONTEXTO_EJECUCION, buffer_cpu);
     enviar_paquete(paquete_cpu, conexion_cpu_dispatch);	
 	destruir_paquete(paquete_cpu);
@@ -528,7 +548,7 @@ void mandar_contexto_a_CPU(t_pcb* pcb){
 void enviar_interrupcion_por_quantum(t_pcb* pcb){
     t_buffer* buffer_cpu2 = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu2,pcb);  
-	log_info(kernel_logger, "Envio interrupcion por fin de quantum a CPU %d", pcb->pid);  
+	log_trace(kernel_logger, "Envio interrupcion por fin de quantum a CPU %d", pcb->pid);  
 	t_paquete* paquete_cpu = crear_paquete(FIN_DE_QUANTUM, buffer_cpu2);
     enviar_paquete(paquete_cpu, conexion_cpu_interrupt); 
 	destruir_buffer(buffer_cpu2);
@@ -578,10 +598,10 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
     op_code op_code = recibir_operacion(cliente_kd);
 	if(obtener_algoritmo() != FIFO )
     pthread_cancel(hilo_quantum);	
-	log_info(kernel_logger,"Me llegó un op_code %d",op_code);
+	log_trace(kernel_logger,"Me llegó un op_code %d",op_code);
 	sem_post(&puedeEntrarAExec); 
 	llego_contexto = true;	
-	log_info(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
+	log_trace(kernel_logger,"Cancelo HILO QUANTUM %d",hilo_quantum);  //ACTUALIZAR LOS DATOS DE LA LSITA TOTAL DE PCBS
 	t_buffer* buffer = recibir_buffer(cliente_kd);	
 	t_pcb* pcbRecibido = extraer_pcb_del_buffer(buffer);
 
@@ -590,23 +610,23 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 	free(pcbRecibido);	
 	if(algoritmo_plani == VRR){		
 		temporal_stop(timer);
-		log_info(kernel_logger, "Se detiene el timer : %d, Quantum restante antes de restar: %d", timer->elapsed_ms,pcb->quantum);		
+		log_trace(kernel_logger, "Se detiene el timer : %d, Quantum restante antes de restar: %d", timer->elapsed_ms,pcb->quantum);		
 			tiempo_ejecutado = temporal_gettime(timer);	
 			temporal_destroy(timer);				
 				if(op_code != PROCESO_DESALOJADO){					
 					if (pcb->quantum - tiempo_ejecutado > 1) {
 						pcb->quantum -= tiempo_ejecutado;
-						log_info(kernel_logger, "Quantum restante: %d", pcb->quantum);						
+						log_trace(kernel_logger, "Quantum restante: %d", pcb->quantum);						
 					} else if(pcb->quantum - tiempo_ejecutado == 0){
 						pthread_cancel(hilo_quantum);
-						log_info(kernel_logger, "cancelo el hilo de quantum ya que justo dio cero");
+						log_trace(kernel_logger, "cancelo el hilo de quantum ya que justo dio cero");
 						pcb->quantum = (int64_t)QUANTUM;
-						log_info(kernel_logger, "Reiniciando ya que dió cero JUSTO, quantum restante: %d", pcb->quantum);						
+						log_trace(kernel_logger, "Reiniciando ya que dió cero JUSTO, quantum restante: %d", pcb->quantum);						
 					}else if(pcb->quantum - tiempo_ejecutado < 0){
 						pthread_cancel(hilo_quantum);
-						log_info(kernel_logger, "cancelo el hilo de quantum ya que dio negativo");
+						log_trace(kernel_logger, "cancelo el hilo de quantum ya que dio negativo");
 						pcb->quantum = (int64_t)QUANTUM;
-						log_info(kernel_logger, "Reiniciando ya que dió negativo, quantum restante: %d", pcb->quantum);						
+						log_trace(kernel_logger, "Reiniciando ya que dió negativo, quantum restante: %d", pcb->quantum);						
 					}
 
 				} 
@@ -620,22 +640,22 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			sacar_de_exec(pcb, op_code); 
 			const char* green =  "\033[1;32m"; 
 			pcb->ejecuto += 1;
-    		log_info(kernel_logger, "%sPROCESO DESALOJADO: %d N°: %d", green,pcb->pid,pcb->ejecuto); 
+    		log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
 			destruir_buffer(buffer);
 			
 			break;
 		case FIN_DE_QUANTUM:
 			sacar_de_exec(pcb, op_code);     
-    		//log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
+    		//log_trace(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
 			destruir_buffer(buffer);
 			break;
 		case INTERRUPTED_BY_USER:
-			log_info(kernel_logger, "llegó fin de proceso");
+			log_trace(kernel_logger, "llegó fin de proceso");
 			//t_buffer* buffer3 = recibir_buffer(cliente_kd);			        
 			atender_fin_proceso(buffer,op_code,pcb);			
 			break;
 		case SUCCESS:
-			log_info(kernel_logger, "Se finalizó correctamente el proceso");
+			log_trace(kernel_logger, "Se finalizó correctamente el proceso");
 			//t_buffer* buffer4 = recibir_buffer(cliente_kd);			        
 			atender_fin_proceso_success(buffer,op_code);
 			break;
@@ -651,18 +671,18 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
             break;
 		case SOLICITAR_SIGNAL:
 			char * recurso_signal = extraer_string_del_buffer(buffer);
-			log_info(kernel_logger, "Llegó solicitud de signal recurso: %s",recurso_signal);
+			log_trace(kernel_logger, "Llegó solicitud de signal recurso: %s",recurso_signal);
 
 			signal_recurso(pcb,recurso_signal);          
 
             break;
 		// ENTRADA SALIDA -----------------------------------------------------------
 		case IO_GEN_SLEEP:
-			log_info(kernel_logger,"LLegó un IO_GEN_SLEEP");
+			log_trace(kernel_logger,"LLegó un IO_GEN_SLEEP");
 			
 			char * nombre_interfaz_solicitada1 = extraer_string_del_buffer(buffer);
 			char* unidades_trabajo1 = extraer_string_del_buffer(buffer);
-			log_info(kernel_logger, "nombre de la interfaz %s", nombre_interfaz_solicitada1);
+			log_trace(kernel_logger, "nombre de la interfaz %s", nombre_interfaz_solicitada1);
 
 			sem_wait(&mutex_lista_interfaces);
 				t_entrada_salida* interfaz1 = buscar_interfaz(nombre_interfaz_solicitada1);
@@ -697,7 +717,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			
 			break;
 		case IO_STDIN_READ:
-			log_info(kernel_logger,"LLegó un IO_STDIN_READ");
+			log_trace(kernel_logger,"LLegó un IO_STDIN_READ");
 			
 
 			char* nombre_interfaz_solicitada2 = extraer_string_del_buffer(buffer);
@@ -739,7 +759,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 		case IO_STDOUT_WRITE:
-			log_info(kernel_logger,"LLegó un IO_STDOUT_WRITE");
+			log_trace(kernel_logger,"LLegó un IO_STDOUT_WRITE");
 			//sacar_de_exec(pcb,IO);
 
 			char* nombre_interfaz_solicitada3 = extraer_string_del_buffer(buffer);
@@ -780,7 +800,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 		case IO_FS_CREATE :
-			log_info(kernel_logger,"LLegó un IO_FS_CREATE");
+			log_trace(kernel_logger,"LLegó un IO_FS_CREATE");
 			
 
 			char* nombre_interfaz_solicitada4 = extraer_string_del_buffer(buffer);
@@ -817,7 +837,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 		case IO_FS_DELETE:
-			log_info(kernel_logger,"LLegó un IO_FS_DELETE");
+			log_trace(kernel_logger,"LLegó un IO_FS_DELETE");
 			
 
 			char* nombre_interfaz_solicitada5 = extraer_string_del_buffer(buffer);
@@ -854,7 +874,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 		case IO_FS_TRUNCATE:
-			log_info(kernel_logger,"LLegó un IO_FS_TRUNCATE");
+			log_trace(kernel_logger,"LLegó un IO_FS_TRUNCATE");
 			sacar_de_exec(pcb,IO);
 
 			char* nombre_interfaz_solicitada6 = extraer_string_del_buffer(buffer);
@@ -895,7 +915,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 		case IO_FS_WRITE:
-			log_info(kernel_logger,"LLegó un IO_FS_WRITE");
+			log_trace(kernel_logger,"LLegó un IO_FS_WRITE");
 			
 
 			char* nombre_interfaz_solicitada7 = extraer_string_del_buffer(buffer);
@@ -942,7 +962,7 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			}
 		break;
 		case IO_FS_READ:
-			log_info(kernel_logger,"LLegó un IO_FS_READ");
+			log_trace(kernel_logger,"LLegó un IO_FS_READ");
 			sacar_de_exec(pcb,IO);
 
 			char* nombre_interfaz_solicitada8 = extraer_string_del_buffer(buffer);
@@ -991,13 +1011,13 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 		break;
 
 		case EXIT:
-			log_info(kernel_logger,"LLegó un EXIT proceso %d",pcb->pid);
+			log_trace(kernel_logger,"LLegó un EXIT proceso %d",pcb->pid);
 			//t_buffer* buffer2 = recibir_buffer(cliente_kd);			        
 			atender_fin_proceso(buffer,op_code,pcb);
 			break;
 
 		case OUT_OF_MEMORY:
-			log_info(kernel_logger, "Llegó out of memory con pid: %d ", pcb->pid);
+			log_trace(kernel_logger, "Llegó out of memory con pid: %d ", pcb->pid);
 			//t_buffer* buffer5 = recibir_buffer(cliente_kd);			        
 			sacar_de_exec(pcb, op_code); 
 			break;
@@ -1007,14 +1027,14 @@ void atender_cpu_dispatch(void* socket_cliente_ptr) {
 			break;
 	}
 	llego_contexto = false;
-	log_info(kernel_logger,"llego contexto en FALSE");
+	log_trace(kernel_logger,"llego contexto en FALSE");
 	
 
 }
 
 int validar_interfaz_e_instruccion(t_pcb * pcb, t_entrada_salida * interfaz, op_code op_code){
 	
-	//log_info(kernel_logger, "nombre de la interfaz:  %d",interfaz->nombre);
+	//log_trace(kernel_logger, "nombre de la interfaz:  %d",interfaz->nombre);
 	if(interfaz == NULL){
 		log_error(kernel_logger, "No se encontró la interfaz solicitada, mando proceso a exit");
 		agregar_a_exit(pcb, INVALID_INTERFACE);
@@ -1035,7 +1055,7 @@ void atender_crear_pr2(t_pcb* pcb,op_code op_code){
 	//REVISAR ACÄ COMO CONTINUAR
 	sacar_de_exec(pcb, op_code);
      
-    //log_info(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
+    //log_trace(kernel_logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); 
 
     //destruir_buffer(buffer);
 }
@@ -1052,7 +1072,7 @@ void atender_proceso_desalojado(t_buffer* buffer, op_code op_code){
 	//REVISAR ACÄ COMO CONTINUAR
 	sacar_de_exec(pcb, op_code);
      
-    log_info(kernel_logger, "LLEGO A KERNEL PROCESO DESALOJADO - LO MANDO A READY XQ ESTOY EN RR: %d", valor_pcb.pid); 
+    log_trace(kernel_logger, "LLEGO A KERNEL PROCESO DESALOJADO - LO MANDO A READY XQ ESTOY EN RR: %d", valor_pcb.pid); 
 
     destruir_buffer(buffer);
 }
@@ -1070,21 +1090,21 @@ void *manejo_quantum(t_pcb * pcb){
 			break;
 		case VRR:			
 			timer = temporal_create();			
-			log_info(kernel_logger, "Es el hilo numero %d", pthread_self());
+			log_trace(kernel_logger, "Es el hilo numero %d", pthread_self());
 			identificador_hilo++;
-			log_info(kernel_logger,"Quantum restante antes de dormir: %d",pcb->quantum);
+			log_trace(kernel_logger,"Quantum restante antes de dormir: %d",pcb->quantum);
 			usleep((pcb->quantum)*1000);			
-			log_info(kernel_logger,"Se despertó el hilo de quantum");
-			log_info(kernel_logger,"LLegó el contexto? %d",llego_contexto);
+			log_trace(kernel_logger,"Se despertó el hilo de quantum");
+			log_trace(kernel_logger,"LLegó el contexto? %d",llego_contexto);
 			if(!llego_contexto){				
 				pcb->quantum = (int64_t)QUANTUM;
-				log_info(kernel_logger, "Reiniciando quantum ya que mando interrupcion restante: %d", pcb->quantum);	
+				log_trace(kernel_logger, "Reiniciando quantum ya que mando interrupcion restante: %d", pcb->quantum);	
 				enviar_interrupcion_por_quantum(pcb);			
 			}
 			
 			break;	
 	}
-	log_info(kernel_logger, "Fin de hilo Quantum %d",pthread_self());
+	log_trace(kernel_logger, "Fin de hilo Quantum %d",pthread_self());
 	//pthread_cancel(hilo_quantum);			
 
 }
@@ -1094,7 +1114,7 @@ void atender_fin_proceso(t_buffer* buffer,op_code op_code,t_pcb* pcb){
 	t_pcb valor_pcb = *pcb;
     
 	sacar_de_exec(pcb, op_code);     
-    log_info(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
+    log_trace(kernel_logger, "Llegó el fin de proceso: %d", valor_pcb.pid); 
 	finalizarProceso(valor_pcb.pid);//Le aviso a memoria
 	//Libero los recursos asignados al proceso
 	liberar_recursos(pcb);
@@ -1118,11 +1138,11 @@ void liberar_interfaces(t_pcb* pcb){
 }
 
 void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
-	log_info(kernel_logger,"Liberando interfaz");
+	log_trace(kernel_logger,"Liberando interfaz");
 		 const char *yellow = "\033[1;33m";
 	
 	if (queue_is_empty(interfaz_a_liberar->cola_procesos_bloqueados)){ // si no tengo a nadie esperando por la interfaz
-		log_info(kernel_logger, "%sNo hay procesos esperando por la interfaz %s", yellow,interfaz_a_liberar->nombre);
+		log_trace(kernel_logger, "%sNo hay procesos esperando por la interfaz %s", yellow,interfaz_a_liberar->nombre);
         interfaz_a_liberar->pid_usandola = 0;
         sem_post(&interfaz_a_liberar->sem_disponible);
     }else{
@@ -1133,7 +1153,7 @@ void liberar_interfaz(t_entrada_salida * interfaz_a_liberar){
 		cargar_int_a_buffer(buffer_interfaz, proximo_proceso_bloqueado->pcb->pid);
 		cargar_string_a_buffer(buffer_interfaz, interfaz_a_liberar->nombre);
 		
-		log_info(kernel_logger, "%sPongo el proceso %d que estaba esperando interfaz %s", yellow,interfaz_a_liberar->pid_usandola,interfaz_a_liberar->nombre);
+		log_trace(kernel_logger, "%sPongo el proceso %d que estaba esperando interfaz %s", yellow,interfaz_a_liberar->pid_usandola,interfaz_a_liberar->nombre);
 		for(int i=0; i < list_size(proximo_proceso_bloqueado->parametros); i++){
 			cargar_string_a_buffer(buffer_interfaz, list_get(proximo_proceso_bloqueado->parametros, i));
 		}
@@ -1164,7 +1184,7 @@ void liberar_recursos(t_pcb* pcb) {
 			int posicion_recurso = encontrar_posicion_recurso(recurso->nombre);			
 			for (int j = 0; j < recurso->cantidad; j++) { //libero cada instancia
 				//signal_recursos_finalizar_proceso(recurso->nombre); 
-				log_info(kernel_logger,"Hago signal n° %d del recurso %s", j,recurso->nombre);
+				log_trace(kernel_logger,"Hago signal n° %d del recurso %s", j,recurso->nombre);
 				signal_recurso(pcb, recurso->nombre);			
 			}
 			
@@ -1248,7 +1268,7 @@ void atender_fin_proceso_success(t_buffer* buffer,op_code op_code){
     t_pcb valor_pcb = *pcb;
     //free(pcb);	
 	sacar_de_exec(pcb, op_code);     
-    log_info(kernel_logger, "Llegó el proceso finalizado: %d", valor_pcb.pid); 
+    log_trace(kernel_logger, "Llegó el proceso finalizado: %d", valor_pcb.pid); 
 	finalizarProceso(valor_pcb.pid);
     destruir_buffer(buffer);
 }
@@ -1309,7 +1329,7 @@ void sacar_pcb_de_lista(t_pcb* pcb){
             }*/
             break;
         default:
-			log_info(kernel_logger, "No se encontro el proceso en ninguna cola");
+			log_trace(kernel_logger, "No se encontro el proceso en ninguna cola");
             exit(EXIT_FAILURE);
             break;
     }    
@@ -1381,7 +1401,7 @@ void wait_recurso(t_pcb *pcb, char *recurso_recibido){
 		//agregar_a_bloqueado(pcb);
 		//lo manejo
 		sacar_de_exec(pcb, ESPERA_RECURSO);// Bloqueado hasta q otro haga un signal del recurso que quiere	y lo mando a ready
-		log_info(kernel_logger, "PID: %d - Bloqueado por: %s", pcb->pid, recurso_recibido);
+		log_trace(kernel_logger, "PID: %d - Bloqueado por: %s", pcb->pid, recurso_recibido);
 	} 
 	
     
@@ -1444,7 +1464,7 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		
 		sem_wait(&semaforo_recursos[posicion_recurso]);
 		agregar_recurso_a_pcb(pcb_bloqueado, recurso_recibido);
-		log_info(kernel_logger,"Recursos asignados al proceso ", pcb_bloqueado->pid); 
+		log_trace(kernel_logger,"Recursos asignados al proceso ", pcb_bloqueado->pid); 
 
 		agregar_a_ready(pcb);
 		sacar_de_bloqueado(pcb_bloqueado);
@@ -1455,7 +1475,7 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		} 
 
 	}else{
-		log_info(kernel_logger,"No hay procesos en cola de bloqueados para el recurso %s", recurso_recibido);
+		log_trace(kernel_logger,"No hay procesos en cola de bloqueados para el recurso %s", recurso_recibido);
 		agregar_a_ready(pcb);
 	}
 

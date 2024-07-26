@@ -15,7 +15,6 @@ int conexion_kernel;
 int conexion_kernel2;
 int conexion_memoria;
 char* nombre_interfaz2;
-const char *green = "\033[1;32m";
 
 t_log* io_logger;
 t_list* interfaces;
@@ -83,7 +82,7 @@ int main(int argc, char* argv[]) {
     int* socket_cliente_kernel_ptr = malloc(sizeof(int));
     *socket_cliente_kernel_ptr = conexion_kernel;
     pthread_create(&hilo_kernel, NULL,atender_kernel, socket_cliente_kernel_ptr);
-    log_info(io_logger, "Esperando mensajes de Kernel");
+    log_trace(io_logger, "Esperando mensajes de Kernel");
     pthread_join(hilo_kernel,NULL);  
     
 
@@ -217,7 +216,7 @@ void inicializar_interfaces(char* path){
     bool control_key = 1;
     while(control_key){    
     op_code op_code = recibir_operacion(cliente_kernel2);
-    log_info(io_logger, "Operacion recibida: %d", op_code);
+    log_trace(io_logger, "Operacion recibida: %d", op_code);
     t_buffer* buffer = recibir_buffer(cliente_kernel2);       
     t_struct_atender_kernel* struct_atender_kernel = malloc(sizeof(t_struct_atender_kernel));
     struct_atender_kernel->codigo_operacion = op_code;
@@ -248,11 +247,11 @@ void inicializar_interfaces(char* path){
 
                     usleep(tiempo_sleep*1000);
 
-                    log_info(io_logger,"Dormi %d ", tiempo_sleep);
+                    log_trace(io_logger,"Dormi %d ", tiempo_sleep);
 
             } else {
 
-                log_info(io_logger,"El parametro no es valido");
+                log_trace(io_logger,"El parametro no es valido");
 
             }
         
@@ -281,9 +280,11 @@ void inicializar_interfaces(char* path){
         int tamanio_a_leer = atoi(extraer_string_del_buffer(buffer_recibido));
         t_list* direcciones_a_leer = crear_lista_direcciones(buffer_recibido);        
         
-        char* dato_a_leer = malloc(tamanio_a_leer);
+        char* dato_a_leer; 
+        log_info(io_logger,"Tamanio a leer %d ",tamanio_a_leer);
         dato_a_leer = (char*)leer_de_memoria(direcciones_a_leer, tamanio_a_leer, pid, conexion_memoria);
-        log_info(io_logger,"%sDato leido: %s",green ,dato_a_leer); //Es necesario el tamanio?
+        dato_a_leer[tamanio_a_leer] = '\0';
+        log_info(io_logger,"Dato leido: %s",dato_a_leer); //Es necesario el tamanio?
 
         list_destroy(direcciones_a_leer);  //VERIFICAR PARA LIBERAR MEMORIA BIEN !!!
         free(dato_a_leer);
@@ -302,8 +303,9 @@ void inicializar_interfaces(char* path){
 
         free(nombre_archivo_nuevo);
         free(fcb_crear);
-    
+        log_info(io_logger, "PID: %d - Crear Archivo: %s",pid,nombre_archivo_nuevo);
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_CREATE");
+        
 
         break;
          
@@ -315,8 +317,9 @@ void inicializar_interfaces(char* path){
         eliminar_archivo_metadata(nombre_archivo_a_borrar);
 
         free(nombre_archivo_a_borrar);
-
+        log_info(io_logger, "PID: %d - Eliminar Archivo: %s",pid,nombre_archivo_nuevo);
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_DELETE");
+        
         
         break;
 
@@ -335,8 +338,9 @@ void inicializar_interfaces(char* path){
         }
 
         free(fcb_truncar);
-
+        log_info(io_logger, "PID: %d - Truncar Archivo: %s - %d",pid,nombre_archivo_nuevo,tamanio_a_truncar);
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_TRUNCATE");
+        
         break;
 
         
@@ -354,7 +358,7 @@ void inicializar_interfaces(char* path){
         
 
         void* dato_a_escribir = leer_de_memoria(lista_direcciones_escribir, tamanio_lectura, pid, conexion_memoria);
-        log_info(io_logger, "Escribir archivo %s, PID: %i, Tamaño a escribir: %i, Offset: %i", nombre_archivo_escribir, pid, tamanio_lectura, offset);
+        log_info(io_logger, "PID: %d - Escribir Archivo: %s - Tamaño a Leer: %d - Puntero Archivo: %d",pid,nombre_archivo_escribir,tamanio_lectura,offset);
 
 
         t_fcb *fcb_fs_write = leer_metadata(nombre_archivo_escribir);
@@ -365,6 +369,7 @@ void inicializar_interfaces(char* path){
         free(dato_a_escribir);
 
         list_destroy(lista_direcciones_escribir);
+        
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_WRITE");
 
         break;
@@ -376,8 +381,7 @@ void inicializar_interfaces(char* path){
         int tamanio_escritura = atoi(extraer_string_del_buffer(buffer_recibido));
         int offset_archivo = atoi(extraer_string_del_buffer(buffer_recibido)); 
         t_list* lista_direcciones_a_escribir = extraer_lista_de_direcciones_de_buffer(buffer_recibido);
-
-        log_info(io_logger, "Escribir archivo %s, PID: %i, Tamaño a leer: %i, Offset: %i", nombre_archivo_leer, pid, tamanio_escritura, offset_archivo);
+        
 
         t_fcb *fcb_read = leer_metadata(nombre_archivo_leer);
         char* dato_leido = leer_archivo(tamanio_escritura, fcb_read, offset_archivo);
@@ -388,6 +392,8 @@ void inicializar_interfaces(char* path){
         free(nombre_archivo_leer);
         free(fcb_read);
         list_destroy(lista_direcciones_a_escribir);
+
+        log_info(io_logger, "PID: %d - Leer Archivo: %s - Tamaño a Leer: %d - Puntero Archivo: %d",pid,nombre_archivo_leer,tamanio_escritura,offset_archivo);
 
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_READ");
         break;
@@ -445,14 +451,14 @@ void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int 
 
 
 
-void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir){
+void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,void* valor_a_escribir){
 
    t_buffer* buffer_escritura = crear_buffer();
     cargar_string_a_buffer(buffer_escritura, nombre_interfaz2); //Nombre interfaz
     cargar_int_a_buffer(buffer_escritura, pid);    //PID
     cargar_int_a_buffer(buffer_escritura, direccion_fisica); //Direccion fisica
     cargar_int_a_buffer(buffer_escritura, tamanio); //Tamanio
-    cargar_string_a_buffer(buffer_escritura, valor_a_escribir); //Valor a escribir
+    cargar_a_buffer(buffer_escritura, valor_a_escribir,tamanio); //Valor a escribir
 
 
     t_paquete* paquete_escritura = crear_paquete(IO_STDIN_READ, buffer_escritura);
@@ -502,11 +508,11 @@ int tamanio_a_leer_direcciones(t_list* lista_direcciones){
 char* leer_de_consola(int tamanio){
 
     char* string_a_leer;    
-    log_info(io_logger, "%s Ingrese una cadena de texto", green,tamanio);
+    log_info(io_logger, "Ingrese una cadena de texto");
     string_a_leer = readline("> ");
 
     if(string_length(string_a_leer) > tamanio){
-        log_info(io_logger, "La cadena ocupa %i y deberia ocupar %i, se recortara", string_length(string_a_leer), tamanio);
+        log_trace(io_logger, "La cadena ocupa %i y deberia ocupar %i, se recortara", string_length(string_a_leer), tamanio);
     }
     char* string_recortado = string_substring_until(string_a_leer, tamanio);
     log_info(io_logger, "La cadena ingresada es: %s ", string_recortado);
@@ -615,8 +621,8 @@ void instruccion_realizada(int socket_kernel, char* nombre_recibido, int pid, ch
         
         enviar_paquete(paquete_response, conexion_kernel);
         destruir_paquete(paquete_response);
-
-        log_info(io_logger, "Operacion finalizada de %s, PID: %d", instruccion_realizada, pid);
+    
+        log_trace(io_logger, "Operacion finalizada de %s, PID: %d", instruccion_realizada, pid);
 
 }
 t_fcb* crear_fcb(char* nombre_archivo){

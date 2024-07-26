@@ -119,17 +119,17 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
     op_code handshake = recibir_operacion(cliente_ki);    
     t_buffer* buffer = recibir_buffer(cliente_ki);    
     //pthread_cancel(hilo_kernel_dispatch);
-    //log_info(cpu_cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
+    //log_trace(cpu_cpu_logger,"Cancelo hilo de dispatch porque me llega una interrupción");
 	switch(handshake) {
 		case FIN_DE_QUANTUM:
             t_pcb* pcb_fin = extraer_pcb_del_buffer(buffer);
             pcb_a_finalizar = pcb_fin;
-			log_info(cpu_logger, "Me llegó FIN DE QUANTUM");            			              
+			log_trace(cpu_logger, "Me llegó FIN DE QUANTUM");            			              
             atender_fin_quantum(buffer);
             hay_interrupcion = 1;
 			break;
 		case FINPROCESO:
-			log_info(cpu_logger, "me llegó finalizar proceso");                     
+			log_trace(cpu_logger, "me llegó finalizar proceso");                     
             mandaron_finalizar_desde_consola = 1;
 
 			break;
@@ -151,7 +151,7 @@ void atender_kernel_interrupt(void* socket_cliente_ptr) {
 void atender_crear_pr(t_buffer* buffer){
       
     t_pcb* pcbb = extraer_pcb_del_buffer(buffer);
-    log_info(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
+    log_trace(cpu_logger, "Creamos PCB: %d", pcbb->pid); 
     ciclo_de_instruccion(pcbb);
     destruir_buffer(buffer);
 
@@ -169,14 +169,14 @@ void atender_crear_pr(t_buffer* buffer){
 void atender_fin_quantum(t_buffer* buffer){
     /* 
     t_pcb* pcbb_no_sirve = extraer_pcb_del_buffer(buffer);
-    log_info(cpu_logger, "Fin de Quantum: %d", pcbb_no_sirve->pid);   
+    log_trace(cpu_logger, "Fin de Quantum: %d", pcbb_no_sirve->pid);   
     destruir_buffer(buffer) ;
     t_buffer* buffer_cpu_ki = crear_buffer();    
     cargar_pcb_a_buffer(buffer_cpu_ki,pcbb); 
     //char * recurso = "RA";
     //cargar_string_a_buffer(buffer_cpu_ki,recurso);
     pthread_cancel(hilo_kernel_dispatch);
-    log_info(cpu_logger, "Enviamos PCB de proceso desalojado - PID %d a Kernel Interrupt con Quantum %d", pcbb->pid, pcbb->quantum);   
+    log_trace(cpu_logger, "Enviamos PCB de proceso desalojado - PID %d a Kernel Interrupt con Quantum %d", pcbb->pid, pcbb->quantum);   
 	t_paquete* paquete_cpu = crear_paquete(PROCESO_DESALOJADO, buffer_cpu_ki);
     enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
     free(pcbb);*/  

@@ -310,10 +310,10 @@ void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid){
     int nuevo_inicial = 0;
 
     if(!hay_espacio_contiguo(fcb, bloques_actuales, bloques_finales - bloques_actuales)){
-        log_info(log_fs, "Comienzo compatación para pid: %d", pid);
+        log_info(log_fs, "PID: %d - Inicio Compactación.", pid);
         nuevo_inicial = compactar_fcb(fcb);
         usleep(RETRASO_COMPACTACION * 1000);
-        log_info(log_fs, "Fin compactación para pid: %d", pid);
+        log_info(log_fs, "PID: %d - Fin Compactación.", pid);
     }   
 
     for(int i = bloques_actuales; i < bloques_finales; i++){

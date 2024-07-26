@@ -81,7 +81,7 @@ void atender_peticiones_de_kernel(t_struct_atender_kernel* struct_atender_kernel
 
 void atender_kernel(void* socket_cliente_ptr);
 
-void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir);
+void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,void* valor_a_escribir);
 
 t_list* crear_lista_direcciones(t_buffer* buffer);
 

@@ -39,7 +39,7 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             pcbb->quantum = pcb_a_finalizar->quantum;
             t_buffer* buffer_cpu_ki = crear_buffer();    
             cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);           
-            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", ctx_global->pid);   
+            log_trace(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", ctx_global->pid);   
             t_paquete* paquete_cpu = crear_paquete(PROCESO_DESALOJADO, buffer_cpu_ki);
             enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
             free(pcbb);            
@@ -53,7 +53,7 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             //enviar_pcb_a_kernel
             t_buffer* buffer_cpu_ki = crear_buffer();    
             cargar_pcb_a_buffer(buffer_cpu_ki,pcbb);           
-            log_info(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcbb->pid);   
+            log_trace(cpu_logger, "Enviamos PCB de proceso FINALIZADO - PID %d ", pcbb->pid);   
             t_paquete* paquete_cpu = crear_paquete(INTERRUPTED_BY_USER, buffer_cpu_ki);
             enviar_paquete(paquete_cpu, cliente_kernel_dispatch);    
             free(pcbb);            
@@ -61,12 +61,12 @@ void ciclo_de_instruccion(t_pcb* pcbb){
             ctx_global = NULL;     
         }
     }
-    log_info(cpu_logger, "Valores de los registros del PCB:");
+    log_trace(cpu_logger, "Valores de los registros del PCB:");
 
-            log_info(cpu_logger, "Registro AX: %d | BX:%d | CX: %d", pcbb->registros.AX,pcbb->registros.BX,pcbb->registros.CX);
-            log_info(cpu_logger, "Registro DX: %d | EAX:%d | EBX: %d", pcbb->registros.DX,pcbb->registros.EAX,pcbb->registros.EBX);
-            log_info(cpu_logger, "Registro ECX: %d | EDX:%d | SI: %d", pcbb->registros.ECX,pcbb->registros.EDX,pcbb->registros.SI);
-            log_info(cpu_logger, "Registro DI: %d", pcbb->registros.DI);
+            log_trace(cpu_logger, "Registro AX: %d | BX:%d | CX: %d", pcbb->registros.AX,pcbb->registros.BX,pcbb->registros.CX);
+            log_trace(cpu_logger, "Registro DX: %d | EAX:%d | EBX: %d", pcbb->registros.DX,pcbb->registros.EAX,pcbb->registros.EBX);
+            log_trace(cpu_logger, "Registro ECX: %d | EDX:%d | SI: %d", pcbb->registros.ECX,pcbb->registros.EDX,pcbb->registros.SI);
+            log_trace(cpu_logger, "Registro DI: %d", pcbb->registros.DI);
 }
 
 
@@ -289,7 +289,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
     case SET:                                                            //SET(Registro, Valor)
         char* registro_set =  (char*) list_get(instruccion.parametros, 0);
         char* valor_inst = list_get(instruccion.parametros, 1);
-        log_info(cpu_logger, "PID : %d - Ejecutando: <SET> - <%s %s>", contexto->pid, registro_set, valor_inst);
+        log_info(cpu_logger, "PID : %d - Ejecutando: <SET> - <%s %d>", contexto->pid, registro_set, atoi(valor_inst));
         int valor = atoi(valor_inst);
         asignar_valor_a_registro(contexto,registro_set,valor);
         list_destroy_and_destroy_elements(instruccion.parametros, free);
@@ -379,7 +379,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                 dir_logica = *(uint32_t*) obtener_puntero_al_registro(contexto, registro_direccion_mov_in);    
             } 
             
-                        
+            log_info(cpu_logger, "PID: %d - Ejecutando: MOV_IN - %s %s", contexto->pid, registro_datos_mov_in, registro_direccion_mov_in);               
             
             t_list* direccion_fisica = traducir_direccion_mmu(dir_logica, contexto,bytes_a_leer);
 
@@ -392,7 +392,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             if(bytes_a_leer == 1){ 
                 uint8_t valor_leido = *(uint8_t*)leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
                 asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
-                log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
+                log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica, valor_leido);
                 if (valor_leido == NULL) {
                     log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
                     return;
@@ -432,7 +432,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             void* valor_out = obtener_puntero_al_registro(contexto, registro_datos);
             
             log_info(cpu_logger, "PID: %d - Ejecutando: MOV_OUT - %s %s", contexto->pid, registro_direccion, registro_datos);
-            log_info(cpu_logger, "PID: %d - Dirección Lógica: %d - Valor: %d", contexto->pid, direccion_logica, *(uint8_t*)valor_out);
+            log_info(cpu_logger, "PID: %d - ESCRIBIR - Dirección Fisica: %d - Valor: %d", contexto->pid, direccion_logica, *(uint8_t*)valor_out);
             t_list* lista_df = traducir_direccion_mmu(direccion_logica,contexto, bytes_a_escribir);           
 
 
@@ -1043,7 +1043,7 @@ t_list* traducir_direccion_mmu(int dir_logica, t_pcb *ctx,int tamanio_solicitad)
         return -1;
     } 
 
-    log_info(cpu_logger, "PID: %d - OBTENER MARCO - Página: %d - Marco: %d",ctx->pid,nro_pagina,nro_marco);    
+    log_trace(cpu_logger, "PID: %d - OBTENER MARCO - Página: %d - Marco: %d",ctx->pid,nro_pagina,nro_marco);    
     agregar_entry_tlb(ctx, nro_pagina, nro_marco);
     }
     t_direccion_fisica_io * dir_fisica;
@@ -1080,12 +1080,12 @@ int solicitar_numero_de_marco(int num_pagina, int pid)
     t_paquete *paquete = crear_paquete(SOLICITUD_MARCO,buffer);
     enviar_paquete(paquete,conexion_memoria);
     destruir_paquete(paquete);
-    log_info(cpu_logger, "%s PID: %d -Solicitando marco para pagina %d",green,pid,num_pagina);
+    log_trace(cpu_logger, "%s PID: %d -Solicitando marco para pagina %d",green,pid,num_pagina);
     int num_marco;
     op_code cod_op = recibir_operacion(conexion_memoria);
     t_buffer *buffer_recibido = recibir_buffer(conexion_memoria);
     num_marco = extraer_int_del_buffer(buffer_recibido);
-    log_info(cpu_logger, "%s PID: %d -Marco obtenido para pagina %d: %d",green,pid,num_pagina,num_marco);
+    log_trace(cpu_logger, "%s PID: %d -Marco obtenido para pagina %d: %d",green,pid,num_pagina,num_marco);
     if(num_marco < 0)
     {
         log_error(cpu_logger, "Ocurrio un error al recibir el numero de marco");
@@ -1131,15 +1131,15 @@ void agregar_entry_tlb(t_pcb* cpu, int pagina, int marco) {
 
 	// Checkeamos si agregar un elemento haria que nos pasemos del maximo de entradas permitidas, y en ese caso eliminamos el primero.
     //if(strcmp(ALGORITMO_TLB, "FIFO") == 0 || strcmp(ALGORITMO_TLB, "LRU") == 0){   //TODO: Preguntar a franco si esta bien.
-    log_info(cpu_logger, "CANT ENTRADAS %d", CANTIDAD_ENTRADAS_TLB);
+    log_trace(cpu_logger, "CANT ENTRADAS %d", CANTIDAD_ENTRADAS_TLB);
 	if (list_size(tlb) >= CANTIDAD_ENTRADAS_TLB) {
         if(list_size(tlb)!=0){
         t_tlb_entry* first_entry = list_remove(tlb, 0);
-        log_info(cpu_logger, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
+        log_trace(cpu_logger, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
 		free(first_entry);
         }
 	} else {
-        log_info(cpu_logger, "TLB: entry de pagina %d agregado", pagina);
+        log_trace(cpu_logger, "TLB: entry de pagina %d agregado", pagina);
     }
 
 	list_add(tlb, entry);
@@ -1246,12 +1246,12 @@ int consultar_tlb(t_list* tlb, int pagina) {
 				list_remove(tlb, i);
 				list_add(tlb, entry);
 			}
-			log_info(cpu_logger, "TLB: HIT PAGINA %d | MARCO %d", pagina, entry->marco);
+			log_trace(cpu_logger, "TLB: HIT PAGINA %d | MARCO %d", pagina, entry->marco);
 
 			return entry->marco;
 		}
 	}
-	log_info(cpu_logger, "TLB: MISS de PAGINA %d", pagina);
+	log_trace(cpu_logger, "TLB: MISS de PAGINA %d", pagina);
 	return -1;
 }
 
@@ -1265,10 +1265,10 @@ void agregar_entry_tlb(t_cpu* cpu, int pagina, int marco) {
 	// Checkeamos si agregar un elemento haria que nos pasemos del maximo de entradas permitidas, y en ese caso eliminamos el primero.
 	if (list_size(tlb) >= cpu->cpu_config->ENTRADAS_TLB) {
 		t_tlb_entry* first_entry = list_remove(tlb, 0);
-        log_info(cpu->cpu_log, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
+        log_trace(cpu->cpu_log, "TLB: entry de pagina %d agregado (reemplaza a pagina %d)", pagina, first_entry->pagina);
 		free(first_entry);
 	} else {
-        log_info(cpu->cpu_log, "TLB: entry de pagina %d agregado", pagina);
+        log_trace(cpu->cpu_log, "TLB: entry de pagina %d agregado", pagina);
     }
 
 	list_add(tlb, entry);

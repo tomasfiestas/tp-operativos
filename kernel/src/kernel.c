@@ -47,8 +47,7 @@ int main(int argc, char* argv[]) {
     //Inicio el servidor
     servidor = iniciar_servidor(PUERTO_ESCUCHA);
     
-    //Espero a los clientes
-   // cliente_entradasalida = esperar_cliente(servidor); 
+    
 
     
     //Planificacion
@@ -62,13 +61,7 @@ int main(int argc, char* argv[]) {
 
     lista_interfaces = list_create();
 
-    //Atiendo mensajes de Entrada/Salida
-    /*pthread_t hilo_entradasalida;
-    int* socket_cliente_entradasalida2_ptr = malloc(sizeof(int));
-    *socket_cliente_entradasalida2_ptr = cliente_entradasalida;
-    pthread_create(&hilo_entradasalida, NULL,atender_entradasalida2, socket_cliente_entradasalida2_ptr);
-    log_info(kernel_logger, "Atendiendo mensajes de Entrada/Salida");
-    pthread_join(hilo_entradasalida,NULL);*/
+    
 
     //Acá espero y manejo a entrada y salida. Por cada uno que acepto creo un hilo.
     sem_init(&mutex_lista_interfaces,0,1);
@@ -76,7 +69,7 @@ int main(int argc, char* argv[]) {
         pthread_t hilo_entradasalida;
         int *fd_conexion_ptr = malloc(sizeof(int));
         *fd_conexion_ptr = accept(servidor, NULL, NULL);
-        log_info(kernel_logger, "Se conecto una nueva interfaz");        
+        log_trace(kernel_logger, "Se conecto una nueva interfaz");        
         pthread_create(&hilo_entradasalida,NULL,atender_entradasalida2,fd_conexion_ptr);
         pthread_detach(hilo_entradasalida);
     }
@@ -110,13 +103,12 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             sem_init(&nueva_interfaz->sem_disponible, 0, 1);
             nueva_interfaz-> pid_usandola = 0;
             nueva_interfaz->fd_interfaz = cliente_entradasalida2;
-            log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s y socket %d",
-            nueva_interfaz->nombre,nueva_interfaz->tipo,nueva_interfaz->fd_interfaz);
+            log_info(kernel_logger, "Nombre nueva interfaz: %s y tipo %s ",nueva_interfaz->nombre,nueva_interfaz->tipo);
             nueva_interfaz->cola_procesos_bloqueados = queue_create();
             sem_wait(&mutex_lista_interfaces);
                 list_add(lista_interfaces, nueva_interfaz);
             sem_post(&mutex_lista_interfaces);
-            log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
+            log_trace(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
             break;
             
             case OPERACION_FINALIZADA:
@@ -129,20 +121,20 @@ void atender_entradasalida2(void* socket_cliente_ptr){
 
             //Hay que poner el PCB en la cola de listos
             t_pcb* pcb_a_liberar = buscarPcb(pid);
-            log_info(kernel_logger, "Se encontró el pcb a liberar: %d", pcb_a_liberar->pid);
+            log_trace(kernel_logger, "Se encontró el pcb a liberar: %d", pcb_a_liberar->pid);
             if(pcb_a_liberar != NULL){
                 sacar_de_bloqueado(pcb_a_liberar);  
-            log_info(kernel_logger, "Se liberó: %d", pcb_a_liberar->pid);
+            log_trace(kernel_logger, "Se liberó: %d", pcb_a_liberar->pid);
            
              const char *cyan = "\033[1;36m";
             if (obtener_algoritmo() == VRR){
-                log_info(kernel_logger, "%sSe agrega a la cola prioritaria el pcb %d",cyan, pcb_a_liberar->pid);
+                log_trace(kernel_logger, "%sSe agrega a la cola prioritaria el pcb %d",cyan, pcb_a_liberar->pid);
                 agregar_a_cola_prioritaria(pcb_a_liberar); 
-                log_info(kernel_logger, "%sSe agregó a la cola prioritaria el pcb %d", cyan,pcb_a_liberar->pid);
+                log_trace(kernel_logger, "%sSe agregó a la cola prioritaria el pcb %d", cyan,pcb_a_liberar->pid);
             }else{ 
-                log_info(kernel_logger, "%sSe agrega a la cola READY %d",cyan, pcb_a_liberar->pid);
+                log_trace(kernel_logger, "%sSe agrega a la cola READY %d",cyan, pcb_a_liberar->pid);
                 agregar_a_ready(pcb_a_liberar);
-                log_info(kernel_logger, "%sSe agregó a la cola READY %d",cyan, pcb_a_liberar->pid);
+                log_trace(kernel_logger, "%sSe agregó a la cola READY %d",cyan, pcb_a_liberar->pid);
             }
             //agregar_a_exit(pcb_a_liberar,SUCCESS);  
                                
@@ -157,7 +149,7 @@ void atender_entradasalida2(void* socket_cliente_ptr){
             sem_wait(&mutex_lista_interfaces);
                 list_remove_element(lista_interfaces, nueva_interfaz);
             sem_post(&mutex_lista_interfaces);
-            log_info(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
+            log_trace(kernel_logger,"Tamaño  de la lista de interfaces: %d", list_size(lista_interfaces));
 			control_key = 0;
 			break;
         }

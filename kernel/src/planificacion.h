@@ -87,5 +87,6 @@ int validar_instruccion_interfaz(t_entrada_salida* t_entrada_salida,op_code op_c
 int validar_interfaz_e_instruccion(t_pcb * pcb,t_entrada_salida* interfaz, op_code op_code);
 void liberar_interfaces(t_pcb* pcb);
 void liberar_interfaz(t_entrada_salida * interfaz);
+char* string_cola(t_queue* cola);
 
 #endif 
