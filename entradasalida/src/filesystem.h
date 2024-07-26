@@ -76,13 +76,13 @@ char* leer_archivo(int tamanio, t_fcb *fcb, int offset);
 
 void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid);
 
-void achicar_archivo(t_fcb *fcb, int tamanio_nuevo);
+void achicar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid);
 
 t_list* leer_directorio();
 
 bool comparar_tamanios_fcbs(void *e1, void* e2);
 
-int compactar_fcb(t_fcb* fcb);
+int agrandar_fcb(t_fcb* fcb, int tamanio_deseado, int pid);
 
 char* leer_bloques(int bloque_inicial, int tamanio);
 

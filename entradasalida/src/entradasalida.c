@@ -283,8 +283,11 @@ void inicializar_interfaces(char* path){
         char* dato_a_leer; 
         log_info(io_logger,"Tamanio a leer %d ",tamanio_a_leer);
         dato_a_leer = (char*)leer_de_memoria(direcciones_a_leer, tamanio_a_leer, pid, conexion_memoria);
-        dato_a_leer[tamanio_a_leer] = '\0';
-        log_info(io_logger,"Dato leido: %s",dato_a_leer); //Es necesario el tamanio?
+        char* string_para_imprimir_con_el_cosito_del_final = malloc(tamanio_a_leer + 1);
+        memcpy(string_para_imprimir_con_el_cosito_del_final, dato_a_leer, tamanio_a_leer);
+        string_para_imprimir_con_el_cosito_del_final[tamanio_a_leer] = '\0';
+        log_info(io_logger,"Dato leido: %s",string_para_imprimir_con_el_cosito_del_final); //Es necesario el tamanio?
+        free(string_para_imprimir_con_el_cosito_del_final);
 
         list_destroy(direcciones_a_leer);  //VERIFICAR PARA LIBERAR MEMORIA BIEN !!!
         free(dato_a_leer);
@@ -332,13 +335,13 @@ void inicializar_interfaces(char* path){
         int tamanio_a_truncar = atoi(extraer_string_del_buffer(buffer_recibido)); //int o uint????
         t_fcb* fcb_truncar = leer_metadata(nombre_archivo_a_truncar);
         if(fcb_truncar->TAMANIO_ARCHIVO > tamanio_a_truncar){
-            achicar_archivo(fcb_truncar, tamanio_a_truncar);
+            achicar_archivo(fcb_truncar, tamanio_a_truncar, pid);
         } else {
             agrandar_archivo(fcb_truncar, tamanio_a_truncar, pid);
         }
 
         free(fcb_truncar);
-        log_info(io_logger, "PID: %d - Truncar Archivo: %s - %d",pid,nombre_archivo_nuevo,tamanio_a_truncar);
+        log_info(io_logger, "PID: %d - Truncar Archivo: %s - %d",pid,nombre_archivo_a_truncar,tamanio_a_truncar);
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_TRUNCATE");
         
         break;
@@ -451,14 +454,14 @@ void enviar_para_escribir(t_list* lista_direcciones_escribir ,char* string ,int 
 
 
 
-void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,void* valor_a_escribir){
+void enviar_solicitud_escritura(int pid, int direccion_fisica, int tamanio,char* valor_a_escribir){
 
    t_buffer* buffer_escritura = crear_buffer();
     cargar_string_a_buffer(buffer_escritura, nombre_interfaz2); //Nombre interfaz
     cargar_int_a_buffer(buffer_escritura, pid);    //PID
     cargar_int_a_buffer(buffer_escritura, direccion_fisica); //Direccion fisica
     cargar_int_a_buffer(buffer_escritura, tamanio); //Tamanio
-    cargar_a_buffer(buffer_escritura, valor_a_escribir,tamanio); //Valor a escribir
+    cargar_string_a_buffer(buffer_escritura, valor_a_escribir); //Valor a escribir
 
 
     t_paquete* paquete_escritura = crear_paquete(IO_STDIN_READ, buffer_escritura);
@@ -636,4 +639,14 @@ t_fcb* crear_fcb(char* nombre_archivo){
     log_trace(io_logger, "EL bloque inicial designado es %i", fcb->BLOQUE_INICIAL);
 
     return fcb;
+}
+
+void liberar_lista_direcciones(t_list* lista) {
+    // Recorrer y liberar cada elemento de la lista
+    for (int i = 0; i < list_size(lista); i++) {
+        t_direccion_fisica_io* direccion = list_get(lista, i);
+        free(direccion);  // Liberar cada elemento
+    }
+    // Liberar la estructura de la lista en sí
+    list_destroy(lista);
 }

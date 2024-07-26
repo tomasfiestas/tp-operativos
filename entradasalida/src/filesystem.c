@@ -305,37 +305,12 @@ char* leer_archivo(int tamanio, t_fcb *fcb, int offset){
 }
 
 void agrandar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid){
-    int bloques_actuales = bloques_necesarios(fcb->TAMANIO_ARCHIVO);
-    int bloques_finales = bloques_necesarios(tamanio_nuevo);
-    int nuevo_inicial = 0;
-
-    if(!hay_espacio_contiguo(fcb, bloques_actuales, bloques_finales - bloques_actuales)){
-        log_info(log_fs, "PID: %d - Inicio Compactación.", pid);
-        nuevo_inicial = compactar_fcb(fcb);
-        usleep(RETRASO_COMPACTACION * 1000);
-        log_info(log_fs, "PID: %d - Fin Compactación.", pid);
-    }   
-
-    for(int i = bloques_actuales; i < bloques_finales; i++){
-        bitmap_marcar_bloque_ocupado(fcb->BLOQUE_INICIAL + i);
-    }
-
-    fcb->TAMANIO_ARCHIVO = tamanio_nuevo;
-    fcb-> BLOQUE_INICIAL = nuevo_inicial;
-    crear_archivo_metadata(fcb);
+    agrandar_fcb(fcb, tamanio_nuevo, pid);
 }
 
 
-void achicar_archivo(t_fcb *fcb, int tamanio_nuevo){
-    int bloques_actuales = bloques_necesarios(fcb->TAMANIO_ARCHIVO);
-    int bloques_finales = bloques_necesarios(tamanio_nuevo);
-
-    for(int i = bloques_actuales - 1; i>= bloques_finales; i--){
-        bitmap_marcar_bloque_libre(fcb->BLOQUE_INICIAL + i);
-    }
-    fcb->TAMANIO_ARCHIVO = tamanio_nuevo;
-    crear_archivo_metadata(fcb);
-
+void achicar_archivo(t_fcb *fcb, int tamanio_nuevo, int pid){
+    achicar_fcb(fcb, tamanio_nuevo, pid);
 }
 
 t_list* leer_directorio(){
@@ -374,44 +349,43 @@ bool comparar_tamanios_fcbs(void *e1, void* e2) {
 }
 
 
-int compactar_fcb(t_fcb* fcb){
-    t_list* lista_fcb = leer_directorio();
-    t_fcb* fcb_a_cambiar = buscar_fcb(fcb, lista_fcb);
+// int agrandar_fcb(t_fcb* fcb, int tamanio_deseado){
+//     t_list* lista_fcb = leer_directorio();
+//     t_fcb* fcb_a_cambiar = buscar_fcb(fcb, lista_fcb);
 
-    int tamanio_a_agrandar = bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) * BLOCK_SIZE;
-    char* contenido_a_agrandar = malloc(tamanio_a_agrandar);
-    //revisar
-    contenido_a_agrandar = buscar_contenido_fcb(fcb_a_cambiar);
+//     char* contenido_a_agrandar = malloc(tamanio_deseado);
+    
+//     contenido_a_agrandar = buscar_contenido_fcb(fcb_a_cambiar);
 
-    bitmap_marcar_bloques_libres(fcb->BLOQUE_INICIAL, max(bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) + fcb_a_cambiar->BLOQUE_INICIAL -1,0));
+//     int cantidad_bloques_actuales = max(bloques_necesarios(fcb_a_cambiar->TAMANIO_ARCHIVO) + fcb_a_cambiar->BLOQUE_INICIAL -1,0);
 
-    for(int i = 0; i < list_size(lista_fcb); i++){
-        t_fcb* fcb_actual = list_get(lista_fcb, i);
-        if(fcb_actual->BLOQUE_INICIAL == fcb_a_cambiar->BLOQUE_INICIAL){
-            continue;
-        }
-        int bloque_inicial = fcb_actual->BLOQUE_INICIAL;
-        int bloque_final = max(bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) + bloque_inicial - 1, 0);
-        int tamanio = bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) * BLOCK_SIZE;
+//     bitmap_marcar_bloques_libres(fcb->BLOQUE_INICIAL, cantidad_bloques_actuales);
 
-        char* contenido_bloques;
-        contenido_bloques = buscar_contenido_fcb(fcb_actual);
+//     for(int i = 0; i < list_size(lista_fcb); i++){
+//         t_fcb* fcb_actual = list_get(lista_fcb, i);
+//         if(fcb_actual->BLOQUE_INICIAL == fcb_a_cambiar->BLOQUE_INICIAL){
+//             continue;
+//         }
+//         int bloque_inicial = fcb_actual->BLOQUE_INICIAL;
+//         int bloque_final = max(bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) + bloque_inicial - 1, 0);
+//         int tamanio = bloques_necesarios(fcb_actual->TAMANIO_ARCHIVO) * BLOCK_SIZE;
 
-        bitmap_marcar_bloques_libres(bloque_inicial, bloque_final);
-        int nuevo_bloque_inicial = copiar_contenido_a(contenido_bloques, tamanio);
-        fcb_actual->BLOQUE_INICIAL = nuevo_bloque_inicial;
+//         char* contenido_bloques;
+//         contenido_bloques = buscar_contenido_fcb(fcb_actual);
 
-        crear_archivo_metadata(fcb_actual);
-        free(fcb_actual->nombre_archivo);
-        free(fcb_actual);
-    }
+//         bitmap_marcar_bloques_libres(bloque_inicial, bloque_final);
+//         int nuevo_bloque_inicial = copiar_contenido_a(contenido_bloques, tamanio);
+//         fcb_actual->BLOQUE_INICIAL = nuevo_bloque_inicial;
 
-    int archivo_nuevo_bloque_inicial = copiar_contenido_a(contenido_a_agrandar, tamanio_a_agrandar);
-    list_destroy(lista_fcb);
-    return archivo_nuevo_bloque_inicial;
+//         crear_archivo_metadata(fcb_actual);
+//         free(fcb_actual->nombre_archivo);
+//         free(fcb_actual);
+//     }
 
-
-}
+//     int archivo_nuevo_bloque_inicial = copiar_contenido_a(contenido_a_agrandar, tamanio_deseado);
+//     list_destroy(lista_fcb);
+//     return archivo_nuevo_bloque_inicial;
+// }
 
 t_fcb* buscar_fcb(t_fcb* fcb1, t_list* lista_fcbs){
     bool comparar_fcb(void *fcb){
@@ -499,9 +473,131 @@ void crear_bitmap(){
     }
 
     bitmap->bitarray = bitarray_create_with_mode(bitmap->direccion, bitmap->tamanio, LSB_FIRST);
-    for(int i = 0; i < bitmap->tamanio; i++) {
-        bitarray_clean_bit(bitmap->bitarray, i);
-    }
+    
 
     close(fd_bitmap);
+}
+
+int achicar_fcb(t_fcb* fcb, int tamanio_deseado){
+    t_list* lista_fcb = leer_directorio();
+
+    // pararme en el bloque final
+    int posicion_final = fcb->BLOQUE_INICIAL + ceil((double)fcb->TAMANIO_ARCHIVO / BLOCK_SIZE);
+    int bloques_deseados = ceil((double)tamanio_deseado / BLOCK_SIZE);
+
+    bitmap_marcar_bloques_libres(fcb->BLOQUE_INICIAL + bloques_deseados, posicion_final);
+
+    // restarle la cantidad deseada a achicar de bloques según el tamaño solicitado / blocksize
+    fcb->TAMANIO_ARCHIVO = tamanio_deseado;
+    crear_archivo_metadata(fcb);
+
+    // compactar
+    compactar(lista_fcb);
+}
+
+
+
+
+int agrandar_fcb(t_fcb* fcb, int tamanio_deseado, int pid) {
+    t_list* lista_fcb = leer_directorio();
+    
+    // 1. compactar
+    compactar(lista_fcb, pid);
+
+    // 2a. hay espacio libre
+    int bloques_libres = contar_bloques_libres();
+    int bloques_actuales = max(ceil((double) fcb->TAMANIO_ARCHIVO / BLOCK_SIZE),1);
+    int bloques_necesarios = ceil((double) tamanio_deseado / BLOCK_SIZE) - bloques_actuales;
+
+    if(bloques_libres >= bloques_necesarios) {
+        // tamaño de bloque inicial y posicion
+        int bloque_inicial_del_fcb = fcb->BLOQUE_INICIAL;
+        int bloques_totales_del_fcb = max(ceil((double)fcb->TAMANIO_ARCHIVO / BLOCK_SIZE),1);
+
+        // necesito empujar a los otros? 
+        if(bloques_necesarios > bloques_totales_del_fcb) {
+            // muevo todos los bloques, 
+            // desde el principio del molesto de adelante, 
+            // la cantidad de espacio que necesito
+            mover_bloques_adelante(lista_fcb, bloque_inicial_del_fcb + bloques_totales_del_fcb, bloques_necesarios);
+
+            // finalmente, agrandamos el fcb
+            fcb->TAMANIO_ARCHIVO = tamanio_deseado;
+            bitmap_marcar_bloques_ocupados(bloque_inicial_del_fcb, bloques_necesarios);
+            crear_archivo_metadata(fcb);
+            return 1; //agregar crear a metadata
+
+        } 
+    } else {
+        // aca hay que ver como carajo salir de este error.
+        return -1;
+    }
+    
+}
+
+void compactar(t_list* lista_fcb, int pid) {
+    log_info(log_fs, "PID: %d - Inicio Compactación.", pid);
+    usleep(RETRASO_COMPACTACION * 1000);
+    
+    int posicion_final = 0;
+
+    for (int i = 0; i < BLOCK_COUNT; i++) {
+        if (bitarray_test_bit(bitmap->bitarray, i)) {
+            if (i != posicion_final) {
+                bitmap_marcar_bloque_ocupado(posicion_final);
+                bitmap_marcar_bloque_libre(i);
+
+                // Actualizar el bloque inicial del FCB correspondiente
+                for (int k = 0; k < list_size(lista_fcb); k++) {
+                    t_fcb* fcb = list_get(lista_fcb, k);
+                    char* contenido = buscar_contenido_fcb(fcb);
+
+                    if (fcb->BLOQUE_INICIAL == i) {
+                        fcb->BLOQUE_INICIAL = posicion_final;
+                        crear_archivo_metadata(fcb);
+                        escribir_archivo(fcb->BLOQUE_INICIAL, 0, contenido, string_length(contenido));
+                        break;
+                    }
+                }
+            }
+            posicion_final++;
+        }
+    }
+
+    log_info(log_fs, "PID: %d - Fin Compactación.", pid);
+}
+
+int contar_bloques_libres() {
+    int bloques_libres = 0;
+
+    for (int i = 0; i < BLOCK_COUNT; i++) {
+        if (!bitarray_test_bit(bitmap->bitarray, i)) {
+            bloques_libres++;
+        }
+    }
+
+    return bloques_libres;
+}
+
+void mover_bloques_adelante(t_list* lista_fcb, int posicion_inicial, int cantidad_mover) {
+    for (int i = posicion_inicial; i < BLOCK_COUNT; i++) {
+        if (bitarray_test_bit(bitmap->bitarray, i)) {
+            int nuevo_bloque = i + cantidad_mover;
+            bitmap_marcar_bloque_ocupado(nuevo_bloque);
+            bitmap_marcar_bloque_libre(i);
+
+            // Actualizar el bloque inicial del FCB correspondiente
+            for (int k = 0; k < list_size(lista_fcb); k++) {
+                t_fcb* fcb = list_get(lista_fcb, k);
+                char* contenido = buscar_contenido_fcb(fcb);
+
+                if (fcb->BLOQUE_INICIAL == i) {
+                    fcb->BLOQUE_INICIAL = nuevo_bloque;
+                    crear_archivo_metadata(fcb);
+                    escribir_archivo(fcb->BLOQUE_INICIAL, 0, contenido, string_length(contenido));
+                    break;
+                }
+            }
+        }
+    }
 }
