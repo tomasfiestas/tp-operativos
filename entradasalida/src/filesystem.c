@@ -507,7 +507,7 @@ int agrandar_fcb(t_fcb* fcb, int tamanio_deseado, int pid) {
     // 2a. hay espacio libre
     int bloques_libres = contar_bloques_libres();
     int bloques_actuales = max(ceil((double) fcb->TAMANIO_ARCHIVO / BLOCK_SIZE),1);
-    int bloques_necesarios = ceil((double) tamanio_deseado / BLOCK_SIZE) - bloques_actuales;
+    int bloques_necesarios = max(ceil((double) tamanio_deseado / BLOCK_SIZE) - bloques_actuales,1);
 
     if(bloques_libres >= bloques_necesarios) {
         // tamaño de bloque inicial y posicion
@@ -523,7 +523,7 @@ int agrandar_fcb(t_fcb* fcb, int tamanio_deseado, int pid) {
 
             // finalmente, agrandamos el fcb
             fcb->TAMANIO_ARCHIVO = tamanio_deseado;
-            bitmap_marcar_bloques_ocupados(bloque_inicial_del_fcb, bloques_necesarios);
+            bitmap_marcar_bloques_ocupados(bloque_inicial_del_fcb, bloques_necesarios+bloque_inicial_del_fcb);
             crear_archivo_metadata(fcb);
             return 1; //agregar crear a metadata
 
@@ -580,11 +580,24 @@ int contar_bloques_libres() {
 }
 
 void mover_bloques_adelante(t_list* lista_fcb, int posicion_inicial, int cantidad_mover) {
-    for (int i = posicion_inicial; i < BLOCK_COUNT; i++) {
+    int bloques_ocupados = BLOCK_COUNT - contar_bloques_libres();   
+    int cantidad_restante_por_mover = cantidad_mover; 
+    for (int i = posicion_inicial; i < posicion_inicial+contar_bloques_ocupados_por_delante(posicion_inicial,bloques_ocupados); i++) {
         if (bitarray_test_bit(bitmap->bitarray, i)) {
             int nuevo_bloque = i + cantidad_mover;
-            bitmap_marcar_bloque_ocupado(nuevo_bloque);
-            bitmap_marcar_bloque_libre(i);
+            if(!bitarray_test_bit(bitmap->bitarray, nuevo_bloque)) {
+                bitmap_marcar_bloque_ocupado(nuevo_bloque);
+                bitmap_marcar_bloque_libre(i);
+            }else if(cantidad_restante_por_mover > 0){
+                nuevo_bloque = buscar_proximo_bloque_libre(i);
+                bitmap_marcar_bloque_ocupado(nuevo_bloque);
+                bitmap_marcar_bloque_libre(i);
+                cantidad_restante_por_mover--;
+
+                
+            }
+           
+            
 
             // Actualizar el bloque inicial del FCB correspondiente
             for (int k = 0; k < list_size(lista_fcb); k++) {
@@ -600,4 +613,35 @@ void mover_bloques_adelante(t_list* lista_fcb, int posicion_inicial, int cantida
             }
         }
     }
+}
+
+int contar_bloques_ocupados_por_delante(int posicion_inicial,int bloques_ocupados_totales) {
+    int bloques_ocupados = 0;
+    
+
+    for (int i = posicion_inicial-1; i < BLOCK_COUNT; i++) {
+        if (bitarray_test_bit(bitmap->bitarray, i)) {
+            bloques_ocupados++;
+        }
+    }
+
+    return bloques_ocupados;
+}
+
+int min(int a, int b) {
+    return (a < b) ? a : b;
+}
+
+int buscar_proximo_bloque_libre(int posicion_inicial) {
+    int bloque_libre = -1;
+    int block_count = BLOCK_COUNT;
+
+    for (int i = posicion_inicial; i < block_count; i++) {
+        if (!bitarray_test_bit(bitmap->bitarray, i)) {
+            bloque_libre = i;
+            break;
+        }
+    }
+
+    return bloque_libre;
 }
