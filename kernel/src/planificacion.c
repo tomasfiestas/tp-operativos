@@ -1466,7 +1466,7 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 		agregar_recurso_a_pcb(pcb_bloqueado, recurso_recibido);
 		log_trace(kernel_logger,"Recursos asignados al proceso ", pcb_bloqueado->pid); 
 
-		agregar_a_ready(pcb);
+		
 		sacar_de_bloqueado(pcb_bloqueado);
 		if (algoritmo_plani == VRR){
 			agregar_a_cola_prioritaria(pcb_bloqueado);
@@ -1476,9 +1476,10 @@ void signal_recurso(t_pcb *pcb, char *recurso_recibido){
 
 	}else{
 		log_trace(kernel_logger,"No hay procesos en cola de bloqueados para el recurso %s", recurso_recibido);
-		agregar_a_ready(pcb);
 	}
-
+		if ( pcb->estado != EXIT){
+			agregar_a_ready(pcb);
+		}
 
 	
 }
