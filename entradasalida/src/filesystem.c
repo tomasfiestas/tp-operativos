@@ -521,12 +521,11 @@ int agrandar_fcb(t_fcb* fcb, int tamanio_deseado, int pid) {
             // desde el principio del molesto de adelante, 
             // la cantidad de espacio que necesito
             mover_bloques_adelante(lista_fcb, bloque_inicial_del_fcb + bloques_totales_del_fcb, bloques_necesarios);
-
+            bitmap_marcar_bloques_ocupados(bloque_inicial_del_fcb, bloques_necesarios+bloque_inicial_del_fcb);
         } 
 
         // finalmente, agrandamos el fcb
-        fcb->TAMANIO_ARCHIVO = tamanio_deseado;
-        bitmap_marcar_bloques_ocupados(bloque_inicial_del_fcb, bloques_necesarios+bloque_inicial_del_fcb);
+        fcb->TAMANIO_ARCHIVO = tamanio_deseado;        
         crear_archivo_metadata(fcb);
 
         return 1; 
