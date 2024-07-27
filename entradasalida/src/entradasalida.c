@@ -319,8 +319,9 @@ void inicializar_interfaces(char* path){
         marcar_bloques_libres(nombre_archivo_a_borrar);
         eliminar_archivo_metadata(nombre_archivo_a_borrar);
 
-        free(nombre_archivo_a_borrar);
+
         log_info(io_logger, "PID: %d - Eliminar Archivo: %s",pid,nombre_archivo_a_borrar);
+        free(nombre_archivo_a_borrar);
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_DELETE");
         
         

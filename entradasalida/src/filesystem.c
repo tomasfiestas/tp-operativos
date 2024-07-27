@@ -85,7 +85,7 @@ void bitmap_marcar_bloque_libre(int numero_bloque)
 {
     bitarray_clean_bit(bitmap->bitarray, numero_bloque);
     int i = msync(bitmap->direccion, bitmap->tamanio, MS_SYNC);
-    log_info(log_fs, "Se liberó el bloque N° %d", numero_bloque);
+    log_trace(log_fs, "Se liberó el bloque N° %d", numero_bloque);
     if( i == -1){
         log_error(log_fs, "Error al sincronizar los cambios");
     }
