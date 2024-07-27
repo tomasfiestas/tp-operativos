@@ -331,6 +331,7 @@ void inicializar_interfaces(char* path){
 
         usleep(tiempo_fs* 1000);
 
+
         char* nombre_archivo_a_truncar = extraer_string_del_buffer(buffer_recibido);
         int tamanio_a_truncar = atoi(extraer_string_del_buffer(buffer_recibido)); //int o uint????
         t_fcb* fcb_truncar = leer_metadata(nombre_archivo_a_truncar);
