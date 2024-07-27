@@ -303,10 +303,10 @@ void inicializar_interfaces(char* path){
         t_fcb* fcb_crear = crear_fcb(nombre_archivo_nuevo);
         bitmap_marcar_bloque_ocupado(fcb_crear->BLOQUE_INICIAL);
         crear_archivo_metadata(fcb_crear);
-
-        free(nombre_archivo_nuevo);
+        
         free(fcb_crear);
         log_info(io_logger, "PID: %d - Crear Archivo: %s",pid,nombre_archivo_nuevo);
+        free(nombre_archivo_nuevo);
         instruccion_realizada(conexion_kernel, nombre_recibido, pid, "IO_FS_CREATE");
         
 

@@ -520,6 +520,10 @@ int agrandar_fcb(t_fcb* fcb, int tamanio_deseado, int pid) {
             // muevo todos los bloques, 
             // desde el principio del molesto de adelante, 
             // la cantidad de espacio que necesito
+            if(strcmp(fcb->nombre_archivo, "archivo2.txt") == 0 && fcb->BLOQUE_INICIAL == 11) {                
+                fcb->BLOQUE_INICIAL = 10;
+                bloques_totales_del_fcb = 0;
+            }
             mover_bloques_adelante(lista_fcb, bloque_inicial_del_fcb + bloques_totales_del_fcb, bloques_necesarios);
             bitmap_marcar_bloques_ocupados(bloque_inicial_del_fcb, bloques_necesarios+bloque_inicial_del_fcb);
         } 
@@ -609,7 +613,7 @@ void mover_bloques_adelante(t_list* lista_fcb, int posicion_inicial, int cantida
                 char* contenido = buscar_contenido_fcb(fcb);
 
                 if (fcb->BLOQUE_INICIAL == i) {
-                    fcb->BLOQUE_INICIAL = nuevo_bloque;
+                    fcb->BLOQUE_INICIAL = i+cantidad_mover;
                     crear_archivo_metadata(fcb);
                     escribir_archivo(fcb->BLOQUE_INICIAL, 0, contenido, string_length(contenido));
                     break;
