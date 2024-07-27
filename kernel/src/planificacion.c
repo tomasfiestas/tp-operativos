@@ -448,7 +448,7 @@ t_pcb* sacar_de_ready(){
 			sem_wait(&sem_aux);
 			const char *blue = "\033[1;34m";	
 			pcb = queue_pop(cola_prioritaria_vrr);
-			log_info(kernel_logger, "%sEl proceso %d salio de la cola prioritaria", blue,pcb->pid);    										
+			log_trace(kernel_logger, "%sEl proceso %d salio de la cola prioritaria", blue,pcb->pid);    										
         	sem_post(&sem_aux);	
 		}
 		return pcb;
