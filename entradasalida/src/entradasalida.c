@@ -286,7 +286,7 @@ void inicializar_interfaces(char* path){
         char* string_para_imprimir_con_el_cosito_del_final = malloc(tamanio_a_leer + 1);
         memcpy(string_para_imprimir_con_el_cosito_del_final, dato_a_leer, tamanio_a_leer);
         string_para_imprimir_con_el_cosito_del_final[tamanio_a_leer] = '\0';
-        log_info(io_logger,"Dato leido: %s",string_para_imprimir_con_el_cosito_del_final); //Es necesario el tamanio?
+        log_info(io_logger,"Dato leido: %s - PID: %i ",string_para_imprimir_con_el_cosito_del_final, pid); //Es necesario el tamanio?
         free(string_para_imprimir_con_el_cosito_del_final);
 
         list_destroy(direcciones_a_leer);  //VERIFICAR PARA LIBERAR MEMORIA BIEN !!!
