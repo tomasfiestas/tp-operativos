@@ -100,7 +100,7 @@ void bitmap_marcar_bloques_libres(int bloque_inicial, int bloque_final){
 
 void bitmap_marcar_bloque_ocupado(int numero_bloque){
     bitarray_set_bit(bitmap->bitarray, numero_bloque);
-    log_info(log_fs, "Se marco el bloque N° %d como ocupado", numero_bloque);
+    log_trace(log_fs, "Se marco el bloque N° %d como ocupado", numero_bloque);
     int i = msync(bitmap->direccion, bitmap->tamanio, MS_SYNC);
     if( i == -1){
         log_error(log_fs, "Error al sincronizar los cambios");  
