@@ -7,7 +7,8 @@
 #include <utils/shared.h>
 #include <cpu.h>*/
 #include <gestor_cpu.h>
-
+#include <stdint.h>
+#include <inttypes.h>
 
 
 

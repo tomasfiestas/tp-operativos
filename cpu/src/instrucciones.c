@@ -372,7 +372,7 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             const char* registro_direccion_mov_in = (const char*) list_get(instruccion.parametros, 1);
             
             int dir_logica;
-            int bytes_a_leer = calcular_bytes_a_leer(registro_direccion_mov_in);
+            int bytes_a_leer = calcular_bytes_a_leer(registro_datos_mov_in);
             if(bytes_a_leer==1){
              dir_logica= *(uint8_t*) obtener_puntero_al_registro(contexto, registro_direccion_mov_in);    
             }else{
@@ -388,30 +388,28 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                 return;
             }
             
-            
+            t_direccion_fisica_io* dir_imprimir = list_get(direccion_fisica, 0);
             if(bytes_a_leer == 1){ 
                 uint8_t valor_leido = *(uint8_t*)leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
                 asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
-                log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %u", contexto->pid, direccion_fisica, valor_leido);
-                if (valor_leido == NULL) {
-                    log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
-                    return;
-                }  
+                
+                log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, dir_imprimir->df, valor_leido);                
+                
                 //asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
                 //log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
             }
             else if(bytes_a_leer == 4){             
             uint32_t valor_leido = *(uint32_t*)leer_de_memoria(direccion_fisica,bytes_a_leer, contexto->pid);
             asignar_valor_a_registro(contexto,registro_datos_mov_in, valor_leido);   //TODO REVISAR
-            log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, direccion_fisica, valor_leido);
+            log_info(cpu_logger, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", contexto->pid, dir_imprimir->df, valor_leido);
             if (valor_leido == NULL) {
-                log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, direccion_fisica);
+                log_error(cpu_logger, "PID: %d - Error al leer memoria en la dirección física: %d", contexto->pid, dir_imprimir->df);
                 return;
             }  
             }         
             
             list_destroy_and_destroy_elements(instruccion.parametros, free);
-
+            list_destroy_and_destroy_elements(direccion_fisica, free);
             
             break;
     case MOV_OUT:                                                                            //MOV_OUT (Registro Direccion, Registro Datos)
@@ -431,20 +429,25 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
             
             void* valor_out = obtener_puntero_al_registro(contexto, registro_datos);
             
-            log_info(cpu_logger, "PID: %d - Ejecutando: MOV_OUT - %s %s", contexto->pid, registro_direccion, registro_datos);
-            log_info(cpu_logger, "PID: %d - ESCRIBIR - Dirección Fisica: %d - Valor: %d", contexto->pid, direccion_logica, *(uint8_t*)valor_out);
+            log_info(cpu_logger, "PID: %d - Ejecutando: MOV_OUT - %s %s", contexto->pid, registro_direccion, registro_datos);            
             t_list* lista_df = traducir_direccion_mmu(direccion_logica,contexto, bytes_a_escribir);           
 
-
+            t_direccion_fisica_io* direccion_fisica_out = list_get(lista_df, 0);
             if (list_size(lista_df) == 0) {
                 log_error(cpu_logger, "Error al traducir la dirección lógica: %d", direccion_logica);
                 break;
             }
             
             escribir_a_memoria(lista_df,bytes_a_escribir, contexto, valor_out);
+            if(bytes_a_escribir == 1){
+                log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d", ctx_global->pid, direccion_fisica_out->df, *(uint8_t*)valor_out);
+            }else{
+                log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d", ctx_global->pid, direccion_fisica_out->df, *(uint32_t*)valor_out);
+            }
+            
             
             list_destroy_and_destroy_elements(instruccion.parametros, free);
-            list_destroy_and_destroy_elements(lista_df, free);
+            list_destroy_and_destroy_elements(lista_df, free);            
             break;
 
     case RESIZE:
@@ -767,11 +770,20 @@ void execute(t_instruccion instruccion, t_pcb* contexto){ //Ejecuta instrucción
                     
             
             t_list* lista_direccion_fisica_destino_copy = traducir_direccion_mmu(direccion_logica_destino, contexto,size);
+
+            t_direccion_fisica_io* direccion_fisica_copy = list_get(lista_direccion_fisica_destino_copy, 0);
             
-            escribir_a_memoria(lista_direccion_fisica_destino_copy, size, contexto, valor_leido_de_memoria);            
-            log_info(cpu_logger, "PID: %d -Ejecutando: <COPY_STRING> - <%d %d>", contexto->pid, direccion_logica_destino, direccion_logica_origen);            
+            log_info(cpu_logger, "PID: %d -Ejecutando: <COPY_STRING> - <%d %d>", contexto->pid, direccion_logica_destino, direccion_logica_origen);  
+            escribir_a_memoria(lista_direccion_fisica_destino_copy, size, contexto, valor_leido_de_memoria);  
+
+
+            char* valor_leido_de_memoria_string = malloc(size+1);      
+            memcpy(valor_leido_de_memoria_string,valor_leido_de_memoria,size); 
+            valor_leido_de_memoria_string[size] = '\0'; //Agrego el \0 al final del string               
+            log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s", ctx_global->pid, direccion_fisica_copy->df, valor_leido_de_memoria_string);          
             list_destroy_and_destroy_elements(instruccion.parametros, free);
             list_destroy_and_destroy_elements(lista_direccion_fisica_origen,free);
+            free(valor_leido_de_memoria);
             break;
     
     case EXIT: 
@@ -961,11 +973,11 @@ void escribir_a_memoria(t_list* lista_paginas, int size,t_pcb* pcb, void* valor)
 
     destruir_paquete(paquete); 
 
-    char* valor_parcial_escrito_para_imprimir = malloc(tamano_a_escribir + 1);
+    /*char* valor_parcial_escrito_para_imprimir = malloc(tamano_a_escribir + 1);
     memcpy(valor_parcial_escrito_para_imprimir, valor + bytes_grabados, tamano_a_escribir);
     valor_parcial_escrito_para_imprimir[tamano_a_escribir] = '\0';
-    log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s", pcb->pid, direccion_fisica->df, valor_parcial_escrito_para_imprimir);
-    free(valor_parcial_escrito_para_imprimir);
+    log_info(cpu_logger, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s", pcb->pid, direccion_fisica->df, (char*)valor_parcial_escrito_para_imprimir);
+    free(valor_parcial_escrito_para_imprimir);*/
 
     bytes_grabados += tamano_a_escribir;
     size -= tamano_a_escribir;
